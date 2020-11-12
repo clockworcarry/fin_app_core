@@ -1,3 +1,4 @@
 *.vscode*
 *_logs
 *_config.json
+*__pycache__*

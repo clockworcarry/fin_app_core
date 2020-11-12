@@ -8,14 +8,11 @@ import os
 from pathlib import Path
 from io import StringIO
 from sqlalchemy import create_engine, select, insert
-from db_models.models import t_company
-#import Fin_App_Core_Db_Models.Models
-
-print(sys.path)
-sys.path.insert(1, '/path/to/application/app/folder')
+from db_models import models
+from py_common_utils_gh.os_common_utils import test_import
+from fin_app_core import setup
 
 script_location = Path(__file__).absolute().parent
-print(script_location)
 fundamentals_config_location = script_location / "fundamentals_import_config.json"
 
 try:
@@ -25,13 +22,11 @@ try:
         file_content_raw = f.read()
         config_json_content = json.loads(file_content_raw)
 
-        root_logger= logging.getLogger()
-        root_logger.setLevel(logging.CRITICAL)
         date_now = datetime.now()
         date_now_format_str = date_now.strftime("%Y_%m_%d") + ".log"
-        log_folder_path_relative = script_location / config_json_content["logFolderPath"]
-        if not os.path.exists(log_folder_path_relative):
+        if not os.path.exists(config_json_content["logFolderPath"]):
             os.makedirs(log_folder_path_relative)
+        
         handler = logging.FileHandler(log_folder_path_relative / date_now_format_str, "a", "utf-8")
         formatter = logging.Formatter("%(asctime)s %(message)s")
         handler.setFormatter(formatter)
@@ -50,16 +45,19 @@ try:
                 url += query_param["key"] + "=" + query_param["value"] + "&"
             url += "api_key" + "=" + src["apiKey"]
         
-        r = requests.get(url)
+        '''r = requests.get(url)
         if r.status_code != 200:
-            logging.critical("Vendor %s returned http %s while trying to import companies.", src["vendor"], r.status_code)
+            logging.critical("Vendor %s returned http %s while trying to import companies.", src["vendor"], r.status_code)'''
 
         engine = create_engine("postgresql://postgres:navo1234@localhost:5432/Fin_App_Core_Db", echo=True)
         conn = engine.connect()
-        supported_exchanges = select([exchange])
+        supported_exchanges_select = select([t_exchange])
+        supported_exchanges_list = conn.execute(supported_exchanges_select)
         df = pd.read_csv(StringIO(r.text))
         for idx, row in df.iterrows():
-            pass
+            if next((x for x in supported_exchanges_list if x["name_code"] == row["exchange"]), None) == None:
+                pass
+
         
         
 except FileNotFoundError as file_err:
