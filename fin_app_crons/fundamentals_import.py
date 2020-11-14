@@ -12,44 +12,53 @@ from db_models import models
 from py_common_utils_gh.os_common_utils import test_import
 from fin_app_core import setup
 
-script_location = Path(__file__).absolute().parent
-fundamentals_config_location = script_location / "fundamentals_import_config.json"
+#script_location = Path(__file__).absolute().parent
+#fundamentals_config_location = script_location / 'fundamentals_import_config.json'
+
+fundamentals_config_location = 'fundamentals_import_config.json'
 
 try:
     config_json_content = {}
     
-    with open(fundamentals_config_location, "r") as f:
+    with open(fundamentals_config_location, 'r') as f:
         file_content_raw = f.read()
         config_json_content = json.loads(file_content_raw)
 
         date_now = datetime.now()
-        date_now_format_str = date_now.strftime("%Y_%m_%d") + ".log"
-        if not os.path.exists(config_json_content["logFolderPath"]):
+        date_now_format_str = date_now.strftime('%Y_%m_%d') + .log'
+        if not os.path.exists(config_json_content['logFolderPath']):
             os.makedirs(log_folder_path_relative)
         
-        handler = logging.FileHandler(log_folder_path_relative / date_now_format_str, "a", "utf-8")
+        handler = logging.FileHandler(log_folder_path_relative / date_now_format_str, 'a', 'utf-8')
         formatter = logging.Formatter("%(asctime)s %(message)s")
         handler.setFormatter(formatter)
         root_logger.addHandler(handler)
     
-    for src in config_json_content["sources"]:
-        filtered_out_it = next((x for x in config_json_content["sourcesFilteredOut"] if x == src["vendor"]), None)
+    for src in config_json_content['sources']:
+        filtered_out_it = next((x for x in config_json_content['sourcesFilteredOut'] if x == src['vendor']), None)
         if filtered_out_it != None:
-            filtered_in_it = next((x for x in config_json_content["sourcesFilteredIn"] if x == src["vendor"]), None)
+            filtered_in_it = next((x for x in config_json_content['sourcesFilteredIn'] if x == src['vendor']), None)
             if filtered_in_it == None:
                 continue
         
-        if src["importCompanies"]:
-            url = src["base_url"] + src["companies_import_params"]["endpoint"] + "." + src["companies_import_params"]["format"] + "?"
-            for query_param in src["companies_import_params"]["params"]:
-                url += query_param["key"] + "=" + query_param["value"] + "&"
-            url += "api_key" + "=" + src["apiKey"]
+        if src['importCompanies']:
+            url = src['base_url'] + src['companies_import_params']['endpoint'] + '.' + src['companies_import_params']['format'] + '?'
+            for query_param in src['companies_import_params']['params']:
+                url += query_param['key'] + '=' + query_param['value'] + '&'
+            url += 'api_key' + ''=' + src['apiKey']
         
         '''r = requests.get(url)
         if r.status_code != 200:
             logging.critical("Vendor %s returned http %s while trying to import companies.", src["vendor"], r.status_code)'''
 
-        engine = create_engine("postgresql://postgres:navo1234@localhost:5432/Fin_App_Core_Db", echo=True)
+        engine = create_engine(config_json_content['dbConnString'], echo=True)
+        Session = sessionmaker(bind=engine)
+        session = Session()
+
+        existing_companies = session.query('company').all()
+
+        
+
         conn = engine.connect()
         supported_exchanges_select = select([t_exchange])
         supported_exchanges_list = conn.execute(supported_exchanges_select)

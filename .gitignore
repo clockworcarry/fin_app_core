@@ -2,3 +2,4 @@
 *_logs
 *_config.json
 *__pycache__*
+*.csv*

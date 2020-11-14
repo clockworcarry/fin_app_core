@@ -1,4 +1,13 @@
 from abc import ABC, ABCMeta, abstractmethod
 
 class Vendor(ABC):
-    """ Base class for any type of data vendor. Acts as an interface. """
+    
+    @abstractmethod
+    def get_all_companies(**kwargs):
+        """[summary]
+
+        Raises:
+            NotImplementedError: Base class method
+        """
+        raise NotImplementedError("get_all_companies not implemented in base class.")
+
