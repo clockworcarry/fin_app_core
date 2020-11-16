@@ -1,21 +1,14 @@
-import sys
-import json
-import requests
+from py_common_utils_gh.utils import setup_logger
+from db_models.models import *
+from data_vendors.sharadar.sharadar import Sharadar
+from data_vendors.factory import get_vendor_instance
+
 import pandas as pd
-import logging
-from datetime import datetime
-import os
-from pathlib import Path
-from io import StringIO
-from sqlalchemy import create_engine, select, insert
-from db_models import models
-from py_common_utils_gh.os_common_utils import test_import
-from fin_app_core import setup
+from sqlalchemy import create_engine, select, insert, exists
 
-#script_location = Path(__file__).absolute().parent
-#fundamentals_config_location = script_location / 'fundamentals_import_config.json'
+import sys, json, requests, logging, os_common_utils, io
 
-fundamentals_config_location = 'fundamentals_import_config.json'
+fundamentals_config_location = os.path.join(sys.path[0], 'fundamentals_import_config.json')
 
 try:
     config_json_content = {}
@@ -24,51 +17,67 @@ try:
         file_content_raw = f.read()
         config_json_content = json.loads(file_content_raw)
 
-        date_now = datetime.now()
-        date_now_format_str = date_now.strftime('%Y_%m_%d') + .log'
-        if not os.path.exists(config_json_content['logFolderPath']):
-            os.makedirs(log_folder_path_relative)
-        
-        handler = logging.FileHandler(log_folder_path_relative / date_now_format_str, 'a', 'utf-8')
-        formatter = logging.Formatter("%(asctime)s %(message)s")
-        handler.setFormatter(formatter)
-        root_logger.addHandler(handler)
+        logger = setup_logger('fund_cron_logger', config_json_content['logFilePath'])
     
-    for src in config_json_content['sources']:
-        filtered_out_it = next((x for x in config_json_content['sourcesFilteredOut'] if x == src['vendor']), None)
-        if filtered_out_it != None:
-            filtered_in_it = next((x for x in config_json_content['sourcesFilteredIn'] if x == src['vendor']), None)
-            if filtered_in_it == None:
-                continue
-        
-        if src['importCompanies']:
-            url = src['base_url'] + src['companies_import_params']['endpoint'] + '.' + src['companies_import_params']['format'] + '?'
-            for query_param in src['companies_import_params']['params']:
-                url += query_param['key'] + '=' + query_param['value'] + '&'
-            url += 'api_key' + ''=' + src['apiKey']
-        
-        '''r = requests.get(url)
-        if r.status_code != 200:
-            logging.critical("Vendor %s returned http %s while trying to import companies.", src["vendor"], r.status_code)'''
+        for src in config_json_content['sources']:
+            filtered_out_it = next((x for x in config_json_content['sourcesFilteredOut'] if x == src['vendor']), None)
+            if filtered_out_it != None:
+                filtered_in_it = next((x for x in config_json_content['sourcesFilteredIn'] if x == src['vendor']), None)
+                if filtered_in_it == None:
+                    continue
+            
+            sharadar = get_vendor_instance(src['vendor'])
 
-        engine = create_engine(config_json_content['dbConnString'], echo=True)
-        Session = sessionmaker(bind=engine)
-        session = Session()
+            if src['importCompanies']:
+                engine = create_engine(config_json_content['dbConnString'], echo=True)
+                with engine.connect() as connection:
+                    input_companies_df = sharadar.get_all_companies()
 
-        existing_companies = session.query('company').all()
+                    Session = sessionmaker(bind=engine)
+                    session = Session()  
 
-        
+                    unknown_exchanges = []
+                    unknown_sectors = []
 
-        conn = engine.connect()
-        supported_exchanges_select = select([t_exchange])
-        supported_exchanges_list = conn.execute(supported_exchanges_select)
-        df = pd.read_csv(StringIO(r.text))
-        for idx, row in df.iterrows():
-            if next((x for x in supported_exchanges_list if x["name_code"] == row["exchange"]), None) == None:
-                pass
+                    known exchanges = []
+                    known_sectors = []
+                    
+                    unique_exchange_serie = input_companies_df['exchange'].unique()
+                    for elem in unique_exchange_serie:
+                        if Session.query(exists().where(Exchange.name_code==elem)).scalar() is False:
+                            logger.info("Unknown exchange detected: " + elem)
+                            unknown_exchanges.append(elem)
+                    
+                    unique_sector_serie = input_companies_df['sector'].unique()
+                    for elem in unique_sector_serie:
+                        if Session.query(exists().where(Sector.name==elem)).scalar() is False:
+                            logger.info("Unknown sector detected: " + elem)
+                            unknown_sectors.append(elem)
 
-        
-        
+                    db_existing_tickers_df = pd.read_sql_query('SELECT ticker FROM company', engine) #load all existing company tickers in db to a dataframe
+                    #create a new dataframe that will only contain companies that are not already in the db
+                    df_diff = input_companies_df.merge(db_existing_tickers_df, how='left', indicator=True).loc[lambda x: x['_merged']!=='left_only'] 
+                    #save every new company in the db
+                    for idx, row in df_diff.iterrows():
+                        #get sector_id for company to init new company with it
+                        tbl = Sector.__table__
+                        sector_res = connection.execute(select([tbl.id, tbl.tbl.name]))
+
+                        company = Company(sector_id='')
+                    
+
+
+            
+
+            conn = engine.connect([
+            supported_exchanges_select = select([t_exchange])
+            supported_exchanges_list = conn.execute(supported_exchanges_select)
+            df = pd.read_csv(StringIO(r.text))
+            for idx, row in df.iterrows():
+                if next((x for x in supported_exchanges_list if x["name_code"] == row["exchange"]), None) == None:
+                    pass
+
+             
 except FileNotFoundError as file_err:
     logging.critical(str(file_err))
 except KeyError as key_err:
