@@ -1,5 +1,5 @@
 from data_vendors.vendor import Vendor
-from py_common_utils_gh.utils import setup_logger
+from py_common_utils_gh.os_common_utils import setup_logger
 
 import pandas as pd
 

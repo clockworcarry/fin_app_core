@@ -24,7 +24,8 @@ class Company(Base):
     sector_id = Column(ForeignKey('sector.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False)
     ticker = Column(String(5), nullable=False, unique=True)
     name = Column(String(60), unique=True)
-    locked = Column(Boolean, nullable=False, index=True, server_default=text("false"))
+    locked = Column(Boolean, nullable=False, server_default=text("false"))
+    delisted = Column(Boolean, nullable=False, index=True, server_default=text("false"))
 
     exchanges = relationship('Exchange', secondary='company_exchange_relation')
 
