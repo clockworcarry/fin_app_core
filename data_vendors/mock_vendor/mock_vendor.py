@@ -7,9 +7,17 @@ import requests, io, os, sys, json
 
 class MockVendor(Vendor):
 
+    def __init__(self, **kwargs):
+        if kwargs['config_file_path'] is None:
+            raise TypeError("Missing mandator log_file_path argument.")
+
+        with open(kwargs['config_file_path'], 'r') as f:
+            config_raw = f.read()
+            self.config = json.loads(config_raw)
+
     def get_all_companies(self, **kwargs):
         #absolute_path = os.path.join(sys.path[0], 'companies.csv')
-        df = pd.read_csv('/media/ext_hdd/experiments/database/companies.csv')
+        df = pd.read_csv(self.config['company_file_path'])
         return df[['ticker', 'name', 'exchange', 'isdelisted', 'famaindustry', 'sector', 'industry', 'location']]
 
 if __name__ == "__main__":

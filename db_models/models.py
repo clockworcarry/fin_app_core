@@ -35,6 +35,7 @@ class CountryInfo(Base):
 
     id = Column(SmallInteger, primary_key=True)
     name = Column(String(60), nullable=False, unique=True)
+    name_code = Column(String(10), nullable=False, unique=True)
     currency = Column(String(10), nullable=False)
 
 class StateInfo(Base):
@@ -70,6 +71,7 @@ class Industry(Base):
     id = Column(SmallInteger, primary_key=True)
     sector_id = Column(ForeignKey('sector.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False)
     name = Column(String(60), nullable=False, unique=True)
+    name_code = Column(String(20), nullable=False, unique=True)
     locked = Column(Boolean, nullable=False, server_default=text("false"))
 
 class SubIndustry(Base):
