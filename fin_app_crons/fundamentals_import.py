@@ -64,11 +64,8 @@ def exec_import(config_file_path):
                             if session.query(exists().where(Industry.name==elem)).scalar() is False:
                                 logger.warning("Unknown industry detected: " + elem)
 
-                        db_existing_tickers_df = pd.read_sql_query('SELECT ticker FROM company', engine) #load all existing company tickers in db to a dataframe
-                        #create a new dataframe that will only contain companies that are not already in the db
-                        df_diff = input_companies_df.merge(db_existing_tickers_df, how='left', indicator=True).loc[lambda x: x['_merge']=='left_only'] 
-                        #save every new company in the db
-                        for idx, row in df_diff.iterrows():
+                        #save every new company in the db and update the ones that are not locked in the db
+                        for idx, row in input_companies_df.iterrows():
                             row = row.fillna('Missing')
                             #get sector_id for company to init new company with it
                             tbl = Sector.__table__
@@ -89,12 +86,20 @@ def exec_import(config_file_path):
                                     else:
                                         logger.critical("Unknown value in delisted column: " + row['isdelisted'])
                                         continue
-                                    company = Company(sector_id=sector_res['id'], ticker=row['ticker'], name=row['name'], delisted=row['isdelisted'])
-                                    session.add(company)
-                                    session.flush() #force company id creation
-                                    stmt = t_company_exchange_relation.insert()
-                                    session.commit()
-                                    connection.execute(stmt, company_id=company.id, exchange_id=exch_res.id) #insert company and exch id in the relation table
+
+                                    db_company = session.query(Company).filter(Company.ticker == row['ticker']).first()
+                                    if db_company is None: #insert
+                                        company = Company(sector_id=sector_res['id'], ticker=row['ticker'], name=row['name'], delisted=row['isdelisted'])
+                                        session.add(company)
+                                        session.flush() #force company id creation
+                                        stmt = t_company_exchange_relation.insert()
+                                        session.commit()
+                                        connection.execute(stmt, company_id=company.id, exchange_id=exch_res.id) #insert company and exch id in the relation table
+                                    elif not db_company.locked: #update
+                                        db_company.sector_id = sector_res['id']
+                                        db_company.name = row['name']
+                                        db_company.delisted = row['isdelisted']
+                                        logger.info("The following ticker was updated in the company table: " + db_company.ticker)
                         
                         session.commit()
         

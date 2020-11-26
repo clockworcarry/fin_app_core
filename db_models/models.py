@@ -1,7 +1,8 @@
 # coding: utf-8
-from sqlalchemy import Boolean, Column, ForeignKey, Integer, SmallInteger, String, Table, text, MetaData, create_engine
-from sqlalchemy.orm import relationship
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy import *
+from sqlalchemy.orm import *
+from sqlalchemy.ext.declarative import *
+from sqlalchemy.schema import *
 
 import sys
 import logging
@@ -26,6 +27,7 @@ class Company(Base):
     name = Column(String(60), unique=True)
     locked = Column(Boolean, nullable=False, server_default=text("false"))
     delisted = Column(Boolean, nullable=False, index=True, server_default=text("false"))
+    update_stamp = Column(DateTime(timezone=True), nullable=True, server_default=FetchedValue())
 
     exchanges = relationship('Exchange', secondary='company_exchange_relation')
 
