@@ -9,7 +9,7 @@ class MockVendor(Vendor):
 
     def __init__(self, **kwargs):
         if kwargs['config_file_path'] is None:
-            raise TypeError("Missing mandator log_file_path argument.")
+            raise TypeError("Missing mandatory log_file_path argument.")
 
         with open(kwargs['config_file_path'], 'r') as f:
             config_raw = f.read()

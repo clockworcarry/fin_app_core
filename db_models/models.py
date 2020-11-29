@@ -27,9 +27,7 @@ class Company(Base):
     name = Column(String(60), unique=True)
     locked = Column(Boolean, nullable=False, server_default=text("false"))
     delisted = Column(Boolean, nullable=False, index=True, server_default=text("false"))
-    update_stamp = Column(DateTime(timezone=True), nullable=True, server_default=FetchedValue())
-
-    exchanges = relationship('Exchange', secondary='company_exchange_relation')
+    update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue())
 
 
 class CountryInfo(Base):
@@ -39,6 +37,7 @@ class CountryInfo(Base):
     name = Column(String(60), nullable=False, unique=True)
     name_code = Column(String(10), nullable=False, unique=True)
     currency = Column(String(10), nullable=False)
+    update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue())
 
 class StateInfo(Base):
     __tablename__ = 'state_info'
@@ -46,6 +45,7 @@ class StateInfo(Base):
     id = Column(Integer, primary_key=True)
     country_info_id = Column(ForeignKey('country_info.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False)
     name = Column(String(60), nullable=False, unique=True)
+    update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue())
 
 
 class Sector(Base):
@@ -55,6 +55,7 @@ class Sector(Base):
     name_code = Column(String(10), nullable=False)
     name = Column(String(60), nullable=False)
     locked = Column(Boolean, nullable=False, server_default=text("false"))
+    update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue())
 
 
 class Exchange(Base):
@@ -64,8 +65,8 @@ class Exchange(Base):
     country_info_id = Column(ForeignKey('country_info.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False)
     name_code = Column(String(10), nullable=False, unique=True)
     name = Column(String(60), unique=True)
+    update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue())
 
-    country_info = relationship('CountryInfo')
 
 class Industry(Base):
     __tablename__ = 'industry'
@@ -75,6 +76,7 @@ class Industry(Base):
     name = Column(String(60), nullable=False, unique=True)
     name_code = Column(String(20), nullable=False, unique=True)
     locked = Column(Boolean, nullable=False, server_default=text("false"))
+    update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue())
 
 class SubIndustry(Base):
     __tablename__ = 'sub_industry'
@@ -83,12 +85,21 @@ class SubIndustry(Base):
     industry_id = Column(ForeignKey('industry.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False)
     name = Column(String(60), nullable=False, unique=True)
     locked = Column(Boolean, nullable=False, server_default=text("false"))
+    update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue())
 
 
 t_company_exchange_relation = Table(
     'company_exchange_relation', meta,
     Column('company_id', ForeignKey('company.id', ondelete='CASCADE', onupdate='CASCADE'), primary_key=True, nullable=False),
-    Column('exchange_id', ForeignKey('exchange.id', ondelete='CASCADE', onupdate='CASCADE'), primary_key=True, nullable=False)
+    Column('exchange_id', ForeignKey('exchange.id', ondelete='CASCADE', onupdate='CASCADE'), primary_key=True, nullable=False),
+    Column('update_stamp', DateTime(timezone=True), nullable=False, server_default=FetchedValue())
+)
+
+t_company_sector_relation = Table(
+    'company_sector_relation', meta,
+    Column('company_id', ForeignKey('company.id', ondelete='CASCADE', onupdate='CASCADE'), primary_key=True, nullable=False),
+    Column('sector_id', ForeignKey('sector.id', ondelete='CASCADE', onupdate='CASCADE'), primary_key=True, nullable=False),
+    Column('update_stamp', DateTime(timezone=True), nullable=False, server_default=FetchedValue())
 )
 
 def create_database(args):

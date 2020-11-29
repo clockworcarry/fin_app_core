@@ -8,14 +8,16 @@ import requests, io, os, sys, json
 class Sharadar(Vendor):
     config = {}
 
-    def __init__(self, config_location):      
-        absolute_path = os.path.join(sys.path[0], config_location)
-        with open(absolute_path, 'r') as f:
+    def __init__(self, **kwargs):
+        if kwargs['config_file_path'] is None:
+            raise TypeError("Missing mandatory log_file_path argument.")
+
+        with open(kwargs['config_file_path'], 'r') as f:
             config_raw = f.read()
-            Sharadar.config = json.loads(config_raw)
+            self.config = json.loads(config_raw)
     
     def get_all_companies(self, **kwargs):
-        full_url = Sharadar.config['domainUrl'] + "/" + Sharadar.config['apiVersion'] + "/" + Sharadar.config['baseUrlExtension'] + "/" + Sharadar.config['tickerTableUrlExtension'] + "&" + "api_key=" + Sharadar.config['apiKey'] + "&qopts.export=true"
+        full_url = self.config['domainUrl'] + "/" + self.config['apiVersion'] + "/" + self.config['baseUrlExtension'] + "/" + self.config['tickerTableUrlExtension'] + "&" + "api_key=" + self.config['apiKey'] + "&qopts.export=true"
         
         r = requests.get(full_url)
         
