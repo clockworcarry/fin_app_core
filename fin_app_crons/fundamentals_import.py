@@ -1,6 +1,7 @@
 from py_common_utils_gh.os_common_utils import setup_logger, default_log_formatter
 from py_common_utils_gh.db_utils.db_utils import SqlAlchemySessionManager
-from db_models.models import *
+from db.models import *
+from db.db_utils import *
 from data_vendors.factory import get_vendor_instance
 
 import pandas as pd
@@ -8,7 +9,7 @@ import numpy as np
 from sqlalchemy import create_engine, select, insert, exists
 from sqlalchemy.orm import sessionmaker
 
-import sys, json, requests, logging, io, math
+import sys, json, requests, logging, io, math, traceback
 
 def exec_import(config, session):
     try:
@@ -76,33 +77,33 @@ def exec_import(config, session):
 
                             db_company = session.query(Company).filter(Company.ticker == row['ticker']).first()
                             if db_company is None: #insert
-                                company = Company(sector_id=sector_res['id'], ticker=row['ticker'], name=row['name'], delisted=row['isdelisted'])
-                                session.add(company)
-                                session.flush() #force company id creation
-                                stmt = t_company_exchange_relation.insert()
-                                session.connection().execute(stmt, company_id=company.id, exchange_id=exch_res.id) #insert company and exch id in the relation table
+                                if session.query(exists().where(Company.name==row['name'])).scalar() is False: #it is possible that there a company is listed with same name with different tickers ...
+                                    company = Company(ticker=row['ticker'], name=row['name'], delisted=row['isdelisted'])
+                                    session.add(company)
+                                    session.flush() #force company id creation
+                                    stmt = t_company_exchange_relation.insert()
+                                    session.connection().execute(stmt, company_id=company.id, exchange_id=exch_res.id) #insert company and exch id in the relation table
+                                    stmt = t_company_sector_relation.insert()
+                                    session.connection().execute(stmt, company_id=company.id, sector_id=sector_res.id) #insert company and sector id in the relation table
+                                else:
+                                    logger.warning("Company already exists: " + row['name'])
                             elif not db_company.locked: #update
                                 #only update if the data has changed
-                                if db_company.name != row['name'] or db_company.sector_id != sector_res['id'] or db_company.delisted != row['isdelisted']:
-                                    db_company.sector_id = sector_res['id']
+                                if db_company.name != row['name'] or db_company.delisted != row['isdelisted']:
                                     db_company.name = row['name']
                                     db_company.delisted = row['isdelisted']
                                     logger.info("The following ticker was updated in the company table: " + db_company.ticker)
         
+        add_cron_job_run_info_to_session(session, 'exc_imp_fund', "Fundamentals import exited successfully.", None, True)
+
         logger.info("Fundamentals import exited successfully.")
-             
-    except FileNotFoundError as file_err:
-        logger.critical(file_err, exc_info=True)
-    except KeyError as key_err:
-        logger.critical(key_err, exc_info=True)
-    except OSError as os_err:
-        logger.critical(os_err, exc_info=True)
-    except AttributeError as attr_err:
-        logger.critical(attr_err, exc_info=True)
-    except TypeError as type_err:
-        logger.critical(type_err, exc_info=True)
+    
     except Exception as gen_ex:
-        logger.critical(gen_ex, exc_info=True)
+        try:
+            logger.critical(gen_ex, exc_info=True)
+            add_cron_job_run_info_to_session(session, 'exc_imp_fund', "Exception", str.encode(traceback.format_exc()), False)
+        except Exception as gen_ex:
+            logger.critical(gen_ex, exc_info=True)
 
 
 if __name__ == "__main__":

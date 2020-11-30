@@ -7,7 +7,7 @@ import sys
 
 from alembic import context
 
-from db_models.models import Base
+from db.models import Base
 
 #from fin_app_core.db_models.models import Base
 
@@ -71,7 +71,8 @@ def run_migrations_online():
 
     with connectable.connect() as connection:
         context.configure(
-            connection=connection, target_metadata=target_metadata
+            connection=connection, target_metadata=target_metadata,
+            compare_type=True
         )
 
         with context.begin_transaction():

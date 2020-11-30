@@ -2,7 +2,7 @@
     "sourcesFilteredOut": ["*"],
     "sourcesFilteredIn": ["vendor_3"],
     "logFilePath": "/home/ghelie/fin_app/dev_logs/test_logs.log",
-    "dbConnString": "postgresql://postgres:navo1234@localhost:5432/Fin_App_Core_Db_Dev",
+    "dbConnString": "postgresql://postgres:navo1234@localhost:5432/Fin_App_Core_Db_Test",
     "sources": [
         {
             "importCompanies": true,

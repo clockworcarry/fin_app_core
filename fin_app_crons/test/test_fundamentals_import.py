@@ -1,5 +1,5 @@
 from fin_app_crons.fundamentals_import import exec_import
-from db_models.models import *
+from db.models import *
 from py_common_utils_gh.db_utils.db_utils import SqlAlchemySessionManager
 
 from sqlalchemy import *
@@ -14,7 +14,7 @@ def test_exec_filtered_out(caplog):
         config_json_content = json.loads(file_content_raw)
         exec_import(config_json_content, None)
         
-        assert len(caplog.records) == 3
+        assert len(caplog.records) == 4
         
         assert caplog.records[0].levelname == 'INFO'
         assert caplog.records[0].name == 'fund_cron_logger'
@@ -27,13 +27,17 @@ def test_exec_filtered_out(caplog):
         assert caplog.records[2].levelname == 'CRITICAL'
         assert caplog.records[2].name == 'fund_cron_logger'
         assert caplog.records[2].message == "'NoneType' object has no attribute 'get_all_companies'"
+
+        assert caplog.records[3].levelname == 'CRITICAL'
+        assert caplog.records[3].name == 'fund_cron_logger'
+        assert caplog.records[3].message == "Session cannot be none."
 
         caplog.clear()
 
         absolute_path = os.path.join(sys.path[0], 'filter_test_2.json')
         exec_import(config_json_content, None)
 
-        assert len(caplog.records) == 3
+        assert len(caplog.records) == 4
         
         assert caplog.records[0].levelname == 'INFO'
         assert caplog.records[0].name == 'fund_cron_logger'
@@ -46,6 +50,11 @@ def test_exec_filtered_out(caplog):
         assert caplog.records[2].levelname == 'CRITICAL'
         assert caplog.records[2].name == 'fund_cron_logger'
         assert caplog.records[2].message == "'NoneType' object has no attribute 'get_all_companies'"
+
+        assert caplog.records[3].levelname == 'CRITICAL'
+        assert caplog.records[3].name == 'fund_cron_logger'
+        assert caplog.records[3].message == "Session cannot be none."
+
 
 def cleanup_db(conn):
     try:
@@ -58,8 +67,47 @@ def cleanup_db(conn):
             conn.execute(stmt)
             stmt = delete(Industry.__table__)
             conn.execute(stmt)
+            stmt = delete(Log.__table__)
+            conn.execute(stmt)
+            stmt = delete(CronJobRun.__table__)
+            conn.execute(stmt)
     except Exception as gen_ex:
         print(str(gen_ex))
+
+
+def test_log_exceptions_to_db(caplog):
+    absolute_path = os.path.join(sys.path[0], 'filter_test.json')
+    with open(absolute_path, 'r') as f:
+        file_content_raw = f.read()
+        config_json_content = json.loads(file_content_raw)
+        del config_json_content['sources']
+
+        manager = SqlAlchemySessionManager()
+        with manager.session_scope(db_url=config_json_content['dbConnString'], template_name='basic') as session:
+            cleanup_db(session.connection())
+            session.commit()
+            exec_import(config_json_content, session)
+            
+            assert len(caplog.records) == 1
+            
+            assert caplog.records[0].levelname == 'CRITICAL'
+            assert caplog.records[0].name == 'fund_cron_logger'
+            assert caplog.records[0].message == "'sources'"
+
+            session.commit()
+            session.expire_all()
+
+            logs = session.query(Log).all()
+            assert len(logs) == 1
+            assert logs[0].log_type == 'exc_imp_fund'
+            assert logs[0].message == "Exception"
+            assert logs[0].data is not None
+            assert logs[0].update_stamp is not None
+            cron_job_runs = session.query(CronJobRun).all()
+            assert len(cron_job_runs) == 1
+            assert cron_job_runs[0].success == False
+            assert cron_job_runs[0].log_id == logs[0].id
+
 
 def test_empty_db_missing_records(caplog):
     absolute_path = os.path.join(sys.path[0], 'test_exec_import_empty_db.json')
@@ -72,6 +120,7 @@ def test_empty_db_missing_records(caplog):
         manager = SqlAlchemySessionManager()
         with manager.session_scope(db_url=config['dbConnString'], template_name='basic') as session:
             cleanup_db(session.connection())
+            session.commit()
             exec_import(config, session)
 
             assert len(caplog.records) == 18
@@ -148,6 +197,19 @@ def test_empty_db_missing_records(caplog):
             assert caplog.records[17].name == 'fund_cron_logger'
             assert caplog.records[17].message == "Fundamentals import exited successfully."
 
+            session.expire_all()
+
+            logs = session.query(Log).all()
+            assert len(logs) == 1
+            assert logs[0].log_type == 'exc_imp_fund'
+            assert logs[0].message == "Fundamentals import exited successfully."
+            assert logs[0].data is None
+            assert logs[0].update_stamp is not None
+            cron_job_runs = session.query(CronJobRun).all()
+            assert len(cron_job_runs) == 1
+            assert cron_job_runs[0].success == True
+            assert cron_job_runs[0].log_id == logs[0].id
+
         
         #cleanup
         with manager.session_scope(db_url=config['dbConnString'], template_name='new_session') as session:
@@ -175,8 +237,8 @@ def test_empty_db_missing_records(caplog):
             cons_cyc_sector = Sector(name_code='Cons_Cycl', name='Consumer Cyclical')
             session.add(cons_cyc_sector)
 
-            fin_services_sectors = Sector(name_code='Fin_Srv', name='Financial Services')
-            session.add(fin_services_sectors)
+            fin_services_sector = Sector(name_code='Fin_Srv', name='Financial Services')
+            session.add(fin_services_sector)
 
             missing_sector = Sector(name_code='Missing', name='Missing')
             session.add(missing_sector)
@@ -191,7 +253,7 @@ def test_empty_db_missing_records(caplog):
             restaurant_industry = Industry(sector_id=cons_cyc_sector.id, name='Restaurants', name_code='Restaurants')
             session.add(restaurant_industry)
 
-            reg_banking_industry = Industry(sector_id=fin_services_sectors.id, name='Banks - Regional', name_code='Reg_Banking')
+            reg_banking_industry = Industry(sector_id=fin_services_sector.id, name='Banks - Regional', name_code='Reg_Banking')
             session.add(reg_banking_industry)
 
             missing_industry = Industry(sector_id=missing_sector.id, name='Missing', name_code='Missing')
@@ -204,6 +266,12 @@ def test_empty_db_missing_records(caplog):
 
             #retry after adding previously missing records
             exec_import(config, session)
+
+            #force push to db
+            session.commit()
+
+            #to test it really is in db
+            session.expire_all()
 
             assert len(caplog.records) == 2
 
@@ -221,32 +289,72 @@ def test_empty_db_missing_records(caplog):
             assert db_companies[0].ticker == 'NWGN1'
             assert db_companies[0].name == 'Newgen Results Corp'
             assert db_companies[0].locked == False
-            assert db_companies[0].sector_id == tech_sector.id
             assert db_companies[0].delisted == True
 
             assert db_companies[1].ticker == 'BBUCQ'
             assert db_companies[1].name == 'Big Buck Brewery & Steakhouse Inc'
             assert db_companies[1].locked == False
-            assert db_companies[1].sector_id == cons_cyc_sector.id
             assert db_companies[1].delisted == False
 
             assert db_companies[2].ticker == 'AREM1'
             assert db_companies[2].name == 'Aremissoft Corp'
             assert db_companies[2].locked == False
-            assert db_companies[2].sector_id == missing_sector.id
             assert db_companies[2].delisted == True
 
             assert db_companies[3].ticker == 'GOVB'
             assert db_companies[3].name == 'Gouverneur Bancorp Inc'
             assert db_companies[3].locked == False
-            assert db_companies[3].sector_id == fin_services_sectors.id
             assert db_companies[3].delisted == False
 
             assert db_companies[4].ticker == 'WAVT'
             assert db_companies[4].name == 'Wave Technologies International Inc'
             assert db_companies[4].locked == False
-            assert db_companies[4].sector_id == tech_sector.id
             assert db_companies[4].delisted == True
+
+            
+            #verify proper relations were inserted
+            
+            stmt = select([t_company_exchange_relation]).order_by(t_company_exchange_relation.c.company_id.asc())
+            res = session.connection().execute(stmt).fetchall()
+            assert len(res) == 5
+            assert res[0].company_id == db_companies[0].id
+            assert res[0].exchange_id == missing_exch.id
+            assert res[1].company_id == db_companies[1].id
+            assert res[1].exchange_id == otc_exch.id
+            assert res[2].company_id == db_companies[2].id
+            assert res[2].exchange_id == nasdaq_exch.id
+            assert res[3].company_id == db_companies[3].id
+            assert res[3].exchange_id == otc_exch.id
+            assert res[4].company_id == db_companies[4].id
+            assert res[4].exchange_id == nasdaq_exch.id
+
+
+            stmt = select([t_company_sector_relation]).order_by(t_company_sector_relation.c.company_id.asc())
+            res = session.connection().execute(stmt).fetchall()
+            assert len(res) == 5
+            assert res[0].company_id == db_companies[0].id
+            assert res[0].sector_id == tech_sector.id
+            assert res[1].company_id == db_companies[1].id
+            assert res[1].sector_id == cons_cyc_sector.id
+            assert res[2].company_id == db_companies[2].id
+            assert res[2].sector_id == missing_sector.id
+            assert res[3].company_id == db_companies[3].id
+            assert res[3].sector_id == fin_services_sector.id
+            assert res[4].company_id == db_companies[4].id
+            assert res[4].sector_id == tech_sector.id
+
+            session.expire_all()
+
+            logs = session.query(Log).all()
+            assert len(logs) == 1
+            assert logs[0].log_type == 'exc_imp_fund'
+            assert logs[0].message == "Fundamentals import exited successfully."
+            assert logs[0].data is None
+            assert logs[0].update_stamp is not None
+            cron_job_runs = session.query(CronJobRun).all()
+            assert len(cron_job_runs) == 1
+            assert cron_job_runs[0].success == True
+            assert cron_job_runs[0].log_id == logs[0].id
 
             cleanup_db(session.connection())
 
@@ -321,14 +429,44 @@ def test_existing_db_missing_records(caplog):
             session.add(missing_industry)
 
             #add companies
-            apple_company = Company(sector_id=tech_sector.id, ticker='AAPL', name='Apple Inc', delisted=False)
-            msft_company = Company(sector_id=tech_sector.id, ticker='MSFT', name='Microsoft Corp', delisted=False)
-            amd_company = Company(sector_id=tech_sector.id, ticker='AMD', name='Advanced Micro Devices Inc', locked=True, delisted=True)
-            twtr_company = Company(sector_id=tech_sector.id, ticker='TWTR', name='Twitter Inc', locked=False, delisted=False)
-            cmg_company = Company(sector_id=cons_cyc_sector.id, ticker='CMG', name='Chipotle Grill', locked=True, delisted=False)
-            fb_company = Company(sector_id=tech_sector.id, ticker='FB', name='Facebook Inc', locked=False, delisted=False)
+            apple_company = Company(ticker='AAPL', name='Apple Inc', delisted=False)
+            msft_company = Company(ticker='MSFT', name='Microsoft Corp', delisted=False)
+            amd_company = Company(ticker='AMD', name='Advanced Micro Devices Inc', locked=True, delisted=True)
+            twtr_company = Company(ticker='TWTR', name='Twitter Inc', locked=False, delisted=False)
+            cmg_company = Company(ticker='CMG', name='Chipotle Grill', locked=True, delisted=False)
+            fb_company = Company(ticker='FB', name='Facebook Inc', locked=False, delisted=False)
 
             session.add_all([apple_company, msft_company, amd_company, twtr_company, cmg_company, fb_company])
+
+            session.flush()
+
+            #add relations
+            stmt = t_company_exchange_relation.insert()
+            session.connection().execute(stmt, company_id=apple_company.id, exchange_id=nasdaq_exch.id)
+            stmt = t_company_exchange_relation.insert()
+            session.connection().execute(stmt, company_id=msft_company.id, exchange_id=nasdaq_exch.id)
+            stmt = t_company_exchange_relation.insert()
+            session.connection().execute(stmt, company_id=amd_company.id, exchange_id=nasdaq_exch.id)
+            stmt = t_company_exchange_relation.insert()
+            session.connection().execute(stmt, company_id=twtr_company.id, exchange_id=nyse_exch.id)
+            stmt = t_company_exchange_relation.insert()
+            session.connection().execute(stmt, company_id=cmg_company.id, exchange_id=nyse_exch.id)
+            stmt = t_company_exchange_relation.insert()
+            session.connection().execute(stmt, company_id=fb_company.id, exchange_id=nasdaq_exch.id)
+
+
+            stmt = t_company_sector_relation.insert()
+            session.connection().execute(stmt, company_id=apple_company.id, sector_id=tech_sector.id)
+            stmt = t_company_sector_relation.insert()
+            session.connection().execute(stmt, company_id=msft_company.id, sector_id=tech_sector.id)
+            stmt = t_company_sector_relation.insert()
+            session.connection().execute(stmt, company_id=amd_company.id, sector_id=tech_sector.id)
+            stmt = t_company_sector_relation.insert()
+            session.connection().execute(stmt, company_id=twtr_company.id, sector_id=tech_sector.id)
+            stmt = t_company_sector_relation.insert()
+            session.connection().execute(stmt, company_id=cmg_company.id, sector_id=cons_cyc_sector.id)
+            stmt = t_company_sector_relation.insert()
+            session.connection().execute(stmt, company_id=fb_company.id, sector_id=tech_sector.id)
 
             session.commit()
 
@@ -347,7 +485,7 @@ def test_existing_db_missing_records(caplog):
             #force update_stamp change. Needed since it is a trigger in db
             session.commit()
 
-            assert len(caplog.records) == 6
+            assert len(caplog.records) == 7
 
             assert caplog.records[0].levelname == 'WARNING'
             assert caplog.records[0].name == 'fund_cron_logger'
@@ -365,13 +503,17 @@ def test_existing_db_missing_records(caplog):
             assert caplog.records[3].name == 'fund_cron_logger'
             assert caplog.records[3].message == "The following ticker was updated in the company table: TWTR"
 
-            assert caplog.records[4].levelname == 'INFO'
+            assert caplog.records[4].levelname == 'WARNING'
             assert caplog.records[4].name == 'fund_cron_logger'
-            assert caplog.records[4].message == "The following vendor source is filtered out: vendor_1"
+            assert caplog.records[4].message == "Company already exists: Facebook Inc"
 
             assert caplog.records[5].levelname == 'INFO'
             assert caplog.records[5].name == 'fund_cron_logger'
-            assert caplog.records[5].message == "Fundamentals import exited successfully."
+            assert caplog.records[5].message == "The following vendor source is filtered out: vendor_1"
+
+            assert caplog.records[6].levelname == 'INFO'
+            assert caplog.records[6].name == 'fund_cron_logger'
+            assert caplog.records[6].message == "Fundamentals import exited successfully."
 
             #check db has correct records after import
             db_companies = session.query(Company).order_by(Company.id.asc()).all()
@@ -433,3 +575,62 @@ def test_existing_db_missing_records(caplog):
             assert db_companies[8].name == 'Nvidia Corp'
             assert db_companies[8].delisted == False
             assert db_companies[8].locked == False
+
+            #check relations
+            stmt = select([t_company_exchange_relation]).order_by(t_company_exchange_relation.c.company_id.asc())
+            res = session.connection().execute(stmt).fetchall()
+            assert len(res) == 9
+            assert res[0].company_id == db_companies[0].id
+            assert res[0].exchange_id == nasdaq_exch.id
+            assert res[1].company_id == db_companies[1].id
+            assert res[1].exchange_id == nasdaq_exch.id
+            assert res[2].company_id == db_companies[2].id
+            assert res[2].exchange_id == nasdaq_exch.id
+            assert res[3].company_id == db_companies[3].id
+            assert res[3].exchange_id == nyse_exch.id
+            assert res[4].company_id == db_companies[4].id
+            assert res[4].exchange_id == nyse_exch.id
+            assert res[5].company_id == db_companies[5].id
+            assert res[5].exchange_id == nasdaq_exch.id
+            assert res[6].company_id == db_companies[6].id
+            assert res[6].exchange_id == nyse_exch.id
+            assert res[7].company_id == db_companies[7].id
+            assert res[7].exchange_id == nyse_exch.id
+            assert res[8].company_id == db_companies[8].id
+            assert res[8].exchange_id == nasdaq_exch.id
+
+
+            stmt = select([t_company_sector_relation]).order_by(t_company_sector_relation.c.company_id.asc())
+            res = session.connection().execute(stmt).fetchall()
+            assert len(res) == 9
+            assert res[0].company_id == db_companies[0].id
+            assert res[0].sector_id == tech_sector.id
+            assert res[1].company_id == db_companies[1].id
+            assert res[1].sector_id == tech_sector.id
+            assert res[2].company_id == db_companies[2].id
+            assert res[2].sector_id == tech_sector.id
+            assert res[3].company_id == db_companies[3].id
+            assert res[3].sector_id == tech_sector.id
+            assert res[4].company_id == db_companies[4].id
+            assert res[4].sector_id == cons_cyc_sector.id
+            assert res[5].company_id == db_companies[5].id
+            assert res[5].sector_id == tech_sector.id
+            assert res[6].company_id == db_companies[6].id
+            assert res[6].sector_id == tech_sector.id
+            assert res[7].company_id == db_companies[7].id
+            assert res[7].sector_id == cons_cyc_sector.id
+            assert res[8].company_id == db_companies[8].id
+            assert res[8].sector_id == tech_sector.id
+
+            logs = session.query(Log).all()
+            assert len(logs) == 1
+            assert logs[0].log_type == 'exc_imp_fund'
+            assert logs[0].message == "Fundamentals import exited successfully."
+            assert logs[0].data is None
+            assert logs[0].update_stamp is not None
+            cron_job_runs = session.query(CronJobRun).all()
+            assert len(cron_job_runs) == 1
+            assert cron_job_runs[0].success == True
+            assert cron_job_runs[0].log_id == logs[0].id
+
+            cleanup_db(session.connection())

@@ -3,3 +3,4 @@
 *_config.json
 *__pycache__*
 *.csv*
+*pycache*

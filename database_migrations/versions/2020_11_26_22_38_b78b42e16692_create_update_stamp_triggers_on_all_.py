@@ -73,31 +73,31 @@ def downgrade():
     conn = op.get_bind()
     
     conn.execute(       """
-                            DROP TRIGGER IF EXISTS update_company_exchange_relation_update_stamp;
+                            DROP TRIGGER IF EXISTS update_company_exchange_relation_update_stamp on company_exchange_relation;
                         """                   
                 )
 
     conn.execute(       """
-                            DROP TRIGGER IF EXISTS update_country_info_update_stamp;
+                            DROP TRIGGER IF EXISTS update_country_info_update_stamp on country_info;
                         """                   
                 )
 
     conn.execute(       """
-                            DROP TRIGGER IF EXISTS update_exchange_update_stamp;
+                            DROP TRIGGER IF EXISTS update_exchange_update_stamp on exchange;
                         """                   
                 )
 
     conn.execute(       """
-                            DROP TRIGGER IF EXISTS update_industry_update_stamp;
+                            DROP TRIGGER IF EXISTS update_industry_update_stamp on industry;
                         """                   
                 )
 
     conn.execute(       """
-                            DROP TRIGGER IF EXISTS update_sector_update_stamp;
+                            DROP TRIGGER IF EXISTS update_sector_update_stamp on sector;
                         """                   
                 )
 
     conn.execute(       """
-                            DROP TRIGGER IF EXISTS update_sub_industry_update_stamp;
+                            DROP TRIGGER IF EXISTS update_sub_industry_update_stamp on sub_industry;
                         """                   
                 )

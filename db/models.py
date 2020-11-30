@@ -22,8 +22,7 @@ class Company(Base):
     __tablename__ = 'company'
 
     id = Column(Integer, primary_key=True)
-    sector_id = Column(ForeignKey('sector.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False)
-    ticker = Column(String(5), nullable=False, unique=True)
+    ticker = Column(String(10), nullable=False, unique=True)
     name = Column(String(60), unique=True)
     locked = Column(Boolean, nullable=False, server_default=text("false"))
     delisted = Column(Boolean, nullable=False, index=True, server_default=text("false"))
@@ -52,7 +51,7 @@ class Sector(Base):
     __tablename__ = 'sector'
 
     id = Column(SmallInteger, primary_key=True)
-    name_code = Column(String(10), nullable=False)
+    name_code = Column(String(50), nullable=False)
     name = Column(String(60), nullable=False)
     locked = Column(Boolean, nullable=False, server_default=text("false"))
     update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue())
@@ -74,16 +73,7 @@ class Industry(Base):
     id = Column(SmallInteger, primary_key=True)
     sector_id = Column(ForeignKey('sector.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False)
     name = Column(String(60), nullable=False, unique=True)
-    name_code = Column(String(20), nullable=False, unique=True)
-    locked = Column(Boolean, nullable=False, server_default=text("false"))
-    update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue())
-
-class SubIndustry(Base):
-    __tablename__ = 'sub_industry'
-
-    id = Column(SmallInteger, primary_key=True)
-    industry_id = Column(ForeignKey('industry.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False)
-    name = Column(String(60), nullable=False, unique=True)
+    name_code = Column(String(60), nullable=False, unique=True)
     locked = Column(Boolean, nullable=False, server_default=text("false"))
     update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue())
 
@@ -101,6 +91,25 @@ t_company_sector_relation = Table(
     Column('sector_id', ForeignKey('sector.id', ondelete='CASCADE', onupdate='CASCADE'), primary_key=True, nullable=False),
     Column('update_stamp', DateTime(timezone=True), nullable=False, server_default=FetchedValue())
 )
+
+
+class Log(Base):
+    __tablename__ = 'log'
+
+    id = Column(Integer, primary_key=True)
+    log_type = Column(String(20), nullable=False)
+    message = Column(String(200))
+    data = Column(LargeBinary)
+    update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue())
+
+
+class CronJobRun(Base):
+    __tablename__ = 'cron_job_run'
+
+    id = Column(Integer, primary_key=True)
+    log_id = Column(ForeignKey('log.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False) 
+    success = Column(Boolean, nullable=False)
+
 
 def create_database(args):
     try:
