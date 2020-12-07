@@ -24,6 +24,7 @@ class Company(Base):
     id = Column(Integer, primary_key=True)
     ticker = Column(String(10), nullable=False, unique=True)
     name = Column(String(60), unique=True)
+    shares_basic = Column(BigInteger)
     locked = Column(Boolean, nullable=False, server_default=text("false"))
     delisted = Column(Boolean, nullable=False, index=True, server_default=text("false"))
     update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue())
@@ -92,6 +93,95 @@ t_company_sector_relation = Table(
     Column('update_stamp', DateTime(timezone=True), nullable=False, server_default=FetchedValue())
 )
 
+class BalanceSheetData(Base):
+    __tablename__ = 'balance_sheet_data'
+
+    id = Column(Integer, primary_key=True)
+    company_id = Column(ForeignKey('company.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False)
+    assets = Column(BigInteger)
+    cashneq = Column(BigInteger)
+    investments = Column(BigInteger)
+    investmentsc = Column(BigInteger)
+    investmentsnc = Column(BigInteger)
+    deferredrev = Column(BigInteger)
+    deposits = Column(BigInteger)
+    ppnenet = Column(BigInteger)
+    inventory = Column(BigInteger)
+    taxassets = Column(BigInteger)
+    receivables = Column(BigInteger)
+    payables = Column(BigInteger)
+    intangibles = Column(BigInteger)
+    liabilities = Column(BigInteger)
+    equity = Column(BigInteger)
+    retearn = Column(BigInteger)
+    accoci = Column(BigInteger)
+    assetsc = Column(BigInteger)
+    assetsnc = Column(BigInteger)
+    liabilitiesc = Column(BigInteger)
+    liabilitiesnc = Column(BigInteger)
+    taxliabilities = Column(BigInteger)
+    debt = Column(BigInteger)
+    debtc = Column(BigInteger)
+    debtnc = Column(BigInteger)
+    equityusd = Column(BigInteger)
+    cashnequsd = Column(BigInteger)
+    debtusd = Column(BigInteger)
+    calendar_date = Column(DateTime(timezone=True), nullable=False)
+    period_end_date = Column(DateTime(timezone=True), nullable=False)
+    update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue())
+
+class IncomeStatementData(Base):
+    __tablename__ = 'income_statement_data'
+
+    id = Column(Integer, primary_key=True)
+    company_id = Column(ForeignKey('company.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False)
+    revenue = Column(BigInteger)
+    cor = Column(BigInteger)
+    sgna = Column(BigInteger)
+    rnd = Column(BigInteger)
+    intexp = Column(BigInteger)
+    taxexp = Column(BigInteger)
+    netincdis = Column(BigInteger)   
+    consolinc = Column(BigInteger)
+    netincnci = Column(BigInteger)
+    netinc = Column(BigInteger)
+    prefdivis = Column(BigInteger)
+    netinccmn = Column(BigInteger)
+    eps = Column(BigInteger)
+    epsdil = Column(BigInteger)
+    shareswa = Column(BigInteger)
+    shareswadil = Column(BigInteger)
+    ebit = Column(BigInteger)
+    epsusd = Column(BigInteger)
+    dps = Column(BigInteger)
+    gp = Column(BigInteger)
+    opinc = Column(BigInteger)
+    calendar_date = Column(DateTime(timezone=True), nullable=False)
+    period_end_date = Column(DateTime(timezone=True), nullable=False)
+    update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue())
+
+class CashFlowStatementData(Base):
+    __tablename__ = 'cash_flow_statement_data'
+
+    id = Column(Integer, primary_key=True)
+    company_id = Column(ForeignKey('company.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False)
+    capex = Column(BigInteger)
+    ncfbus = Column(BigInteger)
+    ncfinv = Column(BigInteger)
+    ncfiny = Column(BigInteger)
+    ncff = Column(BigInteger)
+    ncfdebt = Column(BigInteger)
+    ncfcommon = Column(BigInteger)
+    ncfdiv = Column(BigInteger)
+    ncfi = Column(BigInteger)
+    ncfo = Column(BigInteger)  
+    ncfx = Column(BigInteger)
+    ncf = Column(BigInteger)
+    sbcomp = Column(BigInteger)
+    depamor = Column(BigInteger)
+    calendar_date = Column(DateTime(timezone=True), nullable=False)
+    period_end_date = Column(DateTime(timezone=True), nullable=False)
+    update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue())
 
 class Log(Base):
     __tablename__ = 'log'
@@ -109,6 +199,8 @@ class CronJobRun(Base):
     id = Column(Integer, primary_key=True)
     log_id = Column(ForeignKey('log.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False) 
     success = Column(Boolean, nullable=False)
+
+    log = relationship("Log", uselist=False, backref="cron_job_run")
 
 
 def create_database(args):

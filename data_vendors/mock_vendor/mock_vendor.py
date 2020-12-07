@@ -16,9 +16,14 @@ class MockVendor(Vendor):
             self.config = json.loads(config_raw)
 
     def get_all_companies(self, **kwargs):
-        #absolute_path = os.path.join(sys.path[0], 'companies.csv')
-        df = pd.read_csv(self.config['company_file_path'])
+        if 'from_date' in kwargs:
+            df = pd.read_csv(kwargs['from_date'] + '_' + self.config['company_file_path'])
+        else:
+            df = pd.read_csv(self.config['company_file_path'])
         return df[['ticker', 'name', 'exchange', 'isdelisted', 'famaindustry', 'sector', 'industry', 'location']]
+
+    def get_fundamental_data(self, **kwargs):
+        pass
 
 if __name__ == "__main__":
     try:

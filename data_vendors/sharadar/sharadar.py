@@ -17,10 +17,10 @@ class Sharadar(Vendor):
             self.config = json.loads(config_raw)
     
     def get_all_companies(self, **kwargs):
-        full_url = self.config['domainUrl'] + "/" + self.config['apiVersion'] + "/" + self.config['baseUrlExtension'] + "/" + 
-                   self.config['tickerTableUrlExtension'] + "&" + "api_key=" + self.config['apiKey'] + "&qopts.export=true"
+        full_url = self.config['domainUrl'] + "/" + self.config['apiVersion'] + "/" + self.config['baseUrlExtension'] + "/" + self.config['tickerTableUrlExtension'] + \
+                   "&" + "api_key=" + self.config['apiKey'] + "&qopts.export=true"
 
-        if ['from_date'] in kwargs:
+        if 'from_date' in kwargs:
             full_url = full_url + "&lastupdated.gte=" + kwargs['from_date']
         
         r = requests.get(full_url)
@@ -31,11 +31,31 @@ class Sharadar(Vendor):
             zip_req = requests.get(zip_url, stream=True)
             if zip_req.status_code == 200:
                 df = pd.read_csv(io.BytesIO(zip_req.content), compression='zip')
-                return df[['ticker', 'name', 'exchange', 'isdelisted', 'famaindustry', 'sector', 'industry', 'location']]
+                if df.empty:
+                    return df
+                else:
+                    return df[['ticker', 'name', 'exchange', 'isdelisted', 'famaindustry', 'sector', 'industry', 'location']]
             else:
                 raise Exception("Sharadar returned http " + str(r.status_code) + " for method get_all_companies while trying to get zip data.")
         else:
             raise Exception("Sharadar returned http " + str(r.status_code) + " for method get_all_companies while trying to get zip link.")
+
+    def get_all_companies_fundamental_datapoints(self, **kwargs):
+        full_url = self.config['domainUrl'] + "/" + self.config['apiVersion'] + "/" + self.config['baseUrlExtension'] + "/" + self.config['fundamentalDataPointsTableUrlExtension'] + \
+                   "&" + "api_key=" + self.config['apiKey'] + "&qopts.export=true"
+        r = requests.get(full_url)
+        
+        if r.status_code == 200:
+            r = r.json()
+            zip_url = r['datatable_bulk_download']['file']['link']
+            zip_req = requests.get(zip_url, stream=True)
+            if zip_req.status_code == 200:
+                df = pd.read_csv(io.BytesIO(zip_req.content), compression='zip')
+                return df
+            else:
+                raise Exception("Sharadar returned http " + str(r.status_code) + " for method get_all_companies_fundamental_datapoints while trying to get zip data.")
+        else:
+            raise Exception("Sharadar returned http " + str(r.status_code) + " for method get_all_companies_fundamental_datapoints while trying to get zip link.")
 
 if __name__ == "__main__":
     try:

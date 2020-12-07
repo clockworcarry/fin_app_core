@@ -1,4 +1,4 @@
-from fin_app_crons.fundamentals_import import exec_import
+from fin_app_crons.fundamentals_import import exec_import, EXEC_COMPANIES_IMPORT_FUNDAMENTAL_DATA_POINTS_LOG_TYPE, EXEC_IMPORT_COMPANIES_LOG_TYPE
 from db.models import *
 from py_common_utils_gh.db_utils.db_utils import SqlAlchemySessionManager
 
@@ -26,11 +26,11 @@ def test_exec_filtered_out(caplog):
 
         assert caplog.records[2].levelname == 'CRITICAL'
         assert caplog.records[2].name == 'fund_cron_logger'
-        assert caplog.records[2].message == "'NoneType' object has no attribute 'get_all_companies'"
+        assert caplog.records[2].message == "'NoneType' object has no attribute 'query'"
 
         assert caplog.records[3].levelname == 'CRITICAL'
         assert caplog.records[3].name == 'fund_cron_logger'
-        assert caplog.records[3].message == "Session cannot be none."
+        assert caplog.records[3].message == "'NoneType' object has no attribute 'add'"
 
         caplog.clear()
 
@@ -49,11 +49,11 @@ def test_exec_filtered_out(caplog):
 
         assert caplog.records[2].levelname == 'CRITICAL'
         assert caplog.records[2].name == 'fund_cron_logger'
-        assert caplog.records[2].message == "'NoneType' object has no attribute 'get_all_companies'"
+        assert caplog.records[2].message == "'NoneType' object has no attribute 'query'"
 
         assert caplog.records[3].levelname == 'CRITICAL'
         assert caplog.records[3].name == 'fund_cron_logger'
-        assert caplog.records[3].message == "Session cannot be none."
+        assert caplog.records[3].message == "'NoneType' object has no attribute 'add'"
 
 
 def cleanup_db(conn):
@@ -99,7 +99,7 @@ def test_log_exceptions_to_db(caplog):
 
             logs = session.query(Log).all()
             assert len(logs) == 1
-            assert logs[0].log_type == 'exc_imp_fund'
+            assert logs[0].log_type == EXEC_IMPORT_COMPANIES_LOG_TYPE
             assert logs[0].message == "Exception"
             assert logs[0].data is not None
             assert logs[0].update_stamp is not None
@@ -123,86 +123,90 @@ def test_empty_db_missing_records(caplog):
             session.commit()
             exec_import(config, session)
 
-            assert len(caplog.records) == 18
+            assert len(caplog.records) == 19
 
-            assert caplog.records[0].levelname == 'WARNING'
+            assert caplog.records[0].levelname == 'INFO'
             assert caplog.records[0].name == 'fund_cron_logger'
-            assert caplog.records[0].message == "Unknown exchange detected: Missing"
+            assert caplog.records[0].message == "Importing tickers with no date filter."
 
             assert caplog.records[1].levelname == 'WARNING'
             assert caplog.records[1].name == 'fund_cron_logger'
-            assert caplog.records[1].message == "Unknown exchange detected: OTC"
+            assert caplog.records[1].message == "Unknown exchange detected: Missing"
 
             assert caplog.records[2].levelname == 'WARNING'
             assert caplog.records[2].name == 'fund_cron_logger'
-            assert caplog.records[2].message == "Unknown exchange detected: NASDAQ"
+            assert caplog.records[2].message == "Unknown exchange detected: OTC"
 
             assert caplog.records[3].levelname == 'WARNING'
             assert caplog.records[3].name == 'fund_cron_logger'
-            assert caplog.records[3].message == "Unknown sector detected: Technology"
+            assert caplog.records[3].message == "Unknown exchange detected: NASDAQ"
 
             assert caplog.records[4].levelname == 'WARNING'
             assert caplog.records[4].name == 'fund_cron_logger'
-            assert caplog.records[4].message == "Unknown sector detected: Consumer Cyclical"
+            assert caplog.records[4].message == "Unknown sector detected: Technology"
 
             assert caplog.records[5].levelname == 'WARNING'
             assert caplog.records[5].name == 'fund_cron_logger'
-            assert caplog.records[5].message == "Unknown sector detected: Missing"
+            assert caplog.records[5].message == "Unknown sector detected: Consumer Cyclical"
 
             assert caplog.records[6].levelname == 'WARNING'
             assert caplog.records[6].name == 'fund_cron_logger'
-            assert caplog.records[6].message == "Unknown sector detected: Financial Services"
+            assert caplog.records[6].message == "Unknown sector detected: Missing"
 
             assert caplog.records[7].levelname == 'WARNING'
             assert caplog.records[7].name == 'fund_cron_logger'
-            assert caplog.records[7].message == "Unknown industry detected: Software - Application"
+            assert caplog.records[7].message == "Unknown sector detected: Financial Services"
 
             assert caplog.records[8].levelname == 'WARNING'
             assert caplog.records[8].name == 'fund_cron_logger'
-            assert caplog.records[8].message == "Unknown industry detected: Restaurants"
+            assert caplog.records[8].message == "Unknown industry detected: Software - Application"
 
             assert caplog.records[9].levelname == 'WARNING'
             assert caplog.records[9].name == 'fund_cron_logger'
-            assert caplog.records[9].message == "Unknown industry detected: Banks - Regional"
+            assert caplog.records[9].message == "Unknown industry detected: Restaurants"
 
             assert caplog.records[10].levelname == 'WARNING'
             assert caplog.records[10].name == 'fund_cron_logger'
-            assert caplog.records[10].message == "Unknown industry detected: Missing"
+            assert caplog.records[10].message == "Unknown industry detected: Banks - Regional"
 
             assert caplog.records[11].levelname == 'WARNING'
             assert caplog.records[11].name == 'fund_cron_logger'
-            assert caplog.records[11].message == "None result when fetching first sector matching: Technology"
+            assert caplog.records[11].message == "Unknown industry detected: Missing"
 
             assert caplog.records[12].levelname == 'WARNING'
             assert caplog.records[12].name == 'fund_cron_logger'
-            assert caplog.records[12].message == "None result when fetching first sector matching: Consumer Cyclical"
+            assert caplog.records[12].message == "None result when fetching first sector matching: Technology"
 
             assert caplog.records[13].levelname == 'WARNING'
             assert caplog.records[13].name == 'fund_cron_logger'
-            assert caplog.records[13].message == "None result when fetching first sector matching: Missing"
+            assert caplog.records[13].message == "None result when fetching first sector matching: Consumer Cyclical"
 
             assert caplog.records[14].levelname == 'WARNING'
             assert caplog.records[14].name == 'fund_cron_logger'
-            assert caplog.records[14].message == "None result when fetching first sector matching: Financial Services"
+            assert caplog.records[14].message == "None result when fetching first sector matching: Missing"
 
             assert caplog.records[15].levelname == 'WARNING'
             assert caplog.records[15].name == 'fund_cron_logger'
-            assert caplog.records[15].message == "None result when fetching first sector matching: Technology"
+            assert caplog.records[15].message == "None result when fetching first sector matching: Financial Services"
 
-            assert caplog.records[16].levelname == 'INFO'
+            assert caplog.records[16].levelname == 'WARNING'
             assert caplog.records[16].name == 'fund_cron_logger'
-            assert caplog.records[16].message == "The following vendor source is filtered out: vendor_1"
+            assert caplog.records[16].message == "None result when fetching first sector matching: Technology"
 
             assert caplog.records[17].levelname == 'INFO'
             assert caplog.records[17].name == 'fund_cron_logger'
-            assert caplog.records[17].message == "Fundamentals import exited successfully."
+            assert caplog.records[17].message == "The following vendor source is filtered out: vendor_1"
+
+            assert caplog.records[18].levelname == 'INFO'
+            assert caplog.records[18].name == 'fund_cron_logger'
+            assert caplog.records[18].message == "Fundamentals import exited successfully."
 
             session.expire_all()
 
             logs = session.query(Log).all()
             assert len(logs) == 1
-            assert logs[0].log_type == 'exc_imp_fund'
-            assert logs[0].message == "Fundamentals import exited successfully."
+            assert logs[0].log_type == EXEC_IMPORT_COMPANIES_LOG_TYPE
+            assert logs[0].message == "Successfully imported companies supported by: mock_vendor to database."
             assert logs[0].data is None
             assert logs[0].update_stamp is not None
             cron_job_runs = session.query(CronJobRun).all()
@@ -273,15 +277,19 @@ def test_empty_db_missing_records(caplog):
             #to test it really is in db
             session.expire_all()
 
-            assert len(caplog.records) == 2
+            assert len(caplog.records) == 3
 
             assert caplog.records[0].levelname == 'INFO'
             assert caplog.records[0].name == 'fund_cron_logger'
-            assert caplog.records[0].message == "The following vendor source is filtered out: vendor_1"
+            assert caplog.records[0].message == "Importing tickers with no date filter."
 
             assert caplog.records[1].levelname == 'INFO'
             assert caplog.records[1].name == 'fund_cron_logger'
-            assert caplog.records[1].message == "Fundamentals import exited successfully."
+            assert caplog.records[1].message == "The following vendor source is filtered out: vendor_1"
+
+            assert caplog.records[2].levelname == 'INFO'
+            assert caplog.records[2].name == 'fund_cron_logger'
+            assert caplog.records[2].message == "Fundamentals import exited successfully."
 
             db_companies = session.query(Company).order_by(Company.id).all()
             assert len(db_companies) == 5
@@ -347,8 +355,8 @@ def test_empty_db_missing_records(caplog):
 
             logs = session.query(Log).all()
             assert len(logs) == 1
-            assert logs[0].log_type == 'exc_imp_fund'
-            assert logs[0].message == "Fundamentals import exited successfully."
+            assert logs[0].log_type == EXEC_IMPORT_COMPANIES_LOG_TYPE
+            assert logs[0].message == "Successfully imported companies supported by: mock_vendor to database."
             assert logs[0].data is None
             assert logs[0].update_stamp is not None
             cron_job_runs = session.query(CronJobRun).all()
@@ -485,35 +493,43 @@ def test_existing_db_missing_records(caplog):
             #force update_stamp change. Needed since it is a trigger in db
             session.commit()
 
-            assert len(caplog.records) == 7
+            assert len(caplog.records) == 9
 
-            assert caplog.records[0].levelname == 'WARNING'
+            assert caplog.records[0].levelname == 'INFO'
             assert caplog.records[0].name == 'fund_cron_logger'
-            assert caplog.records[0].message == "Unknown industry detected: Internet Content & Information"
+            assert caplog.records[0].message == "Importing tickers with no date filter."
 
             assert caplog.records[1].levelname == 'WARNING'
             assert caplog.records[1].name == 'fund_cron_logger'
-            assert caplog.records[1].message == "Unknown industry detected: Home Improvement Retail"
+            assert caplog.records[1].message == "Unknown industry detected: Internet Content & Information"
 
-            assert caplog.records[2].levelname == 'INFO'
+            assert caplog.records[2].levelname == 'WARNING'
             assert caplog.records[2].name == 'fund_cron_logger'
-            assert caplog.records[2].message == "The following ticker was updated in the company table: MSFT"
+            assert caplog.records[2].message == "Unknown industry detected: Home Improvement Retail"
 
             assert caplog.records[3].levelname == 'INFO'
             assert caplog.records[3].name == 'fund_cron_logger'
-            assert caplog.records[3].message == "The following ticker was updated in the company table: TWTR"
+            assert caplog.records[3].message == "The following ticker was updated in the company table: MSFT"
 
-            assert caplog.records[4].levelname == 'WARNING'
+            assert caplog.records[4].levelname == 'INFO'
             assert caplog.records[4].name == 'fund_cron_logger'
-            assert caplog.records[4].message == "Company already exists: Facebook Inc"
+            assert caplog.records[4].message == "The following ticker was updated in the company table: TWTR"
 
             assert caplog.records[5].levelname == 'INFO'
             assert caplog.records[5].name == 'fund_cron_logger'
-            assert caplog.records[5].message == "The following vendor source is filtered out: vendor_1"
+            assert caplog.records[5].message == "The following ticker was updated in the company table: FB"
 
-            assert caplog.records[6].levelname == 'INFO'
+            assert caplog.records[6].levelname == 'WARNING'
             assert caplog.records[6].name == 'fund_cron_logger'
-            assert caplog.records[6].message == "Fundamentals import exited successfully."
+            assert caplog.records[6].message == "Company already exists: Facebook Inc"
+
+            assert caplog.records[7].levelname == 'INFO'
+            assert caplog.records[7].name == 'fund_cron_logger'
+            assert caplog.records[7].message == "The following vendor source is filtered out: vendor_1"
+
+            assert caplog.records[8].levelname == 'INFO'
+            assert caplog.records[8].name == 'fund_cron_logger'
+            assert caplog.records[8].message == "Fundamentals import exited successfully."
 
             #check db has correct records after import
             db_companies = session.query(Company).order_by(Company.id.asc()).all()
@@ -624,8 +640,8 @@ def test_existing_db_missing_records(caplog):
 
             logs = session.query(Log).all()
             assert len(logs) == 1
-            assert logs[0].log_type == 'exc_imp_fund'
-            assert logs[0].message == "Fundamentals import exited successfully."
+            assert logs[0].log_type == EXEC_IMPORT_COMPANIES_LOG_TYPE
+            assert logs[0].message == "Successfully imported companies supported by: mock_vendor to database."
             assert logs[0].data is None
             assert logs[0].update_stamp is not None
             cron_job_runs = session.query(CronJobRun).all()
@@ -634,3 +650,33 @@ def test_existing_db_missing_records(caplog):
             assert cron_job_runs[0].log_id == logs[0].id
 
             cleanup_db(session.connection())
+
+def test_existing_db_not_first_cron(caplog):
+    absolute_path = os.path.join(sys.path[0], 'test_exec_import_empty_db.json')
+
+    #clean up db in case
+    with open(absolute_path, 'r') as f:
+        config_raw = f.read()
+        config = json.loads(config_raw)
+
+        manager = SqlAlchemySessionManager()
+        with manager.session_scope(db_url=config['dbConnString'], template_name='basic') as session:
+            cleanup_db(session.connection())
+            
+            log_one = Log(log_type='exc_imp_fund', message='msg')
+            log_two = Log(log_type='exc_imp_tec', message='msg2')
+
+            session.add_all([log_one, log_two])
+            session.flush()
+
+            cron_one = CronJobRun(log_id=log_one.id, success=True)
+            cron_two = CronJobRun(log_id=log_two.id, success=True)
+
+            session.add_all([cron_one, cron_two])
+
+            session.commit()
+
+            exec_import(config, session)
+
+def test_exec_import_companies_fundamental_data(caplog):
+    
