@@ -8,6 +8,15 @@ import sys
 import logging
 import argparse
 
+BAR_TYPE_STOCK_TRADE = 1
+
+BAR_SIZE_SECOND = 's'
+BAR_SIZE_MINUTE = 'min'
+BAR_SIZE_HOUR = 'h'
+BAR_SIZE_WEEK = 'w'
+BAR_SIZE_MONTH = 'mo'
+BAR_SIZE_YEAR = 'y'
+
 meta = MetaData(naming_convention={
         "ix": "ix_%(column_0_label)s",
         "uq": "uq_%(table_name)s_%(column_0_name)s",
@@ -18,16 +27,35 @@ meta = MetaData(naming_convention={
 
 Base = declarative_base(metadata=meta)
 
+t_company_exchange_relation = Table(
+    'company_exchange_relation', meta,
+    Column('company_id', ForeignKey('company.id', ondelete='CASCADE', onupdate='CASCADE'), primary_key=True, nullable=False),
+    Column('exchange_id', ForeignKey('exchange.id', ondelete='CASCADE', onupdate='CASCADE'), primary_key=True, nullable=False),
+    Column('update_stamp', DateTime(timezone=True), nullable=False, server_default=FetchedValue())
+)
+
+t_company_sector_relation = Table(
+    'company_sector_relation', meta,
+    Column('company_id', ForeignKey('company.id', ondelete='CASCADE', onupdate='CASCADE'), primary_key=True, nullable=False),
+    Column('sector_id', ForeignKey('sector.id', ondelete='CASCADE', onupdate='CASCADE'), primary_key=True, nullable=False),
+    Column('update_stamp', DateTime(timezone=True), nullable=False, server_default=FetchedValue())
+)
+
 class Company(Base):
     __tablename__ = 'company'
 
     id = Column(Integer, primary_key=True)
     ticker = Column(String(10), nullable=False, unique=True)
     name = Column(String(60), unique=True)
-    shares_basic = Column(BigInteger)
     locked = Column(Boolean, nullable=False, server_default=text("false"))
     delisted = Column(Boolean, nullable=False, index=True, server_default=text("false"))
     update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue())
+    
+    exchanges = relationship("Exchange", secondary=t_company_exchange_relation, backref='companies')
+    sectors = relationship("Sector", secondary=t_company_sector_relation)
+    balance_sheet_data = relationship('BalanceSheetData')
+    income_statement_data = relationship('IncomeStatementData')
+    cash_flow_statement_data = relationship('CashFlowStatementData')
 
 
 class CountryInfo(Base):
@@ -79,19 +107,16 @@ class Industry(Base):
     update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue())
 
 
-t_company_exchange_relation = Table(
-    'company_exchange_relation', meta,
-    Column('company_id', ForeignKey('company.id', ondelete='CASCADE', onupdate='CASCADE'), primary_key=True, nullable=False),
-    Column('exchange_id', ForeignKey('exchange.id', ondelete='CASCADE', onupdate='CASCADE'), primary_key=True, nullable=False),
-    Column('update_stamp', DateTime(timezone=True), nullable=False, server_default=FetchedValue())
-)
+class CompanyMiscInfo(Base):
+    __tablename__ = 'company_misc_info'
 
-t_company_sector_relation = Table(
-    'company_sector_relation', meta,
-    Column('company_id', ForeignKey('company.id', ondelete='CASCADE', onupdate='CASCADE'), primary_key=True, nullable=False),
-    Column('sector_id', ForeignKey('sector.id', ondelete='CASCADE', onupdate='CASCADE'), primary_key=True, nullable=False),
-    Column('update_stamp', DateTime(timezone=True), nullable=False, server_default=FetchedValue())
-)
+    id = Column(Integer, primary_key=True)
+    company_id = Column(ForeignKey('company.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False)
+    shares_bas = Column(BigInteger)
+    shares_dil = Column(BigInteger)
+    date_recorded = Column(DateTime(timezone=True), nullable=False)
+    locked = Column(Boolean, nullable=False, server_default=text("false"))
+    update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue())
 
 class BalanceSheetData(Base):
     __tablename__ = 'balance_sheet_data'
@@ -127,7 +152,8 @@ class BalanceSheetData(Base):
     cashnequsd = Column(BigInteger)
     debtusd = Column(BigInteger)
     calendar_date = Column(DateTime(timezone=True), nullable=False)
-    period_end_date = Column(DateTime(timezone=True), nullable=False)
+    date_filed = Column(DateTime(timezone=True), nullable=False)
+    locked = Column(Boolean, nullable=False, server_default=text("false"))
     update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue())
 
 class IncomeStatementData(Base):
@@ -157,7 +183,8 @@ class IncomeStatementData(Base):
     gp = Column(BigInteger)
     opinc = Column(BigInteger)
     calendar_date = Column(DateTime(timezone=True), nullable=False)
-    period_end_date = Column(DateTime(timezone=True), nullable=False)
+    date_filed = Column(DateTime(timezone=True), nullable=False)
+    locked = Column(Boolean, nullable=False, server_default=text("false"))
     update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue())
 
 class CashFlowStatementData(Base):
@@ -167,21 +194,41 @@ class CashFlowStatementData(Base):
     company_id = Column(ForeignKey('company.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False)
     capex = Column(BigInteger)
     ncfbus = Column(BigInteger)
+    ncfi = Column(BigInteger)
     ncfinv = Column(BigInteger)
-    ncfiny = Column(BigInteger)
     ncff = Column(BigInteger)
     ncfdebt = Column(BigInteger)
     ncfcommon = Column(BigInteger)
     ncfdiv = Column(BigInteger)
-    ncfi = Column(BigInteger)
     ncfo = Column(BigInteger)  
     ncfx = Column(BigInteger)
     ncf = Column(BigInteger)
     sbcomp = Column(BigInteger)
     depamor = Column(BigInteger)
     calendar_date = Column(DateTime(timezone=True), nullable=False)
-    period_end_date = Column(DateTime(timezone=True), nullable=False)
+    date_filed = Column(DateTime(timezone=True), nullable=False)
+    locked = Column(Boolean, nullable=False, server_default=text("false"))
     update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue())
+
+
+class BarData(Base):
+    __tablename__ = 'bar_data'
+
+    id = Column(BigInteger, primary_key=True)
+    company_id = Column(ForeignKey('company.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False)
+    exchange_id = Column(ForeignKey('exchange.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False)
+    bar_type = Column(Integer, nullable=False)
+    bar_open = Column(Numeric, nullable=False)
+    bar_high = Column(Numeric, nullable=False)
+    bar_low = Column(Numeric, nullable=False)
+    bar_close = Column(Numeric, nullable=False)
+    bar_volume = Column(BigInteger)
+    bar_date = Column(DateTime(timezone=True), nullable=False)
+    bar_size = Column(String(12), nullable=False)
+    locked = Column(Boolean, nullable=False, server_default=text("false"))
+
+    __table_args__ = (UniqueConstraint('company_id', 'bar_type', 'bar_size', 'bar_date'), )
+
 
 class Log(Base):
     __tablename__ = 'log'

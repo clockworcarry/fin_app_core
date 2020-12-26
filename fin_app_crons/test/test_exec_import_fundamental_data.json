@@ -5,14 +5,14 @@
     "dbConnString": "postgresql://postgres:navo1234@localhost:5432/Fin_App_Core_Db_Test",
     "sources": [
         {
-            "importCompanies": true,
-            "importFundamentalDataPoints": false,
+            "importCompanies": false,
+            "importFundamentalDataPoints": true,
             "applyDelta": false,
             "vendor": "mock_vendor",
-            "vendorConfigFilePath": "/home/ghelie/fin_app/fin_app_core/fin_app_crons/test/test_mock_vendor_empty_db.json"
+            "vendorConfigFilePath": "/home/ghelie/fin_app/fin_app_core/fin_app_crons/test/test_mock_vendor_fundamental_import.json"
         },
         {
-            "importCompanies": true,
+            "importCompanies": false,
             "importFundamentalDataPoints": false,
             "applyDelta": false,
             "vendor": "vendor_1"

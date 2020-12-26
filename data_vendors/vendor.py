@@ -1,5 +1,19 @@
 from abc import ABC, ABCMeta, abstractmethod
 
+contract_stock_type = 1
+contract_option_type = 2
+
+data_type_trades = 1 # split adjusted
+data_type_trades_adjusted = 2 # split and dividend adjusted
+
+class HistoricalDataSpecs:
+    def __init__(self, ticker, exchange, currency, contract_type, data_type):
+        self.ticker = ticker
+        self.exchange = exchange
+        self.currency = currency
+        self.contract_type = contract_type
+        self.data_type = data_type
+
 class Vendor(ABC):
     
     @abstractmethod
@@ -21,4 +35,29 @@ class Vendor(ABC):
             NotImplementedError: this method is implemented in concrete classes
         """
         raise NotImplementedError("get_fundamental_data not implemented in base class.")
+    
+    def validate_get_historical_bar_data(self, retrieval_specs, start_date_obj, end_date_obj, bar_size, bar_size_unit, only_regular_hours):
+        if start_date_obj > end_date_obj:
+            raise ValueError("End date should come after start date")
+        if bar_size_unit != 's' and bar_size_unit != 'secs' and bar_size_unit != 'min' and bar_size_unit != 'minutes' \
+           and bar_size_unit != 'hour' and bar_size_unit != 'hours' and bar_size_unit != 'd' and bar_size_unit != 'days':
+           raise ValueError("Invalid bar_size_unit value provided. Must be: s/secs, min/minutes, h/hours, d/days")
+
+    @abstractmethod
+    def get_historical_bar_data(retrieval_specs, start_date, end_date, bar_size, bar_size_unit, only_regular_hours):
+        """
+            Retrieves all historical stock prices for a list of ticker. Specify below parameters to customize retreival
+
+        Args:
+            tickers (list str): List of tickers for which historical stock prices will be retrieved
+            start_date (str): Retrieve data from this date
+            end_date (str): Stop retrieving data after this date
+            timeframe (int): timeframe of the bars retrieved in seconds
+            time_frame_time_unit (str): unit of time for timeframe (s/secs, min/minutes, h/hours, d/days)
+            only_regular_hours (bool): Restricts data to regular market hours or includes after hours if set to False
+
+        Raises:
+            NotImplementedError: this method is implemented in concrete classes
+        """
+        raise NotImplementedError("get_historical_stock_price not implemented in base class.")
 

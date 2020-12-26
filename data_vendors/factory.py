@@ -1,4 +1,5 @@
 from data_vendors.sharadar.sharadar import Sharadar
+from data_vendors.IBKR.ibkr import IBKR
 from data_vendors.mock_vendor.mock_vendor import MockVendor
 
 def get_vendor_instance(vendor_name, **kwargs):
@@ -13,5 +14,9 @@ def get_vendor_instance(vendor_name, **kwargs):
 
     if vendor_name == 'sharadar':
         return Sharadar(**kwargs)
+    elif vendor_name == 'IBKR':
+        return IBKR(**kwargs)
     elif vendor_name == 'mock_vendor':
         return MockVendor(**kwargs)
+    else:
+        raise ValueError("Vendor: " + vendor_name + " is unknown.")

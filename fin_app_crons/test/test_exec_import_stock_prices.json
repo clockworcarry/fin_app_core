@@ -1,0 +1,15 @@
+{
+    "sourcesFilteredOut": [],
+    "sourcesFilteredIn": [],
+    "logFilePath": "/home/ghelie/fin_app/dev_logs/test_logs.log",
+    "dbConnString": "postgresql://postgres:navo1234@localhost:5432/Fin_App_Core_Db_Test",
+    "sources": [
+        {
+            "importCompanies": false,
+            "importFundamentalDataPoints": false,
+            "importStockPrices": true,
+            "vendor": "mock_vendor",
+            "vendorConfigFilePath": "/home/ghelie/fin_app/fin_app_core/fin_app_crons/test/test_mock_vendor_stock_prices_import.json"
+        }
+    ]
+}

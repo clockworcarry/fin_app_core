@@ -40,9 +40,14 @@ class Sharadar(Vendor):
         else:
             raise Exception("Sharadar returned http " + str(r.status_code) + " for method get_all_companies while trying to get zip link.")
 
-    def get_all_companies_fundamental_datapoints(self, **kwargs):
+    def get_fundamental_data(self, **kwargs):
         full_url = self.config['domainUrl'] + "/" + self.config['apiVersion'] + "/" + self.config['baseUrlExtension'] + "/" + self.config['fundamentalDataPointsTableUrlExtension'] + \
-                   "&" + "api_key=" + self.config['apiKey'] + "&qopts.export=true"
+                   "?" + "api_key=" + self.config['apiKey'] + "&qopts.export=true"
+
+        if 'queryStrParams' in self.config:
+            for param in self.config['queryStrParams']:
+                full_url += "&" + param['key'] + "=" + param['value']
+        
         r = requests.get(full_url)
         
         if r.status_code == 200:
@@ -56,6 +61,9 @@ class Sharadar(Vendor):
                 raise Exception("Sharadar returned http " + str(r.status_code) + " for method get_all_companies_fundamental_datapoints while trying to get zip data.")
         else:
             raise Exception("Sharadar returned http " + str(r.status_code) + " for method get_all_companies_fundamental_datapoints while trying to get zip link.")
+
+    def get_historical_bar_data(self, retrieval_specs, start_date, end_date, bar_size, bar_size_unit, only_regular_hours):
+        raise NotImplementedError("get_historical_bar_data not implemented for sharadar vendor.")
 
 if __name__ == "__main__":
     try:
