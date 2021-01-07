@@ -68,8 +68,17 @@ def exec_import_companies(session, logger, input_companies_df):
                 else:
                     logger.critical("Unknown value in delisted column: " + row['isdelisted'])
                     continue
+                
+                db_company = session.query(Company).filter(Company.name == row['name']).first()
+                if db_company is not None and not db_company.locked and db_company.ticker != row['ticker']: # company ticker was changed but name stayed the same
+                    logger.info("Company with name " + row['name'] + " ticker changed from " + db_company.ticker + " to " + row['ticker'])
+                    db_company.ticker = row['ticker']
 
                 db_company = session.query(Company).filter(Company.ticker == row['ticker']).first()
+                if db_company is not None and not db_company.locked and db_company.name != row['name']: # company name was changed but ticker stayed the same
+                    logger.info("Company with ticker " + row['ticker'] + " name changed from " + db_company.name + " to " + row['name'])
+                    db_company.name = row['name']
+
                 if db_company is None: #insert
                     if session.query(exists().where(Company.name==row['name'])).scalar() is False: #it is possible that there a company is listed with same name with different tickers ...
                         company = Company(ticker=row['ticker'], name=row['name'], delisted=row['isdelisted'])
@@ -255,21 +264,25 @@ def exec_import(config, session):
                     if verbose:
                         print("Saving bar data for ticker: " + attr[0].ticker + ". Step " + str(idx) + " out of " + str(nb_companies))
                     
-                    ticker_filtered_out_it = next((x for x in src['tickersFilteredOut'] if x == attr[0].ticker or x == '*'), None)
-                    if ticker_filtered_out_it != None:
-                        ticker_filtered_in_it = next((x for x in src['tickersFilteredIn'] if x == attr[0].ticker), None)
-                        if ticker_filtered_in_it == None:
-                            logger.info("The following ticker is filtered out for stock prices import: " + attr[0].ticker)
-                            continue
-                    exchange_filtered_out_it = next((x for x in src['exchangesFilteredOut'] if x == attr[1].name_code or x == '*'), None)
-                    if exchange_filtered_out_it != None:
-                        exchange_filtered_in_it = next((x for x in src['exchangesFilteredIn'] if x == attr[1].name_code), None)
-                        if exchange_filtered_in_it == None:
-                            logger.info("The following exchange is filtered out for stock prices import: " + attr[1].name_code)
-                            continue
-                    specs = HistoricalDataSpecs(attr[0].ticker, 'SMART', attr[2].currency, contract_stock_type, data_type_trades)
-                    stock_prices_df = vendor.get_historical_bar_data(specs, stamp_without_tz, '', 1, 'hour', True)
-                    exec_import_stock_prices(session, logger, stock_prices_df, attr[0], attr[1], str(1) + ' ' + BAR_SIZE_HOUR)
+                    if 'tickersFilteredOut' in src:
+                        ticker_filtered_out_it = next((x for x in src['tickersFilteredOut'] if x == attr[0].ticker or x == '*'), None)
+                        if ticker_filtered_out_it != None:
+                            ticker_filtered_in_it = next((x for x in src['tickersFilteredIn'] if x == attr[0].ticker), None)
+                            if ticker_filtered_in_it == None:
+                                logger.info("The following ticker is filtered out for stock prices import: " + attr[0].ticker)
+                                continue
+                    if 'exchangesFilteredOut' in src:
+                        exchange_filtered_out_it = next((x for x in src['exchangesFilteredOut'] if x == attr[1].name_code or x == '*'), None)
+                        if exchange_filtered_out_it != None:
+                            exchange_filtered_in_it = next((x for x in src['exchangesFilteredIn'] if x == attr[1].name_code), None)
+                            if exchange_filtered_in_it == None:
+                                logger.info("The following exchange is filtered out for stock prices import: " + attr[1].name_code)
+                                continue
+                    specs = HistoricalDataSpecs(attr[0].ticker, attr[1].name_code, attr[2].currency, contract_stock_type, data_type_trades)
+                    if 'fullImportStockPrices' in src and src['fullImportStockPrices']:
+                        stamp_without_tz = ''
+                    stock_prices_df = vendor.get_historical_bar_data(specs, stamp_without_tz, '', 1, 'd', True)
+                    exec_import_stock_prices(session, logger, stock_prices_df, attr[0], attr[1], str(1) + ' ' + src['importStockPricesResolution'])
                 
                 add_cron_job_run_info_to_session(session, current_operation, "Successfully imported stock prices supported by: " + src['vendor'] + " to database.", None, True)
 

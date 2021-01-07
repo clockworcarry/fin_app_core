@@ -71,7 +71,7 @@ class StateInfo(Base):
     __tablename__ = 'state_info'
 
     id = Column(Integer, primary_key=True)
-    country_info_id = Column(ForeignKey('country_info.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False)
+    country_info_id = Column(ForeignKey('country_info.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False, index=True)
     name = Column(String(60), nullable=False, unique=True)
     update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue())
 
@@ -80,8 +80,8 @@ class Sector(Base):
     __tablename__ = 'sector'
 
     id = Column(SmallInteger, primary_key=True)
-    name_code = Column(String(50), nullable=False)
-    name = Column(String(60), nullable=False)
+    name_code = Column(String(50), nullable=False, unique=True)
+    name = Column(String(60), nullable=False, unique=True)
     locked = Column(Boolean, nullable=False, server_default=text("false"))
     update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue())
 
@@ -90,7 +90,7 @@ class Exchange(Base):
     __tablename__ = 'exchange'
 
     id = Column(SmallInteger, primary_key=True)
-    country_info_id = Column(ForeignKey('country_info.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False)
+    country_info_id = Column(ForeignKey('country_info.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False, index=True)
     name_code = Column(String(10), nullable=False, unique=True)
     name = Column(String(60), unique=True)
     update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue())
@@ -100,7 +100,7 @@ class Industry(Base):
     __tablename__ = 'industry'
 
     id = Column(SmallInteger, primary_key=True)
-    sector_id = Column(ForeignKey('sector.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False)
+    sector_id = Column(ForeignKey('sector.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False, index=True)
     name = Column(String(60), nullable=False, unique=True)
     name_code = Column(String(60), nullable=False, unique=True)
     locked = Column(Boolean, nullable=False, server_default=text("false"))
@@ -111,7 +111,7 @@ class CompanyMiscInfo(Base):
     __tablename__ = 'company_misc_info'
 
     id = Column(Integer, primary_key=True)
-    company_id = Column(ForeignKey('company.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False)
+    company_id = Column(ForeignKey('company.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False, index=True)
     shares_bas = Column(BigInteger)
     shares_dil = Column(BigInteger)
     date_recorded = Column(DateTime(timezone=True), nullable=False)
@@ -122,7 +122,7 @@ class BalanceSheetData(Base):
     __tablename__ = 'balance_sheet_data'
 
     id = Column(Integer, primary_key=True)
-    company_id = Column(ForeignKey('company.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False)
+    company_id = Column(ForeignKey('company.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False, index=True)
     assets = Column(BigInteger)
     cashneq = Column(BigInteger)
     investments = Column(BigInteger)
@@ -151,8 +151,8 @@ class BalanceSheetData(Base):
     equityusd = Column(BigInteger)
     cashnequsd = Column(BigInteger)
     debtusd = Column(BigInteger)
-    calendar_date = Column(DateTime(timezone=True), nullable=False)
-    date_filed = Column(DateTime(timezone=True), nullable=False)
+    calendar_date = Column(DateTime(timezone=True), nullable=False, index=True)
+    date_filed = Column(DateTime(timezone=True), nullable=False, index=True)
     locked = Column(Boolean, nullable=False, server_default=text("false"))
     update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue())
 
@@ -160,7 +160,7 @@ class IncomeStatementData(Base):
     __tablename__ = 'income_statement_data'
 
     id = Column(Integer, primary_key=True)
-    company_id = Column(ForeignKey('company.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False)
+    company_id = Column(ForeignKey('company.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False, index=True)
     revenue = Column(BigInteger)
     cor = Column(BigInteger)
     sgna = Column(BigInteger)
@@ -182,8 +182,8 @@ class IncomeStatementData(Base):
     dps = Column(BigInteger)
     gp = Column(BigInteger)
     opinc = Column(BigInteger)
-    calendar_date = Column(DateTime(timezone=True), nullable=False)
-    date_filed = Column(DateTime(timezone=True), nullable=False)
+    calendar_date = Column(DateTime(timezone=True), nullable=False, index=True)
+    date_filed = Column(DateTime(timezone=True), nullable=False, index=True)
     locked = Column(Boolean, nullable=False, server_default=text("false"))
     update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue())
 
@@ -191,7 +191,7 @@ class CashFlowStatementData(Base):
     __tablename__ = 'cash_flow_statement_data'
 
     id = Column(Integer, primary_key=True)
-    company_id = Column(ForeignKey('company.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False)
+    company_id = Column(ForeignKey('company.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False, index=True)
     capex = Column(BigInteger)
     ncfbus = Column(BigInteger)
     ncfi = Column(BigInteger)
@@ -205,8 +205,8 @@ class CashFlowStatementData(Base):
     ncf = Column(BigInteger)
     sbcomp = Column(BigInteger)
     depamor = Column(BigInteger)
-    calendar_date = Column(DateTime(timezone=True), nullable=False)
-    date_filed = Column(DateTime(timezone=True), nullable=False)
+    calendar_date = Column(DateTime(timezone=True), nullable=False, index=True)
+    date_filed = Column(DateTime(timezone=True), nullable=False, index=True)
     locked = Column(Boolean, nullable=False, server_default=text("false"))
     update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue())
 
@@ -227,14 +227,14 @@ class BarData(Base):
     bar_size = Column(String(12), nullable=False)
     locked = Column(Boolean, nullable=False, server_default=text("false"))
 
-    __table_args__ = (UniqueConstraint('company_id', 'bar_type', 'bar_size', 'bar_date'), )
+    __table_args__ = (UniqueConstraint('company_id', 'bar_type', 'bar_size', 'bar_date', 'exchange_id'), )
 
 
 class Log(Base):
     __tablename__ = 'log'
 
     id = Column(Integer, primary_key=True)
-    log_type = Column(String(20), nullable=False)
+    log_type = Column(String(20), nullable=False, index=True)
     message = Column(String(200))
     data = Column(LargeBinary)
     update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue())
@@ -244,7 +244,7 @@ class CronJobRun(Base):
     __tablename__ = 'cron_job_run'
 
     id = Column(Integer, primary_key=True)
-    log_id = Column(ForeignKey('log.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False) 
+    log_id = Column(ForeignKey('log.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False, index=True) 
     success = Column(Boolean, nullable=False)
 
     log = relationship("Log", uselist=False, backref="cron_job_run")

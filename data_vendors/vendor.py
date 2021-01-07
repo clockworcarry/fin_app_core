@@ -6,6 +6,11 @@ contract_option_type = 2
 data_type_trades = 1 # split adjusted
 data_type_trades_adjusted = 2 # split and dividend adjusted
 
+bar_size_second = '1 s'
+bar_size_minute = '1 m'
+bar_size_hour = '1 h'
+bar_size_day = '1 d'
+
 class HistoricalDataSpecs:
     def __init__(self, ticker, exchange, currency, contract_type, data_type):
         self.ticker = ticker
@@ -46,12 +51,28 @@ class Vendor(ABC):
     @abstractmethod
     def get_historical_bar_data(retrieval_specs, start_date, end_date, bar_size, bar_size_unit, only_regular_hours):
         """
-            Retrieves all historical stock prices for a list of ticker. Specify below parameters to customize retreival
+            Retrieves all historical stock prices for a ticker. Specify below parameters to customize retreival
 
         Args:
             tickers (list str): List of tickers for which historical stock prices will be retrieved
             start_date (str): Retrieve data from this date
             end_date (str): Stop retrieving data after this date
+            timeframe (int): timeframe of the bars retrieved in seconds
+            time_frame_time_unit (str): unit of time for timeframe (s/secs, min/minutes, h/hours, d/days)
+            only_regular_hours (bool): Restricts data to regular market hours or includes after hours if set to False
+
+        Raises:
+            NotImplementedError: this method is implemented in concrete classes
+        """
+        raise NotImplementedError("get_historical_stock_price not implemented in base class.")
+
+    @abstractmethod
+    def get_historical_bar_data(start_date, end_date, bar_size, bar_size_unit, only_regular_hours):
+        """
+            Retrieves all historical stock prices for all vendor supported tickers. Specify below parameters to customize retreival
+
+        Args:
+            start_date (str): Retrieve data from this date
             timeframe (int): timeframe of the bars retrieved in seconds
             time_frame_time_unit (str): unit of time for timeframe (s/secs, min/minutes, h/hours, d/days)
             only_regular_hours (bool): Restricts data to regular market hours or includes after hours if set to False

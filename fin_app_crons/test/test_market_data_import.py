@@ -495,7 +495,7 @@ def test_existing_db_missing_records(caplog):
             #force update_stamp change. Needed since it is a trigger in db
             session.commit()
 
-            assert len(caplog.records) == 9
+            assert len(caplog.records) == 11
 
             assert caplog.records[0].levelname == 'INFO'
             assert caplog.records[0].name == 'fund_cron_logger'
@@ -515,23 +515,31 @@ def test_existing_db_missing_records(caplog):
 
             assert caplog.records[4].levelname == 'INFO'
             assert caplog.records[4].name == 'fund_cron_logger'
-            assert caplog.records[4].message == "The following ticker was updated in the company table: TWTR"
+            assert caplog.records[4].message == "Company with ticker TWTR name changed from Twitter Inc to twatter"
 
             assert caplog.records[5].levelname == 'INFO'
             assert caplog.records[5].name == 'fund_cron_logger'
-            assert caplog.records[5].message == "The following ticker was updated in the company table: FB"
+            assert caplog.records[5].message == "The following ticker was updated in the company table: TWTR"
 
-            assert caplog.records[6].levelname == 'WARNING'
+            assert caplog.records[6].levelname == 'INFO'
             assert caplog.records[6].name == 'fund_cron_logger'
-            assert caplog.records[6].message == "Company already exists: Facebook Inc"
+            assert caplog.records[6].message == "The following ticker was updated in the company table: FB"
 
             assert caplog.records[7].levelname == 'INFO'
             assert caplog.records[7].name == 'fund_cron_logger'
-            assert caplog.records[7].message == "The following vendor source is filtered out: vendor_1"
+            assert caplog.records[7].message == "Company with name Facebook Inc ticker changed from FB to FB2"
 
             assert caplog.records[8].levelname == 'INFO'
             assert caplog.records[8].name == 'fund_cron_logger'
-            assert caplog.records[8].message == "Market data import exited successfully."
+            assert caplog.records[8].message == "The following ticker was updated in the company table: FB2"
+
+            assert caplog.records[9].levelname == 'INFO'
+            assert caplog.records[9].name == 'fund_cron_logger'
+            assert caplog.records[9].message == "The following vendor source is filtered out: vendor_1"
+
+            assert caplog.records[10].levelname == 'INFO'
+            assert caplog.records[10].name == 'fund_cron_logger'
+            assert caplog.records[10].message == "Market data import exited successfully."
 
             #check db has correct records after import
             db_companies = session.query(Company).order_by(Company.id.asc()).all()
@@ -572,12 +580,11 @@ def test_existing_db_missing_records(caplog):
             assert db_companies[4].locked == True
             assert db_companies[4].update_stamp == cmg_stamp
 
-            #untouched because input is identical to db record
-            assert db_companies[5].ticker == 'FB'
+            assert db_companies[5].ticker == 'FB2'
             assert db_companies[5].name == 'Facebook Inc'
             assert db_companies[5].delisted == False
             assert db_companies[5].locked == False
-            assert db_companies[5].update_stamp == fb_stamp
+            assert db_companies[5].update_stamp != fb_stamp
 
             assert db_companies[6].ticker == 'FSLY'
             assert db_companies[6].name == 'Fastly Inc'
