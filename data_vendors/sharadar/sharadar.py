@@ -87,7 +87,7 @@ class Sharadar(Vendor):
         else:
             raise Exception("Sharadar returned http " + str(r.status_code) + " for method get_historical_bar_data while trying to get zip link.")
 
-    def get_historical_bar_data(start_date, end_date, bar_size, bar_size_unit, only_regular_hours):
+    def get_historical_bar_data_full(self, start_date, end_date, bar_size, bar_size_unit, only_regular_hours):
         table_url_extension = self.config['equityPricesTableParams']['urlExtension']
         full_url = self.config['domainUrl'] + "/" + self.config['apiVersion'] + "/" + self.config['baseUrlExtension'] + "/" + table_url_extension + \
                    "?" + "api_key=" + self.config['apiKey']

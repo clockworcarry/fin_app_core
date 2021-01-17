@@ -110,11 +110,27 @@ class Industry(Base):
 class CompanyMiscInfo(Base):
     __tablename__ = 'company_misc_info'
 
-    id = Column(Integer, primary_key=True)
+    id = Column(BigInteger, primary_key=True)
     company_id = Column(ForeignKey('company.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False, index=True)
+    occurence = Column(SmallInteger, nullable=False, index=True)
     shares_bas = Column(BigInteger)
     shares_dil = Column(BigInteger)
     date_recorded = Column(DateTime(timezone=True), nullable=False)
+
+    pe_ratio_ttm = Column(Integer, nullable=False)
+
+    #liquidity ratios
+    current_ratio = Column(Numeric, nullable=False)
+    acid_test_ratio = Column(Numeric, nullable=False)
+    cash_ratio = Column(Numeric, nullable=False)
+    operating_cash_flow_ratio = Column(Numeric, nullable=False)
+
+    #leverage ratios
+    debt_ratio = Column(Numeric, nullable=False)
+    debt_to_equity_ratio = Column(Numeric, nullable=False)
+    interest_coverage_ratio = Column(Numeric, nullable=False)
+    debt_service_coverage_ratio = Column(Numeric, nullable=False)
+
     locked = Column(Boolean, nullable=False, server_default=text("false"))
     update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue())
 
@@ -227,8 +243,26 @@ class BarData(Base):
     bar_size = Column(String(12), nullable=False)
     locked = Column(Boolean, nullable=False, server_default=text("false"))
 
-    __table_args__ = (UniqueConstraint('company_id', 'bar_type', 'bar_size', 'bar_date', 'exchange_id'), )
+    __table_args__ = (UniqueConstraint('company_id', 'bar_type', 'bar_size', 'bar_date'), )
 
+class FinancialRatios(Base):
+    __tablename__ = 'financial_ratios'
+
+    id = Column(BigInteger, primary_key=True)
+    company_id = Column(ForeignKey('company.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False, index=True)
+    pe_ratio_ttm = Column(Integer, nullable=False)
+
+    #liquidity ratios
+    current_ratio = Column(Numeric, nullable=False)
+    acid_test_ratio = Column(Numeric, nullable=False)
+    cash_ratio = Column(Numeric, nullable=False)
+    operating_cash_flow_ratio = Column(Numeric, nullable=False)
+
+    #leverage ratios
+    debt_ratio = Column(Numeric, nullable=False)
+    debt_to_equity_ratio = Column(Numeric, nullable=False)
+    interest_coverage_ratio = Column(Numeric, nullable=False)
+    debt_service_coverage_ratio = Column(Numeric, nullable=False)
 
 class Log(Base):
     __tablename__ = 'log'

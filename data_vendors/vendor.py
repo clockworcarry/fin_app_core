@@ -2,9 +2,11 @@ from abc import ABC, ABCMeta, abstractmethod
 
 contract_stock_type = 1
 contract_option_type = 2
+contract_fx_type = 3
 
 data_type_trades = 1 # split adjusted
 data_type_trades_adjusted = 2 # split and dividend adjusted
+data_type_midpoint = 3
 
 bar_size_second = '1 s'
 bar_size_minute = '1 m'
@@ -12,8 +14,8 @@ bar_size_hour = '1 h'
 bar_size_day = '1 d'
 
 class HistoricalDataSpecs:
-    def __init__(self, ticker, exchange, currency, contract_type, data_type):
-        self.ticker = ticker
+    def __init__(self, symbol, exchange, currency, contract_type, data_type):
+        self.symbol = symbol
         self.exchange = exchange
         self.currency = currency
         self.contract_type = contract_type
@@ -67,9 +69,9 @@ class Vendor(ABC):
         raise NotImplementedError("get_historical_stock_price not implemented in base class.")
 
     @abstractmethod
-    def get_historical_bar_data(start_date, end_date, bar_size, bar_size_unit, only_regular_hours):
+    def get_historical_bar_data_full(self, start_date, end_date, bar_size, bar_size_unit, only_regular_hours, data_type, symbols_filtered_in, symbols_filtered_out):
         """
-            Retrieves all historical stock prices for all vendor supported tickers. Specify below parameters to customize retreival
+            Retrieves all historical bar data for different types of data (fx, stock, options, etc.)
 
         Args:
             start_date (str): Retrieve data from this date
@@ -81,4 +83,3 @@ class Vendor(ABC):
             NotImplementedError: this method is implemented in concrete classes
         """
         raise NotImplementedError("get_historical_stock_price not implemented in base class.")
-

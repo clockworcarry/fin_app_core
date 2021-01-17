@@ -1088,6 +1088,10 @@ def test_exec_import_stock_prices(caplog):
             assert caplog.records[0].name == 'fund_cron_logger'
             assert caplog.records[0].message == "Importing stock prices with no date filter."
 
+            '''assert caplog.records[1].levelname == 'WARNING'
+            assert caplog.records[1].name == 'fund_cron_logger'
+            assert caplog.records[1].message == "Company with ticker SNAP was not loaded from the db. Stock prices will not be saved."'''
+
             assert caplog.records[1].levelname == 'INFO'
             assert caplog.records[1].name == 'fund_cron_logger'
             assert caplog.records[1].message == "Market data import exited successfully."
@@ -1104,40 +1108,23 @@ def test_exec_import_stock_prices(caplog):
             assert cron_job_runs[0].log_id == logs[0].id
 
             bar_data = session.query(BarData).all()
-            assert len(bar_data) == 9
+            assert len(bar_data) == 4
             
             apple_bar_data = session.query(BarData).filter(BarData.company_id == apple_company.id).all()
-            assert len(apple_bar_data) == 3
-            assert apple_bar_data[0].bar_date.year == 2200
+            assert len(apple_bar_data) == 1
+
+            assert apple_bar_data[0].bar_date.year == 2201
             assert apple_bar_data[0].bar_date.month == 1
             assert apple_bar_data[0].bar_date.day == 1
-            assert apple_bar_data[0].bar_open == 100
-            assert apple_bar_data[0].bar_high == 105
-            assert apple_bar_data[0].bar_low == 98
-            assert apple_bar_data[0].bar_close == 99
-            assert apple_bar_data[0].bar_volume == 200
-
-            assert apple_bar_data[1].bar_date.year == 2200
-            assert apple_bar_data[1].bar_date.month == 2
-            assert apple_bar_data[1].bar_date.day == 2
-            assert apple_bar_data[1].bar_open == 200
-            assert apple_bar_data[1].bar_high == 210
-            assert apple_bar_data[1].bar_low == 150
-            assert apple_bar_data[1].bar_close == 155
-            assert apple_bar_data[1].bar_volume == 300
-
-            assert apple_bar_data[2].bar_date.year == 2201
-            assert apple_bar_data[2].bar_date.month == 1
-            assert apple_bar_data[2].bar_date.day == 1
-            assert apple_bar_data[2].bar_open == 300
-            assert apple_bar_data[2].bar_high == 301
-            assert apple_bar_data[2].bar_low == 290
-            assert apple_bar_data[2].bar_close == 300.25
-            assert apple_bar_data[2].bar_volume == 400
+            assert apple_bar_data[0].bar_open == 300
+            assert apple_bar_data[0].bar_high == 301
+            assert apple_bar_data[0].bar_low == 290
+            assert apple_bar_data[0].bar_close == 300.25
+            assert apple_bar_data[0].bar_volume == 400
 
 
             msft_bar_data = session.query(BarData).filter(BarData.company_id == msft_company.id).all()
-            assert len(msft_bar_data) == 3
+            assert len(msft_bar_data) == 2
             assert msft_bar_data[0].bar_date.year == 2200
             assert msft_bar_data[0].bar_date.month == 1
             assert msft_bar_data[0].bar_date.day == 1
@@ -1156,47 +1143,19 @@ def test_exec_import_stock_prices(caplog):
             assert msft_bar_data[1].bar_close == 155
             assert msft_bar_data[1].bar_volume == 300
 
-            assert msft_bar_data[2].bar_date.year == 2201
-            assert msft_bar_data[2].bar_date.month == 1
-            assert msft_bar_data[2].bar_date.day == 1
-            assert msft_bar_data[2].bar_open == 300
-            assert msft_bar_data[2].bar_high == 301
-            assert msft_bar_data[2].bar_low == 290
-            assert msft_bar_data[2].bar_close == 300.25
-            assert msft_bar_data[2].bar_volume == 400
-
 
             amd_bar_data = session.query(BarData).filter(BarData.company_id == amd_company.id).all()
-            assert len(amd_bar_data) == 3
-            assert amd_bar_data[0].bar_date.year == 2200
-            assert amd_bar_data[0].bar_date.month == 1
-            assert amd_bar_data[0].bar_date.day == 1
-            assert amd_bar_data[0].bar_open == 100
-            assert amd_bar_data[0].bar_high == 105
-            assert amd_bar_data[0].bar_low == 98
-            assert amd_bar_data[0].bar_close == 99
-            assert amd_bar_data[0].bar_volume == 200
-
-            assert amd_bar_data[1].bar_date.year == 2200
-            assert amd_bar_data[1].bar_date.month == 2
-            assert amd_bar_data[1].bar_date.day == 2
-            assert amd_bar_data[1].bar_open == 200
-            assert amd_bar_data[1].bar_high == 210
-            assert amd_bar_data[1].bar_low == 150
-            assert amd_bar_data[1].bar_close == 155
-            assert amd_bar_data[1].bar_volume == 300
-
-            assert amd_bar_data[2].bar_date.year == 2201
-            assert amd_bar_data[2].bar_date.month == 1
-            assert amd_bar_data[2].bar_date.day == 1
-            assert amd_bar_data[2].bar_open == 300
-            assert amd_bar_data[2].bar_high == 301
-            assert amd_bar_data[2].bar_low == 290
-            assert amd_bar_data[2].bar_close == 300.25
-            assert amd_bar_data[2].bar_volume == 400
+            assert len(amd_bar_data) == 1
+            assert amd_bar_data[0].bar_date.year == 2202
+            assert amd_bar_data[0].bar_date.month == 10
+            assert amd_bar_data[0].bar_date.day == 10
+            assert amd_bar_data[0].bar_open == 400
+            assert amd_bar_data[0].bar_high == 402
+            assert amd_bar_data[0].bar_low == 290
+            assert amd_bar_data[0].bar_close == 405
+            assert amd_bar_data[0].bar_volume == 500
 
             amd_bar_data[0].locked = True
-            amd_bar_data[2].locked = True
             session.commit()
 
             caplog.records.clear()
@@ -1232,49 +1191,22 @@ def test_exec_import_stock_prices(caplog):
             assert cron_job_runs[1].log_id == logs[1].id
 
             bar_data = session.query(BarData).all()
-            assert len(bar_data) == 12
+            assert len(bar_data) == 6
             
             apple_bar_data = session.query(BarData).filter(BarData.company_id == apple_company.id).all()
-            assert len(apple_bar_data) == 4
-            assert apple_bar_data[0].bar_date.year == 2200
+            assert len(apple_bar_data) == 1
+            assert apple_bar_data[0].bar_date.year == 2201
             assert apple_bar_data[0].bar_date.month == 1
             assert apple_bar_data[0].bar_date.day == 1
-            assert apple_bar_data[0].bar_open == 1000
-            assert apple_bar_data[0].bar_high == 1050
-            assert apple_bar_data[0].bar_low == 980
-            assert apple_bar_data[0].bar_close == 990
-            assert apple_bar_data[0].bar_volume == 2000
-
-            assert apple_bar_data[1].bar_date.year == 2200
-            assert apple_bar_data[1].bar_date.month == 2
-            assert apple_bar_data[1].bar_date.day == 2
-            assert apple_bar_data[1].bar_open == 2000
-            assert apple_bar_data[1].bar_high == 2100
-            assert apple_bar_data[1].bar_low == 1500
-            assert apple_bar_data[1].bar_close == 1550
-            assert apple_bar_data[1].bar_volume == 3000
-
-            assert apple_bar_data[2].bar_date.year == 2201
-            assert apple_bar_data[2].bar_date.month == 1
-            assert apple_bar_data[2].bar_date.day == 1
-            assert apple_bar_data[2].bar_open == 3000
-            assert apple_bar_data[2].bar_high == 3010
-            assert apple_bar_data[2].bar_low == 2900
-            assert apple_bar_data[2].bar_close == 3000.250
-            assert apple_bar_data[2].bar_volume == 4000
-
-            assert apple_bar_data[3].bar_date.year == 2202
-            assert apple_bar_data[3].bar_date.month == 10
-            assert apple_bar_data[3].bar_date.day == 10
-            assert apple_bar_data[3].bar_open == 4000
-            assert apple_bar_data[3].bar_high == 5000
-            assert apple_bar_data[3].bar_low == 6000
-            assert apple_bar_data[3].bar_close == 7000
-            assert apple_bar_data[3].bar_volume == 5000
+            assert apple_bar_data[0].bar_open == 3000
+            assert apple_bar_data[0].bar_high == 3010
+            assert apple_bar_data[0].bar_low == 2900
+            assert apple_bar_data[0].bar_close == 3000.250
+            assert apple_bar_data[0].bar_volume == 4000
 
 
             msft_bar_data = session.query(BarData).filter(BarData.company_id == msft_company.id).all()
-            assert len(msft_bar_data) == 4
+            assert len(msft_bar_data) == 3
             assert msft_bar_data[0].bar_date.year == 2200
             assert msft_bar_data[0].bar_date.month == 1
             assert msft_bar_data[0].bar_date.day == 1
@@ -1293,60 +1225,33 @@ def test_exec_import_stock_prices(caplog):
             assert msft_bar_data[1].bar_close == 1550
             assert msft_bar_data[1].bar_volume == 3000
 
-            assert msft_bar_data[2].bar_date.year == 2201
-            assert msft_bar_data[2].bar_date.month == 1
-            assert msft_bar_data[2].bar_date.day == 1
+            assert msft_bar_data[2].bar_date.year == 2200
+            assert msft_bar_data[2].bar_date.month == 3
+            assert msft_bar_data[2].bar_date.day == 3
             assert msft_bar_data[2].bar_open == 3000
-            assert msft_bar_data[2].bar_high == 3010
-            assert msft_bar_data[2].bar_low == 2900
-            assert msft_bar_data[2].bar_close == 3000.250
-            assert msft_bar_data[2].bar_volume == 4000
-
-            assert msft_bar_data[3].bar_date.year == 2202
-            assert msft_bar_data[3].bar_date.month == 10
-            assert msft_bar_data[3].bar_date.day == 10
-            assert msft_bar_data[3].bar_open == 4000
-            assert msft_bar_data[3].bar_high == 5000
-            assert msft_bar_data[3].bar_low == 6000
-            assert msft_bar_data[3].bar_close == 7000
-            assert msft_bar_data[3].bar_volume == 5000
+            assert msft_bar_data[2].bar_high == 3100
+            assert msft_bar_data[2].bar_low == 2500
+            assert msft_bar_data[2].bar_close == 2550
+            assert msft_bar_data[2].bar_volume == 3000
 
 
             amd_bar_data = session.query(BarData).filter(BarData.company_id == amd_company.id).order_by(BarData.bar_date).all()
-            assert len(amd_bar_data) == 4
-            assert amd_bar_data[0].bar_date.year == 2200
-            assert amd_bar_data[0].bar_date.month == 1
-            assert amd_bar_data[0].bar_date.day == 1
-            assert amd_bar_data[0].bar_open == 100
-            assert amd_bar_data[0].bar_high == 105
-            assert amd_bar_data[0].bar_low == 98
-            assert amd_bar_data[0].bar_close == 99
-            assert amd_bar_data[0].bar_volume == 200
+            assert len(amd_bar_data) == 2
+            assert amd_bar_data[0].bar_date.year == 2202
+            assert amd_bar_data[0].bar_date.month == 10
+            assert amd_bar_data[0].bar_date.day == 10
+            assert amd_bar_data[0].bar_open == 400
+            assert amd_bar_data[0].bar_high == 402
+            assert amd_bar_data[0].bar_low == 290
+            assert amd_bar_data[0].bar_close == 405
+            assert amd_bar_data[0].bar_volume == 500
 
-            assert amd_bar_data[1].bar_date.year == 2200
-            assert amd_bar_data[1].bar_date.month == 2
-            assert amd_bar_data[1].bar_date.day == 2
-            assert amd_bar_data[1].bar_open == 2000
-            assert amd_bar_data[1].bar_high == 2100
-            assert amd_bar_data[1].bar_low == 1500
-            assert amd_bar_data[1].bar_close == 1550
-            assert amd_bar_data[1].bar_volume == 3000
-
-            assert amd_bar_data[2].bar_date.year == 2201
-            assert amd_bar_data[2].bar_date.month == 1
-            assert amd_bar_data[2].bar_date.day == 1
-            assert amd_bar_data[2].bar_open == 300
-            assert amd_bar_data[2].bar_high == 301
-            assert amd_bar_data[2].bar_low == 290
-            assert amd_bar_data[2].bar_close == 300.25
-            assert amd_bar_data[2].bar_volume == 400
-
-            assert msft_bar_data[3].bar_date.year == 2202
-            assert msft_bar_data[3].bar_date.month == 10
-            assert msft_bar_data[3].bar_date.day == 10
-            assert msft_bar_data[3].bar_open == 4000
-            assert msft_bar_data[3].bar_high == 5000
-            assert msft_bar_data[3].bar_low == 6000
-            assert msft_bar_data[3].bar_close == 7000
-            assert msft_bar_data[3].bar_volume == 5000
+            assert amd_bar_data[1].bar_date.year == 2202
+            assert amd_bar_data[1].bar_date.month == 11
+            assert amd_bar_data[1].bar_date.day == 10
+            assert amd_bar_data[1].bar_open == 5000
+            assert amd_bar_data[1].bar_high == 6000
+            assert amd_bar_data[1].bar_low == 7000
+            assert amd_bar_data[1].bar_close == 8000
+            assert amd_bar_data[1].bar_volume == 6000
             

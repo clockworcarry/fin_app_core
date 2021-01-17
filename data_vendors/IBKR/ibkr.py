@@ -66,9 +66,11 @@ class IBKR(Vendor):
         hours_diff = end_date_obj.hour - start_date_obj.hour
         
         contract = Contract()
-        contract.symbol = retrieval_specs.ticker
+        contract.symbol = retrieval_specs.symbol
         if retrieval_specs.contract_type == contract_stock_type:           
             contract.secType = 'STK'
+        elif retrieval_specs.contract_type == contract_fx_type:
+            contract.secType = 'CASH'
         contract.currency = retrieval_specs.currency
         contract.exchange = retrieval_specs.exchange
         self.ib.qualifyContracts(contract)
@@ -77,11 +79,15 @@ class IBKR(Vendor):
             return pd.DataFrame()
         bars_list = []
         end_date_time = end_date_obj
+        if bar_size_unit == 'd' or bar_size_unit == 'days':
+            bar_size_unit = 'day'
         bar_size_setting = str(bar_size) + ' ' + bar_size_unit
         if retrieval_specs.data_type == data_type_trades:
             what_to_show = 'TRADES'
         elif retrieval_specs.data_type == data_type_trades_adjusted:
             what_to_show = 'ADJUSTED_LAST'
+        elif retrieval_specs.data_type == data_type_midpoint:
+            what_to_show = 'MIDPOINT'
         else:
             raise ValueError('Unsupported data type: ' + str(retrieval_specs.data_type) + ' for historical bar data retrieval.')
         if what_to_show == 'ADJUSTED_LAST' and end_date != '':
@@ -143,15 +149,36 @@ class IBKR(Vendor):
         df = df[df['date'] >= start_date_obj]
         return df
 
+    def get_historical_bar_data_full(self, start_date, end_date, bar_size, bar_size_unit, only_regular_hours):
+        pass
+
 
 if __name__ == "__main__":
     specs = []
-    tsla_specs = HistoricalDataSpecs('TSLA', 'SMART', 'USD', contract_stock_type, data_type_trades)
+    '''tsla_specs = HistoricalDataSpecs('TSLA', 'SMART', 'USD', contract_stock_type, data_type_trades)
     msft_specs = HistoricalDataSpecs('MSFT', 'SMART', 'USD', contract_stock_type, data_type_trades)
     specs.extend([tsla_specs, msft_specs])
     ib = IBKR(config_file_path='/home/ghelie/fin_app/fin_app_core/data_vendors/IBKR/ibkr_config.json')
     for spec in specs:
         df = ib.get_historical_bar_data(spec, '2019-01-01', '', 1, 'hour', True)
-        df.to_csv(spec.ticker + '.csv')
+        df.to_csv(spec.ticker + '.csv')'''
+
+    '''ib = IBKR(config_file_path='/home/ghelie/fin_app/fin_app_core/data_vendors/IBKR/ibkr_config.json')
+    contract = Contract()
+    contract.symbol = "EUR";
+    contract.secType = "CASH";
+    contract.currency = "USD";
+    contract.exchange = "IDEALPRO";'''
+
+
+    specs = HistoricalDataSpecs('USD', 'IDEALPRO', 'JPY', contract_fx_type, data_type_midpoint)
+    ib = IBKR(config_file_path='/home/ghelie/fin_app/fin_app_core/data_vendors/IBKR/ibkr_config.json')
+    df = ib.get_historical_bar_data(specs, '', '', 1, 'd', True)
+    df.to_csv(specs.ticker + '.csv')
+
+    end_date_str = '2021-01-15'
+    end_date_obj = datetime.strptime(end_date_str, '%Y-%m-%d')
+    bars = ib.ib.reqHistoricalData(contract, endDateTime=end_date_obj, durationStr='12 W', barSizeSetting='1 day', whatToShow='MIDPOINT', useRTH=True, formatDate=1)
+    i = 2
 
         

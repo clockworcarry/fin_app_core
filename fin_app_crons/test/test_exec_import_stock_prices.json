@@ -6,6 +6,7 @@
     "sources": [
         {
             "importCompanies": false,
+            "importStockPricesResolution": "d",
             "importFundamentalDataPoints": false,
             "importStockPrices": true,
             "vendor": "mock_vendor",

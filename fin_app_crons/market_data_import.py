@@ -11,12 +11,14 @@ from psycopg2 import *
 from sqlalchemy import create_engine, select, insert, exists
 from sqlalchemy.orm import sessionmaker
 
-import sys, json, requests, logging, io, math, traceback, datetime, time
+import sys, json, requests, logging, io, math, traceback, datetime, time, math
+import multiprocessing as mp
 
 EXEC_IMPORT_BEGIN = 'exec_import_begin'
 EXEC_IMPORT_COMPANIES_LOG_TYPE = 'exc_imp_cpnies'
 EXEC_COMPANIES_IMPORT_FUNDAMENTAL_DATA_POINTS_LOG_TYPE = 'exec_imp_fdp'
 EXEC_IMPORT_STOCK_PRICES_LOG_TYPE = 'exc_imp_sps'
+EXEC_IMPORT_FX_DATA_LOG_TYPE = 'exc_fx_data'
 
 verbose = False
 
@@ -159,19 +161,53 @@ def exec_import_companies_fundamental_data(session, logger, fundamental_data_df)
         current_row += 1
 
 
-def exec_import_stock_prices(session, logger, stock_prices_df, company, exchange, bar_size):
-    stock_prices_df = stock_prices_df.replace({np.nan: None})
-    for idx, row in stock_prices_df.iterrows():
-        db_bar_data = session.query(BarData).filter(BarData.company_id == company.id, BarData.bar_date == row['date']).first()
-        if db_bar_data is None or not db_bar_data.locked:
-            bar_data = BarData(company_id=company.id, exchange_id=exchange.id, bar_type=BAR_TYPE_STOCK_TRADE, bar_open=row['open'], bar_high=row['high'], bar_low=row['low'], bar_close=row['close'], \
-                                bar_volume=row['volume'], bar_date=row['date'], bar_size=bar_size)
-        
-            if db_bar_data is not None:
-                session.delete(db_bar_data)
-                bar_data.id = db_bar_data.id
+def exec_import_stock_prices(db_conn_str, session_name, logger, stock_prices_df, ticker_attributes_map, bar_size):
+    manager = SqlAlchemySessionManager()
+    try:
+        stock_prices_df = stock_prices_df.replace({np.nan: None})
+        engine = create_engine(db_conn_str, echo=False)
+        nb_rows = stock_prices_df.shape[0]
+        conn = engine.connect()
+        trans = None
+        trans = conn.begin()
+        current_row = 0
+        for idx, row in stock_prices_df.iterrows():
+            if verbose and (idx % 1000 == 0):
+                print("Current row: " + str(current_row) + " out of " + str(nb_rows) + ". Ticker: " + row['ticker'])
+            if row['ticker'] not in ticker_attributes_map:
+                #logger.warning("Company with ticker " + row['ticker'] + " was not loaded from the db. Stock prices will not be saved.")
+                continue
+            db_company = ticker_attributes_map[row['ticker']][0]
+            db_exchange = ticker_attributes_map[row['ticker']][1]
+            bar_data_tbl = BarData.__table__
+            stmt = select([bar_data_tbl.c.id, bar_data_tbl.c.locked]).where((bar_data_tbl.c.company_id == db_company.id) & (bar_data_tbl.c.bar_date == row['date'])).limit(1)                  
+            db_bar_data = conn.execute(stmt).fetchone()
+            #db_bar_data = session.query(BarData).filter(BarData.company_id == db_company.id, BarData.bar_date == row['date']).first()
+            if db_bar_data is None or not db_bar_data.locked:
+                '''bar_data = BarData(company_id=db_company.id, exchange_id=db_exchange.id, bar_type=BAR_TYPE_STOCK_TRADE, bar_open=row['open'], bar_high=row['high'], bar_low=row['low'], bar_close=row['close'], \
+                                    bar_volume=row['volume'], bar_date=row['date'], bar_size=bar_size)'''
+                if db_bar_data is None:
+                    stmt = bar_data_tbl.insert()
+                    conn.execute(stmt, company_id=db_company.id, exchange_id=db_exchange.id, bar_type=BAR_TYPE_STOCK_TRADE, bar_open=row['open'], bar_high=row['high'], 
+                                                        bar_low=row['low'], bar_close=row['close'], \
+                                                        bar_volume=row['volume'], bar_date=row['date'], bar_size=bar_size)
+                else:
+                    stmt = bar_data_tbl.update().values(id=db_bar_data.id, company_id=db_company.id, exchange_id=db_exchange.id, bar_type=BAR_TYPE_STOCK_TRADE, bar_open=row['open'], bar_high=row['high'], 
+                                                        bar_low=row['low'], bar_close=row['close'], \
+                                                        bar_volume=row['volume'], bar_date=row['date'], bar_size=bar_size).where(bar_data_tbl.c.id == db_bar_data.id)
+                    conn.execute(stmt)
+                
+                if idx == nb_rows - 1 or (idx % 10000 == 0 and idx != 0):
+                    trans.commit()
+                    if idx != nb_rows - 1:
+                        trans = conn.begin()
             
-            session.add(bar_data)
+            current_row += 1
+    except Exception as gen_ex:
+        if trans is not None:
+            trans.rollback()
+        raise gen_ex
+
 
 
 def exec_import(config, session):
@@ -195,7 +231,7 @@ def exec_import(config, session):
                 current_operation = EXEC_IMPORT_COMPANIES_LOG_TYPE
                 #get date the last time companies were imported and use this date as the start date for import
                 #res is a (CronJobRun, Log) tuple
-                res = session.query(CronJobRun, Log).join(Log).filter(Log.log_type == EXEC_IMPORT_COMPANIES_LOG_TYPE).filter(CronJobRun.success == True).order_by(CronJobRun.id.desc()).first()
+                res = session.query(CronJobRun, Log).join(Log).filter(Log.log_type == current_operation).filter(CronJobRun.success == True).order_by(CronJobRun.id.desc()).first()
                 if res is None: #first time script is ran
                     logger.info("Importing tickers with no date filter.")
                     input_companies_df = vendor.get_all_companies()
@@ -221,7 +257,7 @@ def exec_import(config, session):
                 current_operation = EXEC_COMPANIES_IMPORT_FUNDAMENTAL_DATA_POINTS_LOG_TYPE
                 #get date the last time the fundamental data was imported for companies and use this date as the start date for import
                 #res is a (CronJobRun, Log) tuple
-                res = session.query(CronJobRun, Log).join(Log).filter(Log.log_type == EXEC_COMPANIES_IMPORT_FUNDAMENTAL_DATA_POINTS_LOG_TYPE).filter(CronJobRun.success == True).order_by(CronJobRun.id.desc()).first()
+                res = session.query(CronJobRun, Log).join(Log).filter(Log.log_type == current_operation).filter(CronJobRun.success == True).order_by(CronJobRun.id.desc()).first()
                 if res is None: #first time script is ran
                     logger.info("Importing fundamental data with no date filter.")
                     fundamental_data_df = vendor.get_fundamental_data()
@@ -246,9 +282,12 @@ def exec_import(config, session):
             if 'importStockPrices' in src and src['importStockPrices']:
                 current_operation = EXEC_IMPORT_STOCK_PRICES_LOG_TYPE
                 company_attributes = session.query(Company, Exchange, CountryInfo).join(t_company_exchange_relation, t_company_exchange_relation.c.company_id == Company.id).join(Exchange).join(CountryInfo).all()
+                ticker_attributes_map = {}
+                for attr in company_attributes:
+                    ticker_attributes_map[attr[0].ticker] = attr
                 #get date the last time stock prices were imported and use this date as the start date for import
                 #res is a (CronJobRun, Log) tuple
-                res = session.query(CronJobRun, Log).join(Log).filter(Log.log_type == EXEC_IMPORT_STOCK_PRICES_LOG_TYPE).filter(CronJobRun.success == True).order_by(CronJobRun.id.desc()).first()
+                res = session.query(CronJobRun, Log).join(Log).filter(Log.log_type == current_operation).filter(CronJobRun.success == True).order_by(CronJobRun.id.desc()).first()
                 stamp_without_tz = ''
                 if res is None: #first time script is ran
                     logger.info("Importing stock prices with no date filter.")
@@ -259,33 +298,67 @@ def exec_import(config, session):
                     stamp_without_tz = stamp_without_tz.strftime("%Y-%m-%d")
                     logger.info("Importing stock prices that was updated after or on: " + stamp_without_tz)
 
-                nb_companies = len(company_attributes)
-                for idx, attr in enumerate(company_attributes):
-                    if verbose:
-                        print("Saving bar data for ticker: " + attr[0].ticker + ". Step " + str(idx) + " out of " + str(nb_companies))
-                    
-                    if 'tickersFilteredOut' in src:
-                        ticker_filtered_out_it = next((x for x in src['tickersFilteredOut'] if x == attr[0].ticker or x == '*'), None)
-                        if ticker_filtered_out_it != None:
-                            ticker_filtered_in_it = next((x for x in src['tickersFilteredIn'] if x == attr[0].ticker), None)
-                            if ticker_filtered_in_it == None:
-                                logger.info("The following ticker is filtered out for stock prices import: " + attr[0].ticker)
-                                continue
-                    if 'exchangesFilteredOut' in src:
-                        exchange_filtered_out_it = next((x for x in src['exchangesFilteredOut'] if x == attr[1].name_code or x == '*'), None)
-                        if exchange_filtered_out_it != None:
-                            exchange_filtered_in_it = next((x for x in src['exchangesFilteredIn'] if x == attr[1].name_code), None)
-                            if exchange_filtered_in_it == None:
-                                logger.info("The following exchange is filtered out for stock prices import: " + attr[1].name_code)
-                                continue
-                    specs = HistoricalDataSpecs(attr[0].ticker, attr[1].name_code, attr[2].currency, contract_stock_type, data_type_trades)
-                    if 'fullImportStockPrices' in src and src['fullImportStockPrices']:
+                if 'fullImportStockPrices' in src and src['fullImportStockPrices']:
                         stamp_without_tz = ''
-                    stock_prices_df = vendor.get_historical_bar_data(specs, stamp_without_tz, '', 1, 'd', True)
-                    exec_import_stock_prices(session, logger, stock_prices_df, attr[0], attr[1], str(1) + ' ' + src['importStockPricesResolution'])
                 
+                stock_prices_df = vendor.get_historical_bar_data_full(stamp_without_tz, '', 1, 'd', True) #might be huge
+                    
+                if 'tickersFilteredOut' in src:
+                    for ticker in src['tickersFilteredOut']:
+                        logger.info("The following ticker is filtered out for stock prices import: " + ticker)
+                        stock_prices_df = stock_prices_df[stock_prices_df['ticker'] != ticker]
+                    
+                if 'exchangesFilteredOut' in src:
+                    for exch in src['exchangesFilteredOut']:
+                        logger.info("The following exchange is filtered out for stock prices import: " + exch)
+                        stock_prices_df = stock_prices_df[stock_prices_df['exchange'] != exch]
+
+                list_df = []
+                nb_rows_df = stock_prices_df.shape[0]          
+                i = 0
+                nb_rows_per_df = 2000000
+                
+                while i <= nb_rows_df:
+                    if (nb_rows_df - i) < nb_rows_per_df:
+                        list_df.append(stock_prices_df.iloc[i:i + (nb_rows_df - i + 1)])
+                    else:
+                        list_df.append(stock_prices_df.iloc[i:i + nb_rows_per_df])
+                    i += nb_rows_per_df
+
+                print("Dataframe views created. There are " + str(len(list_df)) + " dataframes.")
+
+                processes = []
+                for idx, df in enumerate(list_df):
+                    proc = mp.Process(target=exec_import_stock_prices, args=(config['dbConnString'], 'stk_imp_proc_' + str(idx), logger, df, ticker_attributes_map, str(1) + ' ' + src['importStockPricesResolution']))
+                    processes.append(proc)
+
+                for idx, proc in enumerate(processes):
+                    print("Starting process " + str(idx + 1) + " out of " + str(len(processes)))
+                    proc.start()
+
+                for idx, proc in enumerate(processes):
+                    proc.join()
+                    print("Process " + str(idx + 1) + " ended")
+
+                print("Stock prices import done.")
+                #processes = [Process(target=exec_import_stock_prices, args=(session, logger, stock)) for x in range(len(list_df))]
+                #exec_import_stock_prices(session, logger, stock_prices_df, ticker_attributes_map, str(1) + ' ' + src['importStockPricesResolution'])
                 add_cron_job_run_info_to_session(session, current_operation, "Successfully imported stock prices supported by: " + src['vendor'] + " to database.", None, True)
 
+            if 'importFxData' in src and src['importFxData']:
+                current_operation = EXEC_IMPORT_FX_DATA_LOG_TYPE
+                res = session.query(CronJobRun, Log).join(Log).filter(Log.log_type == current_operation).filter(CronJobRun.success == True).order_by(CronJobRun.id.desc()).first()
+                stamp_without_tz = ''
+                if res is None: #first time script is ran
+                    logger.info("Importing fx data with no date filter.")
+                else:
+                    if res[0].success is False:
+                        logger.warning("Executing fx data import when the last import has failed. Last import cron id: " + str(res[0].id))
+                    stamp_without_tz = res[1].update_stamp.replace(tzinfo=None)
+                    stamp_without_tz = stamp_without_tz.strftime("%Y-%m-%d")
+                    logger.info("Importing fx data that was updated after or on: " + stamp_without_tz)
+                
+                fx_data_df = vendor.get_historical_bar_data(stamp_without_tz, '', 1, 'd', True) #might be huge
                 
 
         logger.info("Market data import exited successfully.")
