@@ -71,7 +71,9 @@ def cleanup_db(conn):
             conn.execute(stmt)
             stmt = delete(CronJobRun.__table__)
             conn.execute(stmt)
-            stmt = delete(BarData.__table__)
+            stmt = delete(EquityBarData.__table__)
+            conn.execute(stmt)
+            stmt = delete(CurrencyBarData.__table__)
             conn.execute(stmt)
     except Exception as gen_ex:
         print(str(gen_ex))
@@ -1107,10 +1109,10 @@ def test_exec_import_stock_prices(caplog):
             assert cron_job_runs[0].success == True
             assert cron_job_runs[0].log_id == logs[0].id
 
-            bar_data = session.query(BarData).all()
+            bar_data = session.query(EquityBarData).all()
             assert len(bar_data) == 4
             
-            apple_bar_data = session.query(BarData).filter(BarData.company_id == apple_company.id).all()
+            apple_bar_data = session.query(EquityBarData).filter(EquityBarData.company_id == apple_company.id).all()
             assert len(apple_bar_data) == 1
 
             assert apple_bar_data[0].bar_date.year == 2201
@@ -1123,7 +1125,7 @@ def test_exec_import_stock_prices(caplog):
             assert apple_bar_data[0].bar_volume == 400
 
 
-            msft_bar_data = session.query(BarData).filter(BarData.company_id == msft_company.id).all()
+            msft_bar_data = session.query(EquityBarData).filter(EquityBarData.company_id == msft_company.id).all()
             assert len(msft_bar_data) == 2
             assert msft_bar_data[0].bar_date.year == 2200
             assert msft_bar_data[0].bar_date.month == 1
@@ -1144,7 +1146,7 @@ def test_exec_import_stock_prices(caplog):
             assert msft_bar_data[1].bar_volume == 300
 
 
-            amd_bar_data = session.query(BarData).filter(BarData.company_id == amd_company.id).all()
+            amd_bar_data = session.query(EquityBarData).filter(EquityBarData.company_id == amd_company.id).all()
             assert len(amd_bar_data) == 1
             assert amd_bar_data[0].bar_date.year == 2202
             assert amd_bar_data[0].bar_date.month == 10
@@ -1190,10 +1192,10 @@ def test_exec_import_stock_prices(caplog):
             assert cron_job_runs[1].success == True
             assert cron_job_runs[1].log_id == logs[1].id
 
-            bar_data = session.query(BarData).all()
+            bar_data = session.query(EquityBarData).all()
             assert len(bar_data) == 6
             
-            apple_bar_data = session.query(BarData).filter(BarData.company_id == apple_company.id).all()
+            apple_bar_data = session.query(EquityBarData).filter(EquityBarData.company_id == apple_company.id).all()
             assert len(apple_bar_data) == 1
             assert apple_bar_data[0].bar_date.year == 2201
             assert apple_bar_data[0].bar_date.month == 1
@@ -1205,7 +1207,7 @@ def test_exec_import_stock_prices(caplog):
             assert apple_bar_data[0].bar_volume == 4000
 
 
-            msft_bar_data = session.query(BarData).filter(BarData.company_id == msft_company.id).all()
+            msft_bar_data = session.query(EquityBarData).filter(EquityBarData.company_id == msft_company.id).all()
             assert len(msft_bar_data) == 3
             assert msft_bar_data[0].bar_date.year == 2200
             assert msft_bar_data[0].bar_date.month == 1
@@ -1235,7 +1237,7 @@ def test_exec_import_stock_prices(caplog):
             assert msft_bar_data[2].bar_volume == 3000
 
 
-            amd_bar_data = session.query(BarData).filter(BarData.company_id == amd_company.id).order_by(BarData.bar_date).all()
+            amd_bar_data = session.query(EquityBarData).filter(EquityBarData.company_id == amd_company.id).order_by(EquityBarData.bar_date).all()
             assert len(amd_bar_data) == 2
             assert amd_bar_data[0].bar_date.year == 2202
             assert amd_bar_data[0].bar_date.month == 10
@@ -1254,4 +1256,160 @@ def test_exec_import_stock_prices(caplog):
             assert amd_bar_data[1].bar_low == 7000
             assert amd_bar_data[1].bar_close == 8000
             assert amd_bar_data[1].bar_volume == 6000
+
+
+def test_exec_import_fx_data(caplog):
+    absolute_path = os.path.join(sys.path[0], 'test_exec_import_fx_data.json')
+
+    #clean up db in case
+    with open(absolute_path, 'r') as f:
+        config_raw = f.read()
+        config = json.loads(config_raw)
+        engine = create_engine(config['dbConnString'])
+
+        manager = SqlAlchemySessionManager()
+        with manager.session_scope(db_url=config['dbConnString'], template_name='first_session') as session:
+            cleanup_db(session.connection())
+
+            exec_import(config, session)
+
+            session.commit()
+
+            assert len(caplog.records) == 2
+            
+            assert caplog.records[0].levelname == 'INFO'
+            assert caplog.records[0].name == 'fund_cron_logger'
+            assert caplog.records[0].message == "Importing fx data with no date filter."
+
+            assert caplog.records[1].levelname == 'INFO'
+            assert caplog.records[1].name == 'fund_cron_logger'
+            assert caplog.records[1].message == "Market data import exited successfully."
+
+            logs = session.query(Log).all()
+            assert len(logs) == 1
+            assert logs[0].log_type == EXEC_IMPORT_FX_DATA_LOG_TYPE
+            assert logs[0].message == "Successfully imported fx data supported by: mock_vendor to database."
+            assert logs[0].data is None
+            assert logs[0].update_stamp is not None
+            cron_job_runs = session.query(CronJobRun).all()
+            assert len(cron_job_runs) == 1
+            assert cron_job_runs[0].success == True
+            assert cron_job_runs[0].log_id == logs[0].id
+
+            bar_data = session.query(CurrencyBarData).all()
+            assert len(bar_data) == 3
+            
+            usd_cad_bar_data = session.query(CurrencyBarData).filter(CurrencyBarData.symbol == "USD.CAD").all()
+            assert len(usd_cad_bar_data) == 2
+
+            assert usd_cad_bar_data[0].bar_date.year == 2200
+            assert usd_cad_bar_data[0].bar_date.month == 1
+            assert usd_cad_bar_data[0].bar_date.day == 1
+            assert usd_cad_bar_data[0].bar_open == 100
+            assert usd_cad_bar_data[0].bar_high == 105
+            assert usd_cad_bar_data[0].bar_low == 98
+            assert usd_cad_bar_data[0].bar_close == 99
+            assert usd_cad_bar_data[0].bar_volume == 200
+            assert usd_cad_bar_data[1].bar_date.year == 2201
+            assert usd_cad_bar_data[1].bar_date.month == 1
+            assert usd_cad_bar_data[1].bar_date.day == 1
+            assert usd_cad_bar_data[1].bar_open == 300
+            assert usd_cad_bar_data[1].bar_high == 301
+            assert usd_cad_bar_data[1].bar_low == 290
+            assert usd_cad_bar_data[1].bar_close == 300.25
+            assert usd_cad_bar_data[1].bar_volume == 400
+
+
+            eur_usd_bar_data = session.query(CurrencyBarData).filter(CurrencyBarData.symbol == "EUR.USD").all()
+            assert len(eur_usd_bar_data) == 1
+            assert eur_usd_bar_data[0].bar_date.year == 2200
+            assert eur_usd_bar_data[0].bar_date.month == 2
+            assert eur_usd_bar_data[0].bar_date.day == 2
+            assert eur_usd_bar_data[0].bar_open == 200
+            assert eur_usd_bar_data[0].bar_high == 210
+            assert eur_usd_bar_data[0].bar_low == 150
+            assert eur_usd_bar_data[0].bar_close == 155
+            assert eur_usd_bar_data[0].bar_volume == 300
+
+            usd_cad_bar_data[0].locked = True
+            session.commit()
+
+            caplog.records.clear()
+            exec_import(config, session)
+
+            session.commit()
+
+            assert len(caplog.records) == 2
+            
+            assert caplog.records[0].levelname == 'INFO'
+            assert caplog.records[0].name == 'fund_cron_logger'
+            assert "Importing fx data that was updated after or on:" in caplog.records[0].message
+
+            assert caplog.records[1].levelname == 'INFO'
+            assert caplog.records[1].name == 'fund_cron_logger'
+            assert caplog.records[1].message == "Market data import exited successfully."
+
+            logs = session.query(Log).all()
+            assert len(logs) == 2
+            assert logs[0].log_type == EXEC_IMPORT_FX_DATA_LOG_TYPE
+            assert logs[0].message == "Successfully imported fx data supported by: mock_vendor to database."
+            assert logs[0].data is None
+            assert logs[0].update_stamp is not None
+            assert logs[1].log_type == EXEC_IMPORT_FX_DATA_LOG_TYPE
+            assert logs[1].message == "Successfully imported fx data supported by: mock_vendor to database."
+            assert logs[1].data is None
+            assert logs[1].update_stamp is not None
+            cron_job_runs = session.query(CronJobRun).all()
+            assert len(cron_job_runs) == 2
+            assert cron_job_runs[0].success == True
+            assert cron_job_runs[0].log_id == logs[0].id
+            assert cron_job_runs[1].success == True
+            assert cron_job_runs[1].log_id == logs[1].id
+            
+            bar_data = session.query(CurrencyBarData).all()
+            assert len(bar_data) == 4
+            
+            usd_cad_bar_data = session.query(CurrencyBarData).filter(CurrencyBarData.symbol == "USD.CAD").all()
+            assert len(usd_cad_bar_data) == 2
+
+            assert usd_cad_bar_data[0].bar_date.year == 2200
+            assert usd_cad_bar_data[0].bar_date.month == 1
+            assert usd_cad_bar_data[0].bar_date.day == 1
+            assert usd_cad_bar_data[0].bar_open == 100
+            assert usd_cad_bar_data[0].bar_high == 105
+            assert usd_cad_bar_data[0].bar_low == 98
+            assert usd_cad_bar_data[0].bar_close == 99
+            assert usd_cad_bar_data[0].bar_volume == 200
+            assert usd_cad_bar_data[1].bar_date.year == 2201
+            assert usd_cad_bar_data[1].bar_date.month == 1
+            assert usd_cad_bar_data[1].bar_date.day == 1
+            assert usd_cad_bar_data[1].bar_open == 3000
+            assert usd_cad_bar_data[1].bar_high == 3010
+            assert usd_cad_bar_data[1].bar_low == 2900
+            assert usd_cad_bar_data[1].bar_close == 3000.25
+            assert usd_cad_bar_data[1].bar_volume == 4000
+
+
+            eur_usd_bar_data = session.query(CurrencyBarData).filter(CurrencyBarData.symbol == "EUR.USD").all()
+            assert len(eur_usd_bar_data) == 1
+            assert eur_usd_bar_data[0].bar_date.year == 2200
+            assert eur_usd_bar_data[0].bar_date.month == 2
+            assert eur_usd_bar_data[0].bar_date.day == 2
+            assert eur_usd_bar_data[0].bar_open == 2000
+            assert eur_usd_bar_data[0].bar_high == 2100
+            assert eur_usd_bar_data[0].bar_low == 1500
+            assert eur_usd_bar_data[0].bar_close == 1550
+            assert eur_usd_bar_data[0].bar_volume == 3000
+
+
+            usd_jpy_bar_data = session.query(CurrencyBarData).filter(CurrencyBarData.symbol == "USD.JPY").all()
+            assert len(usd_jpy_bar_data) == 1
+            assert usd_jpy_bar_data[0].bar_date.year == 2200
+            assert usd_jpy_bar_data[0].bar_date.month == 1
+            assert usd_jpy_bar_data[0].bar_date.day == 1
+            assert usd_jpy_bar_data[0].bar_open == 10000
+            assert usd_jpy_bar_data[0].bar_high == 10000
+            assert usd_jpy_bar_data[0].bar_low == 10000
+            assert usd_jpy_bar_data[0].bar_close == 10000
+            assert usd_jpy_bar_data[0].bar_volume == 10000
             

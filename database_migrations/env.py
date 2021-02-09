@@ -7,7 +7,9 @@ import sys
 
 from alembic import context
 
-from db.models import Base
+from db.base_models import Base
+from db.models import *
+from db.company_financials import *
 
 #from fin_app_core.db_models.models import Base
 

@@ -28,29 +28,29 @@ class MockVendor(Vendor):
         df = pd.read_csv(self.config['company_file_path'])
         return df
 
-    def get_historical_bar_data(self, retrieval_specs, start_date, end_date, bar_size, bar_size_unit, only_regular_hours):
-        if start_date == '':
-            df = pd.DataFrame({'date': ['2200-01-01', '2200-02-02', '2201-01-01'], 'open': [100, 200, 300], 'high': [105, 210, 301], 'low': [98, 150, 290], 'close': [99, 155, 300.25], \
-                               'volume': [200, 300, 400]})
-            return df
-        else:
-            df = pd.DataFrame({'date': ['2200-01-01', '2200-02-02', '2201-01-01', '2202-10-10', '1980-01-01'], 'open': [1000, 2000, 3000, 4000, 5000], 'high': [1050, 2100, 3010, 5000, 6000], 'low': [980, 1500, 2900, 6000, 7000], 'close': [990, 1550, 3000.250, 7000, 8000], \
-                               'volume': [2000, 3000, 4000, 5000, 6000]})
-            start_date = datetime.strptime(start_date, '%Y-%m-%d')
-            df['date'] = pd.to_datetime(df['date'])
+    def get_historical_bar_data(self, start_date, end_date, bar_size, bar_size_unit, only_regular_hours, data_type):
+        if data_type == 3: #data type fx
+            if start_date == '':
+                df = pd.DataFrame({'symbol': ['USD.CAD', 'EUR.USD', 'USD.CAD'], 'date': ['2200-01-01', '2200-02-02', '2201-01-01'], 'open': [100, 200, 300], 'high': [105, 210, 301], 'low': [98, 150, 290], 'close': [99, 155, 300.25], \
+                                'volume': [200, 300, 400]})
+                return df
+            else:
+                df = pd.DataFrame({'symbol': ['USD.CAD', 'EUR.USD', 'USD.CAD', 'USD.JPY', 'USD.JPY'], 'date': ['2200-01-01', '2200-02-02', '2201-01-01', '1990-01-01', '2200-01-01'], 'open': [1000, 2000, 3000, 4000, 10000], 'high': [1050, 2100, 3010, 5000, 10000], 'low': [980, 1500, 2900, 7000, 10000], 'close': [990, 1550, 3000.250, 8000, 10000], \
+                                'volume': [2000, 3000, 4000, 5000, 10000]})
+                start_date = datetime.strptime(start_date, '%Y-%m-%d')
+                df['date'] = pd.to_datetime(df['date'])
             return df[df['date'] >= start_date]
-
-    def get_historical_bar_data_full(self, start_date, end_date, bar_size, bar_size_unit, only_regular_hours):
-        if start_date == '':
-            df = pd.DataFrame({'ticker': ['MSFT', 'MSFT', 'AAPL', 'AMD', 'SNAP'], 'date': ['2200-01-01', '2200-02-02', '2201-01-01', '2202-10-10', '1980-01-01'], 'open': [100, 200, 300, 400, 500], 'high': [105, 210, 301, 402, 503], 'low': [98, 150, 290, 290, 305], 'close': [99, 155, 300.25, 405, 507], \
-                               'volume': [200, 300, 400, 500, 600]})
-            return df
         else:
-            df = pd.DataFrame({'ticker': ['MSFT', 'MSFT', 'AAPL', 'AMD', 'SNAP', 'MSFT', 'AMD'], 'date': ['2200-01-01', '2200-02-02', '2201-01-01', '2202-10-10', '1980-01-01', '2200-03-03', '2202-11-10'], 'open': [1000, 2000, 3000, 4000, 5000, 3000, 5000], 'high': [1050, 2100, 3010, 5000, 6000, 3100, 6000], 'low': [980, 1500, 2900, 6000, 7000, 2500, 7000], 'close': [990, 1550, 3000.250, 7000, 8000, 2550, 8000], \
-                               'volume': [2000, 3000, 4000, 5000, 6000, 3000, 6000]})
-            start_date = datetime.strptime(start_date, '%Y-%m-%d')
-            df['date'] = pd.to_datetime(df['date'])
-            return df[df['date'] >= start_date]
+            if start_date == '':
+                df = pd.DataFrame({'ticker': ['MSFT', 'MSFT', 'AAPL', 'AMD', 'SNAP'], 'date': ['2200-01-01', '2200-02-02', '2201-01-01', '2202-10-10', '1980-01-01'], 'open': [100, 200, 300, 400, 500], 'high': [105, 210, 301, 402, 503], 'low': [98, 150, 290, 290, 305], 'close': [99, 155, 300.25, 405, 507], \
+                                'volume': [200, 300, 400, 500, 600]})
+                return df
+            else:
+                df = pd.DataFrame({'ticker': ['MSFT', 'MSFT', 'AAPL', 'AMD', 'SNAP', 'MSFT', 'AMD'], 'date': ['2200-01-01', '2200-02-02', '2201-01-01', '2202-10-10', '1980-01-01', '2200-03-03', '2202-11-10'], 'open': [1000, 2000, 3000, 4000, 5000, 3000, 5000], 'high': [1050, 2100, 3010, 5000, 6000, 3100, 6000], 'low': [980, 1500, 2900, 6000, 7000, 2500, 7000], 'close': [990, 1550, 3000.250, 7000, 8000, 2550, 8000], \
+                                'volume': [2000, 3000, 4000, 5000, 6000, 3000, 6000]})
+                start_date = datetime.strptime(start_date, '%Y-%m-%d')
+                df['date'] = pd.to_datetime(df['date'])
+                return df[df['date'] >= start_date]
 
 if __name__ == "__main__":
     try:

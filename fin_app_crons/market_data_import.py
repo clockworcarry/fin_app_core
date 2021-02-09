@@ -1,6 +1,7 @@
 from py_common_utils_gh.os_common_utils import setup_logger, default_log_formatter
 from py_common_utils_gh.db_utils.db_utils import SqlAlchemySessionManager
 from db.models import *
+from db.company_financials import *
 from db.db_utils import *
 from data_vendors.factory import get_vendor_instance
 from data_vendors.vendor import *
@@ -11,7 +12,7 @@ from psycopg2 import *
 from sqlalchemy import create_engine, select, insert, exists
 from sqlalchemy.orm import sessionmaker
 
-import sys, json, requests, logging, io, math, traceback, datetime, time, math
+import sys, json, requests, logging, io, math, traceback, datetime, time, math, argparse
 import multiprocessing as mp
 
 EXEC_IMPORT_BEGIN = 'exec_import_begin'
@@ -21,6 +22,30 @@ EXEC_IMPORT_STOCK_PRICES_LOG_TYPE = 'exc_imp_sps'
 EXEC_IMPORT_FX_DATA_LOG_TYPE = 'exc_fx_data'
 
 verbose = False
+
+def exec_import_fx_data(session, logger, input_fx_df, bar_size):
+    try:
+        input_fx_df = input_fx_df.replace({np.nan: None})
+        nb_rows = input_fx_df.shape[0]
+        current_row = 0
+        for idx, row in input_fx_df.iterrows():
+            if verbose:
+                print("Current row: " + str(current_row) + " out of " + str(nb_rows) + ". Symbol: " + row['symbol'])
+
+            db_fx_data = session.query(CurrencyBarData).filter(CurrencyBarData.symbol == row['symbol'], CurrencyBarData.bar_date == row['date']).first()
+            if db_fx_data is None or not db_fx_data.locked:
+                fx_data = CurrencyBarData(symbol=row['symbol'], bar_type=data_type_fiat_currency, bar_open=row['open'], bar_high=row['high'], bar_low=row['low'], bar_close=row['close'], \
+                                      bar_volume=row['volume'], bar_date=row['date'], bar_size=bar_size)
+                    
+                if db_fx_data is not None:
+                    session.delete(db_fx_data)
+                    fx_data.id = db_fx_data.id
+
+                session.add(fx_data)
+            
+            current_row += 1
+    except Exception as gen_ex:
+        raise gen_ex
 
 def exec_import_companies(session, logger, input_companies_df):
     #log unknown echanges so they can be manually added to db
@@ -74,7 +99,13 @@ def exec_import_companies(session, logger, input_companies_df):
                 db_company = session.query(Company).filter(Company.name == row['name']).first()
                 if db_company is not None and not db_company.locked and db_company.ticker != row['ticker']: # company ticker was changed but name stayed the same
                     logger.info("Company with name " + row['name'] + " ticker changed from " + db_company.ticker + " to " + row['ticker'])
-                    db_company.ticker = row['ticker']
+                    db_company_retry = session.query(Company).filter(Company.ticker == row['ticker']).first() # ticker already taken, this probably means company changed name AND ticker
+                    if db_company_retry is not None and db_company.delisted:
+                        logger.warning("Deleting existing company with ticker: " + db_company.ticker + ". Probably simultaneous change of name and ticker. Validate.")
+                        session.delete(db_company)
+                    else:
+                        db_company.ticker = row['ticker']
+                    
 
                 db_company = session.query(Company).filter(Company.ticker == row['ticker']).first()
                 if db_company is not None and not db_company.locked and db_company.name != row['name']: # company name was changed but ticker stayed the same
@@ -117,7 +148,7 @@ def exec_import_companies_fundamental_data(session, logger, fundamental_data_df)
                                                     deferredrev=row['deferredrev'], deposits=row['deposits'], ppnenet=row['ppnenet'], inventory=row['inventory'], taxassets=row['taxassets'], receivables=row['receivables'], \
                                                     payables=row['payables'], intangibles=row['intangibles'], liabilities=row['liabilities'], equity=row['equity'], retearn=row['retearn'], accoci=row['accoci'], assetsc=row['assetsc'], \
                                                     assetsnc=row['assetsnc'], liabilitiesc=row['liabilitiesc'], liabilitiesnc=row['liabilitiesnc'], taxliabilities=row['taxliabilities'], debt=row['debt'], debtc=row['debtc'], \
-                                                    debtnc=row['debtnc'], equityusd=row['equityusd'], cashnequsd=row['cashnequsd'], debtusd=row['debtusd'], calendar_date=row['calendardate'], date_filed=row['reportperiod']
+                                                    debtnc=row['debtnc'], calendar_date=row['calendardate'], date_filed=row['reportperiod']
                                                     )
                 if db_balance_sheet_data is not None:
                     session.delete(db_balance_sheet_data)
@@ -128,8 +159,8 @@ def exec_import_companies_fundamental_data(session, logger, fundamental_data_df)
             db_income_statement_data = session.query(IncomeStatementData).filter(IncomeStatementData.company_id == db_company.id, IncomeStatementData.calendar_date == row['calendardate']).first()           
             if db_income_statement_data is None or not db_income_statement_data.locked:
                 income_statement_data = IncomeStatementData(company_id=db_company.id, revenue=row['revenue'], cor=row['cor'], sgna=row['sgna'], rnd=row['rnd'], intexp=row['intexp'], taxexp=row['taxexp'], netincdis=row['netincdis'], \
-                                                        consolinc=row['consolinc'], netincnci=row['netincnci'], netinc=row['netinc'], prefdivis=row['prefdivis'], netinccmn=row['netinccmn'], eps=row['eps'], epsdil=row['epsdil'], \
-                                                        shareswa=row['shareswa'], shareswadil=row['shareswadil'], ebit=row['ebit'], dps=row['dps'], gp=row['gp'],opinc=row['opinc'], calendar_date=row['calendardate'], \
+                                                        consolinc=row['consolinc'], netincnci=row['netincnci'], netinc=row['netinc'], prefdivis=row['prefdivis'], netinccmn=row['netinccmn'], \
+                                                        shareswa=row['shareswa'], shareswadil=row['shareswadil'], calendar_date=row['calendardate'], \
                                                         date_filed=row['reportperiod']
                                                         )
             
@@ -153,7 +184,7 @@ def exec_import_companies_fundamental_data(session, logger, fundamental_data_df)
 
             db_company_misc_info = session.query(CompanyMiscInfo).filter(CompanyMiscInfo.company_id == db_company.id, CompanyMiscInfo.date_recorded == row['calendardate']).first()
             if db_company_misc_info is None:
-                company_misc_info = CompanyMiscInfo(company_id=db_company.id, shares_bas=row['sharesbas'], date_recorded=row['calendardate'])
+                company_misc_info = CompanyMiscInfo(company_id=db_company.id, shares_bas=row['sharesbas'], date_recorded=row['calendardate'], occurence=OCCURENCE_QUARTERLY)
                 session.add(company_misc_info)
             elif not db_company_misc_info.locked:
                 db_company_misc_info.shares_bas = row['sharesbas']
@@ -175,11 +206,14 @@ def exec_import_stock_prices(db_conn_str, session_name, logger, stock_prices_df,
             if verbose and (idx % 1000 == 0):
                 print("Current row: " + str(current_row) + " out of " + str(nb_rows) + ". Ticker: " + row['ticker'])
             if row['ticker'] not in ticker_attributes_map:
-                #logger.warning("Company with ticker " + row['ticker'] + " was not loaded from the db. Stock prices will not be saved.")
+                if idx == nb_rows - 1 or (idx % 10000 == 0 and idx != 0):
+                    trans.commit()
+                    if idx != nb_rows - 1:
+                        trans = conn.begin()
                 continue
             db_company = ticker_attributes_map[row['ticker']][0]
             db_exchange = ticker_attributes_map[row['ticker']][1]
-            bar_data_tbl = BarData.__table__
+            bar_data_tbl = EquityBarData.__table__
             stmt = select([bar_data_tbl.c.id, bar_data_tbl.c.locked]).where((bar_data_tbl.c.company_id == db_company.id) & (bar_data_tbl.c.bar_date == row['date'])).limit(1)                  
             db_bar_data = conn.execute(stmt).fetchone()
             #db_bar_data = session.query(BarData).filter(BarData.company_id == db_company.id, BarData.bar_date == row['date']).first()
@@ -206,7 +240,11 @@ def exec_import_stock_prices(db_conn_str, session_name, logger, stock_prices_df,
     except Exception as gen_ex:
         if trans is not None:
             trans.rollback()
-        raise gen_ex
+        try:
+            logger.critical(gen_ex, exc_info=True)
+            add_cron_job_run_info_to_session(session, current_operation, "Exception", str.encode(traceback.format_exc()), False)
+        except Exception as gen_ex:
+            logger.critical(gen_ex, exc_info=True)
 
 
 
@@ -224,6 +262,9 @@ def exec_import(config, session):
                 if filtered_in_it == None:
                     logger.info("The following vendor source is filtered out: " + src['vendor'])
                     continue
+            
+            if not src['active']:
+                continue
             
             vendor = get_vendor_instance(src['vendor'], config_file_path=src['vendorConfigFilePath'])
 
@@ -301,7 +342,7 @@ def exec_import(config, session):
                 if 'fullImportStockPrices' in src and src['fullImportStockPrices']:
                         stamp_without_tz = ''
                 
-                stock_prices_df = vendor.get_historical_bar_data_full(stamp_without_tz, '', 1, 'd', True) #might be huge
+                stock_prices_df = vendor.get_historical_bar_data(stamp_without_tz, '', 1, 'd', True, data_type_stock) #might be huge
                     
                 if 'tickersFilteredOut' in src:
                     for ticker in src['tickersFilteredOut']:
@@ -358,7 +399,13 @@ def exec_import(config, session):
                     stamp_without_tz = stamp_without_tz.strftime("%Y-%m-%d")
                     logger.info("Importing fx data that was updated after or on: " + stamp_without_tz)
                 
-                fx_data_df = vendor.get_historical_bar_data(stamp_without_tz, '', 1, 'd', True) #might be huge
+                fx_data_df = vendor.get_historical_bar_data(stamp_without_tz, '', 1, 'd', True, data_type_fiat_currency)
+                if fx_data_df.empty:
+                        logger.info("No fx data was updated for vendor: " + src['vendor'] + " at or after date: " + stamp_without_tz)
+                else:
+                    exec_import_fx_data(session, logger, fx_data_df, bar_size_day)
+
+                add_cron_job_run_info_to_session(session, current_operation, "Successfully imported fx data supported by: " + src['vendor'] + " to database.", None, True)
                 
 
         logger.info("Market data import exited successfully.")

@@ -66,28 +66,7 @@ class Sharadar(Vendor):
         else:
             raise Exception("Sharadar returned http " + str(r.status_code) + " for method get_all_companies_fundamental_datapoints while trying to get zip link.")
 
-    def get_historical_bar_data(self, retrieval_specs, start_date, end_date, bar_size, bar_size_unit, only_regular_hours):
-        table_url_extension = self.config['equityPricesTableParams']['urlExtension']
-        full_url = self.config['domainUrl'] + "/" + self.config['apiVersion'] + "/" + self.config['baseUrlExtension'] + "/" + table_url_extension + \
-                   "?" + "api_key=" + self.config['apiKey'] + "&ticker=" + retrieval_specs.ticker
-
-        if start_date != '':
-            full_url += "&lastupdated.gte=" + start_date
-            
-
-        if 'queryStrParams' in self.config['equityPricesTableParams']:
-            for param in self.config['equityPricesTableParams']['queryStrParams']:
-                full_url += "&" + param['key'] + "=" + param['value']
-        
-        r = requests.get(full_url)
-        
-        if r.status_code == 200:
-            df = pd.read_csv(io.StringIO(r.text))
-            return df
-        else:
-            raise Exception("Sharadar returned http " + str(r.status_code) + " for method get_historical_bar_data while trying to get zip link.")
-
-    def get_historical_bar_data_full(self, start_date, end_date, bar_size, bar_size_unit, only_regular_hours):
+    def get_historical_bar_data(self, start_date, end_date, bar_size, bar_size_unit, only_regular_hours, data_type):
         table_url_extension = self.config['equityPricesTableParams']['urlExtension']
         full_url = self.config['domainUrl'] + "/" + self.config['apiVersion'] + "/" + self.config['baseUrlExtension'] + "/" + table_url_extension + \
                    "?" + "api_key=" + self.config['apiKey']
