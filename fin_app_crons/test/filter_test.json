@@ -5,18 +5,21 @@
     "dbConnString": "postgresql://postgres:navo1234@localhost:5432/Fin_App_Core_Db_Test",
     "sources": [
         {
+            "active": true,
             "importCompanies": true,
             "importFundamentalDataPoints": false,
             "applyDelta": false,
             "vendor": "vendor_1"
         },
         {
+            "active": true,
             "importCompanies": true,
             "importFundamentalDataPoints": false,
             "applyDelta": false,
             "vendor": "vendor_2"
         },
         {
+            "active": true,
             "importCompanies": true,
             "importFundamentalDataPoints": false,
             "applyDelta": false,

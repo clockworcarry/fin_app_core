@@ -5,6 +5,7 @@
     "dbConnString": "postgresql://postgres:navo1234@localhost:5432/Fin_App_Core_Db_Test",
     "sources": [
         {
+            "active": true,
             "importCompanies": false,
             "importStockPricesResolution": "d",
             "importFundamentalDataPoints": false,

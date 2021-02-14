@@ -263,9 +263,9 @@ def exec_import(config, session):
                     logger.info("The following vendor source is filtered out: " + src['vendor'])
                     continue
             
-            if not src['active']:
+            if 'active' not in src or not src['active']:
                 continue
-            
+
             vendor = get_vendor_instance(src['vendor'], config_file_path=src['vendorConfigFilePath'])
 
             if 'importCompanies' in src and src['importCompanies']:
@@ -273,7 +273,8 @@ def exec_import(config, session):
                 #get date the last time companies were imported and use this date as the start date for import
                 #res is a (CronJobRun, Log) tuple
                 res = session.query(CronJobRun, Log).join(Log).filter(Log.log_type == current_operation).filter(CronJobRun.success == True).order_by(CronJobRun.id.desc()).first()
-                if res is None: #first time script is ran
+                if res is None or 'fullImportCompanies' in src and src['fullImportCompanies']:
+                    stamp_without_tz = '' #first time script is ran
                     logger.info("Importing tickers with no date filter.")
                     input_companies_df = vendor.get_all_companies()
                     if input_companies_df.empty:
@@ -299,7 +300,7 @@ def exec_import(config, session):
                 #get date the last time the fundamental data was imported for companies and use this date as the start date for import
                 #res is a (CronJobRun, Log) tuple
                 res = session.query(CronJobRun, Log).join(Log).filter(Log.log_type == current_operation).filter(CronJobRun.success == True).order_by(CronJobRun.id.desc()).first()
-                if res is None: #first time script is ran
+                if res is None or 'fullImportFundamentals' in src and src['fullImportFundamentals']: #first time script is ran
                     logger.info("Importing fundamental data with no date filter.")
                     fundamental_data_df = vendor.get_fundamental_data()
                     if fundamental_data_df.empty:
