@@ -100,7 +100,8 @@ class IBKR(Vendor):
             months_diff = end_date_obj.month - start_date_obj.month
             days_diff = end_date_obj.day - start_date_obj.day
             hours_diff = end_date_obj.hour - start_date_obj.hour
-            end_date_time = end_date_obj
+            #end_date_time = end_date_obj
+            end_date_time = datetime(2006, 1, 1)
             bars_list = []
             while years_diff > 0:
                 if years_diff >= 1:

@@ -122,12 +122,13 @@ def upgrade():
 
     session.flush()
 
-    df = pd.read_csv("/media/ext_hdd/experiments/database/companies.csv")
+    df = pd.read_csv("/home/ghelie/fin_app/companies.csv")
     for idx, row in df.iterrows():
         row = row.fillna('Missing')
         if session.query(exists().where(Industry.name==row['industry'])).scalar() is False:
             sector = session.query(Sector).filter(Sector.name == row['sector']).first()
-            session.add(Industry(sector_id=sector.id, name=row['industry'], name_code=row['industry']))
+            if sector is not None:
+                session.add(Industry(sector_id=sector.id, name=row['industry'], name_code=row['industry']))
 
     session.commit()
     

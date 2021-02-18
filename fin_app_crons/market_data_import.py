@@ -96,7 +96,7 @@ def exec_import_companies(session, logger, input_companies_df):
                     logger.critical("Unknown value in delisted column: " + row['isdelisted'])
                     continue
                 
-                db_company = session.query(Company).filter(Company.name == row['name']).first()
+                '''db_company = session.query(Company).filter(Company.name == row['name']).first()
                 if db_company is not None and not db_company.locked and db_company.ticker != row['ticker']: # company ticker was changed but name stayed the same
                     logger.info("Company with name " + row['name'] + " ticker changed from " + db_company.ticker + " to " + row['ticker'])
                     db_company_retry = session.query(Company).filter(Company.ticker == row['ticker']).first() # ticker already taken, this probably means company changed name AND ticker
@@ -104,13 +104,15 @@ def exec_import_companies(session, logger, input_companies_df):
                         logger.warning("Deleting existing company with ticker: " + db_company.ticker + ". Probably simultaneous change of name and ticker. Validate.")
                         session.delete(db_company)
                     else:
-                        db_company.ticker = row['ticker']
+                        db_company.ticker = row['ticker']'''
                     
 
                 db_company = session.query(Company).filter(Company.ticker == row['ticker']).first()
                 if db_company is not None and not db_company.locked and db_company.name != row['name']: # company name was changed but ticker stayed the same
-                    logger.info("Company with ticker " + row['ticker'] + " name changed from " + db_company.name + " to " + row['name'])
-                    db_company.name = row['name']
+                    '''logger.info("Company with ticker " + row['ticker'] + " name changed from " + db_company.name + " to " + row['name'])
+                    db_company.name = row['name']'''
+                    session.delete(db_company)
+                    db_company = None
 
                 if db_company is None: #insert
                     if session.query(exists().where(Company.name==row['name'])).scalar() is False: #it is possible that there a company is listed with same name with different tickers ...
@@ -322,6 +324,8 @@ def exec_import(config, session):
                 add_cron_job_run_info_to_session(session, current_operation, "Successfully imported companies fundamental data supported by: " + src['vendor'] + " to database.", None, True)
 
             if 'importStockPrices' in src and src['importStockPrices']:
+                if 'importCompanies' in src and src['importCompanies']:
+                    session.flush()
                 current_operation = EXEC_IMPORT_STOCK_PRICES_LOG_TYPE
                 company_attributes = session.query(Company, Exchange, CountryInfo).join(t_company_exchange_relation, t_company_exchange_relation.c.company_id == Company.id).join(Exchange).join(CountryInfo).all()
                 ticker_attributes_map = {}
@@ -399,6 +403,9 @@ def exec_import(config, session):
                     stamp_without_tz = res[1].update_stamp.replace(tzinfo=None)
                     stamp_without_tz = stamp_without_tz.strftime("%Y-%m-%d")
                     logger.info("Importing fx data that was updated after or on: " + stamp_without_tz)
+                
+                if 'fullImportFxData' in src and src['fullImportFxData']:
+                        stamp_without_tz = ''
                 
                 fx_data_df = vendor.get_historical_bar_data(stamp_without_tz, '', 1, 'd', True, data_type_fiat_currency)
                 if fx_data_df.empty:

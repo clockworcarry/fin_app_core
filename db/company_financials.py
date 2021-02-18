@@ -6,6 +6,43 @@ from sqlalchemy.schema import *
 from db.base_models import Base, meta
 from db.models import Company
 
+class CompanyQuarterlyResult(Base):
+    __tablename__ = 'company_quarterly_result'
+
+    id = Column(Integer, primary_key=True)
+    company_id = Column(ForeignKey('company.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False, index=True)
+    assets = Column(BigInteger)
+    cashneq = Column(BigInteger)
+    investments = Column(BigInteger)
+    investmentsc = Column(BigInteger)
+    investmentsnc = Column(BigInteger)
+    deferredrev = Column(BigInteger)
+    deposits = Column(BigInteger)
+    ppnenet = Column(BigInteger)
+    inventory = Column(BigInteger)
+    taxassets = Column(BigInteger)
+    receivables = Column(BigInteger)
+    payables = Column(BigInteger)
+    intangibles = Column(BigInteger)
+    liabilities = Column(BigInteger)
+    equity = Column(BigInteger)
+    retearn = Column(BigInteger)
+    accoci = Column(BigInteger)
+    assetsc = Column(BigInteger)
+    assetsnc = Column(BigInteger)
+    liabilitiesc = Column(BigInteger)
+    liabilitiesnc = Column(BigInteger)
+    taxliabilities = Column(BigInteger)
+    debt = Column(BigInteger)
+    debtc = Column(BigInteger)
+    debtnc = Column(BigInteger)
+    calendar_date = Column(DateTime(timezone=True), nullable=False, index=True)
+    date_filed = Column(DateTime(timezone=True), nullable=False, index=True)
+    locked = Column(Boolean, nullable=False, server_default=text("false"))
+    
+    
+    update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue())
+
 class BalanceSheetData(Base):
     __tablename__ = 'balance_sheet_data'
 
@@ -40,6 +77,7 @@ class BalanceSheetData(Base):
     date_filed = Column(DateTime(timezone=True), nullable=False, index=True)
     locked = Column(Boolean, nullable=False, server_default=text("false"))
     update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue())
+    fx = Column(Numeric)
 
 class IncomeStatementData(Base):
     __tablename__ = 'income_statement_data'
@@ -65,6 +103,7 @@ class IncomeStatementData(Base):
     date_filed = Column(DateTime(timezone=True), nullable=False, index=True)
     locked = Column(Boolean, nullable=False, server_default=text("false"))
     update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue())
+    fx_usd = Column(Numeric)
 
 class CashFlowStatementData(Base):
     __tablename__ = 'cash_flow_statement_data'
@@ -88,6 +127,7 @@ class CashFlowStatementData(Base):
     date_filed = Column(DateTime(timezone=True), nullable=False, index=True)
     locked = Column(Boolean, nullable=False, server_default=text("false"))
     update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue())
+    fx_usd = Column(Numeric)
 
 class CompanyFundamentalRatios(Base):
     __tablename__ = 'company_fundamental_ratios'
@@ -822,6 +862,7 @@ class CompanyFundamentalRatios(Base):
     eps_std_dev_ten_years = Column(Numeric, nullable=True)
     eps_std_dev_twenty_years = Column(Numeric, nullable=True)
 
+    #cash flow per share
     cfps_current = Column(Numeric, nullable=True)
     cfps_one_quarter_ago = Column(Numeric, nullable=True)
     cfps_two_quarters_ago = Column(Numeric, nullable=True)
@@ -863,6 +904,7 @@ class CompanyFundamentalRatios(Base):
     cfps_std_dev_ten_years = Column(Numeric, nullable=True)
     cfps_std_dev_twenty_years = Column(Numeric, nullable=True)
 
+    #cash per share
     cps_current = Column(Numeric, nullable=True)
     cps_one_quarter_ago = Column(Numeric, nullable=True)
     cps_two_quarters_ago = Column(Numeric, nullable=True)
@@ -904,7 +946,8 @@ class CompanyFundamentalRatios(Base):
     cps_std_dev_ten_years = Column(Numeric, nullable=True)
     cps_std_dev_twenty_years = Column(Numeric, nullable=True)
 
-    capexps__current = Column(Numeric, nullable=True)
+    #capex per share
+    capexps_current = Column(Numeric, nullable=True)
     capexps_one_quarter_ago = Column(Numeric, nullable=True)
     capexps_two_quarters_ago = Column(Numeric, nullable=True)
     capexps_three_quarters_ago = Column(Numeric, nullable=True)
