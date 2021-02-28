@@ -144,52 +144,29 @@ def exec_import_companies_fundamental_data(session, logger, fundamental_data_df)
             logger.warning("Company with ticker: " + row['ticker'] + " does not exist in the database.")
             continue
         else:
-            db_balance_sheet_data = session.query(BalanceSheetData).filter(BalanceSheetData.company_id == db_company.id, BalanceSheetData.calendar_date == row['calendardate']).first()
-            if db_balance_sheet_data is None or not db_balance_sheet_data.locked:
-                balance_sheet_data = BalanceSheetData(company_id=db_company.id, assets=row['assets'], cashneq=row['cashneq'], investments=row['investments'], investmentsc=row['investmentsc'], investmentsnc=row['investmentsnc'], \
+            db_company_quarterly_data = session.query(CompanyQuarterlyFinancialData).filter(CompanyQuarterlyFinancialData.company_id == db_company.id, CompanyQuarterlyFinancialData.calendar_date == row['calendardate']).first()
+            if db_company_quarterly_data is None or not db_company_quarterly_data.locked:
+                company_quarterly_data = CompanyQuarterlyFinancialData(company_id=db_company.id, assets=row['assets'], cashneq=row['cashneq'], investments=row['investments'], investmentsc=row['investmentsc'], investmentsnc=row['investmentsnc'], \
                                                     deferredrev=row['deferredrev'], deposits=row['deposits'], ppnenet=row['ppnenet'], inventory=row['inventory'], taxassets=row['taxassets'], receivables=row['receivables'], \
                                                     payables=row['payables'], intangibles=row['intangibles'], liabilities=row['liabilities'], equity=row['equity'], retearn=row['retearn'], accoci=row['accoci'], assetsc=row['assetsc'], \
                                                     assetsnc=row['assetsnc'], liabilitiesc=row['liabilitiesc'], liabilitiesnc=row['liabilitiesnc'], taxliabilities=row['taxliabilities'], debt=row['debt'], debtc=row['debtc'], \
-                                                    debtnc=row['debtnc'], calendar_date=row['calendardate'], date_filed=row['reportperiod']
+                                                    debtnc=row['debtnc'], calendar_date=row['calendardate'], date_filed=row['reportperiod'],
+
+                                                    revenue=row['revenue'], cor=row['cor'], opex=row['opex'], sgna=row['sgna'], rnd=row['rnd'], intexp=row['intexp'], taxexp=row['taxexp'], netincdis=row['netincdis'], \
+                                                    consolinc=row['consolinc'], netincnci=row['netincnci'], netinc=row['netinc'], prefdivis=row['prefdivis'], netinccmn=row['netinccmn'], \
+
+                                                    capex=row['capex'], ncfbus=row['ncfbus'], ncfi=row['ncfi'], ncfinv=row['ncfinv'], ncff=row['ncff'], ncf=row['ncf'], ncfdebt=row['ncfdebt'], \
+                                                    ncfcommon=row['ncfcommon'], ncfdiv=row['ncfdiv'], ncfo=row['ncfo'], ncfx=row['ncfx'], sbcomp=row['sbcomp'], depamor=row['depamor'], \
+
+                                                    shareswa=row['shareswa'], shareswadil=row['shareswadil'], sharesbas=row['sharesbas'],
+
+                                                    fx_usd = row['fxusd']
                                                     )
-                if db_balance_sheet_data is not None:
-                    session.delete(db_balance_sheet_data)
-                    balance_sheet_data.id = db_balance_sheet_data.id
+                if db_company_quarterly_data is not None:
+                    session.delete(db_company_quarterly_data)
+                    company_quarterly_data.id = db_company_quarterly_data.id
 
-                session.add(balance_sheet_data)
-
-            db_income_statement_data = session.query(IncomeStatementData).filter(IncomeStatementData.company_id == db_company.id, IncomeStatementData.calendar_date == row['calendardate']).first()           
-            if db_income_statement_data is None or not db_income_statement_data.locked:
-                income_statement_data = IncomeStatementData(company_id=db_company.id, revenue=row['revenue'], cor=row['cor'], sgna=row['sgna'], rnd=row['rnd'], intexp=row['intexp'], taxexp=row['taxexp'], netincdis=row['netincdis'], \
-                                                        consolinc=row['consolinc'], netincnci=row['netincnci'], netinc=row['netinc'], prefdivis=row['prefdivis'], netinccmn=row['netinccmn'], \
-                                                        shareswa=row['shareswa'], shareswadil=row['shareswadil'], calendar_date=row['calendardate'], \
-                                                        date_filed=row['reportperiod']
-                                                        )
-            
-                if db_income_statement_data is not None:
-                    session.delete(db_income_statement_data)
-                    income_statement_data.id = db_income_statement_data.id
-
-                session.add(income_statement_data)
-
-            db_cash_flow_statement_data = session.query(CashFlowStatementData).filter(CashFlowStatementData.company_id == db_company.id, CashFlowStatementData.calendar_date == row['calendardate']).first()
-            if db_cash_flow_statement_data is None or not db_cash_flow_statement_data.locked:
-                cash_flow_statement_data = CashFlowStatementData(company_id=db_company.id, capex=row['capex'], ncfbus=row['ncfbus'], ncfi=row['ncfi'], ncfinv=row['ncfinv'], ncff=row['ncff'], ncfdebt=row['ncfdebt'], \
-                                                                ncfcommon=row['ncfcommon'], ncfdiv=row['ncfdiv'], ncfo=row['ncfo'], ncfx=row['ncfx'], sbcomp=row['sbcomp'], depamor=row['depamor'], \
-                                                                calendar_date=row['calendardate'], date_filed=row['reportperiod']
-                                                            )
-                if db_cash_flow_statement_data is not None:
-                    session.delete(db_cash_flow_statement_data)
-                    cash_flow_statement_data.id = db_cash_flow_statement_data.id
-
-                session.add(cash_flow_statement_data)
-
-            db_company_misc_info = session.query(CompanyMiscInfo).filter(CompanyMiscInfo.company_id == db_company.id, CompanyMiscInfo.date_recorded == row['calendardate']).first()
-            if db_company_misc_info is None:
-                company_misc_info = CompanyMiscInfo(company_id=db_company.id, shares_bas=row['sharesbas'], date_recorded=row['calendardate'], occurence=OCCURENCE_QUARTERLY)
-                session.add(company_misc_info)
-            elif not db_company_misc_info.locked:
-                db_company_misc_info.shares_bas = row['sharesbas']
+                session.add(company_quarterly_data)
             
         current_row += 1
 
@@ -275,6 +252,7 @@ def exec_import(config, session):
                 #get date the last time companies were imported and use this date as the start date for import
                 #res is a (CronJobRun, Log) tuple
                 res = session.query(CronJobRun, Log).join(Log).filter(Log.log_type == current_operation).filter(CronJobRun.success == True).order_by(CronJobRun.id.desc()).first()
+                
                 if res is None or 'fullImportCompanies' in src and src['fullImportCompanies']:
                     stamp_without_tz = '' #first time script is ran
                     logger.info("Importing tickers with no date filter.")
@@ -302,24 +280,27 @@ def exec_import(config, session):
                 #get date the last time the fundamental data was imported for companies and use this date as the start date for import
                 #res is a (CronJobRun, Log) tuple
                 res = session.query(CronJobRun, Log).join(Log).filter(Log.log_type == current_operation).filter(CronJobRun.success == True).order_by(CronJobRun.id.desc()).first()
-                if res is None or 'fullImportFundamentals' in src and src['fullImportFundamentals']: #first time script is ran
+                
+                stamp_without_tz = ''
+                
+                if res is None:
                     logger.info("Importing fundamental data with no date filter.")
-                    fundamental_data_df = vendor.get_fundamental_data()
-                    if fundamental_data_df.empty:
-                        logger.info("No new fundamental data was updated for vendor: " + src['vendor'])
-                    else:
-                        exec_import_companies_fundamental_data(session, logger, fundamental_data_df)
                 else:
                     if res[0].success is False:
                         logger.warning("Executing companies fundamental data import when the last import has failed. Last import cron id: " + str(res[0].id))
                     stamp_without_tz = res[1].update_stamp.replace(tzinfo=None)
                     stamp_without_tz = stamp_without_tz.strftime("%Y-%m-%d")
                     logger.info("Importing companies fundamental data that was updated after or on: " + stamp_without_tz)
-                    fundamental_data_df = vendor.get_fundamental_data(from_date=stamp_without_tz)
-                    if fundamental_data_df.empty:
-                        logger.info("No companies fundamental data was updated for vendor: " + src['vendor'] + " at or after date: " + stamp_without_tz)
-                    else:
-                        exec_import_companies_fundamental_data(session, logger, fundamental_data_df)
+                
+
+                if 'fullImportFundamentals' in src and src['fullImportFundamentals']:
+                        stamp_without_tz = ''
+
+                fundamental_data_df = vendor.get_fundamental_data(from_date=stamp_without_tz)
+                if fundamental_data_df.empty:
+                    logger.info("No companies fundamental data was updated for vendor: " + src['vendor'] + " at or after date: " + stamp_without_tz)
+                else:
+                    exec_import_companies_fundamental_data(session, logger, fundamental_data_df)
 
                 add_cron_job_run_info_to_session(session, current_operation, "Successfully imported companies fundamental data supported by: " + src['vendor'] + " to database.", None, True)
 

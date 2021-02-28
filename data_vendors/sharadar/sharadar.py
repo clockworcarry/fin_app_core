@@ -49,7 +49,7 @@ class Sharadar(Vendor):
             for param in self.config['fundamentalDataPointsTableParams']['queryStrParams']:
                 full_url += "&" + param['key'] + "=" + param['value']
 
-        if 'from_date' in kwargs:
+        if 'from_date' in kwargs and kwargs['from_date'] != '':
             full_url = full_url + "&lastupdated.gte=" + kwargs['from_date']
         
         r = requests.get(full_url)

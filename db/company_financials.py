@@ -6,11 +6,13 @@ from sqlalchemy.schema import *
 from db.base_models import Base, meta
 from db.models import Company
 
-class CompanyQuarterlyResult(Base):
-    __tablename__ = 'company_quarterly_result'
+class CompanyQuarterlyFinancialData(Base):
+    __tablename__ = 'company_quarterly_financial_data'
 
     id = Column(Integer, primary_key=True)
     company_id = Column(ForeignKey('company.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False, index=True)
+    
+    #balance sheet
     assets = Column(BigInteger)
     cashneq = Column(BigInteger)
     investments = Column(BigInteger)
@@ -38,52 +40,8 @@ class CompanyQuarterlyResult(Base):
     debtnc = Column(BigInteger)
     calendar_date = Column(DateTime(timezone=True), nullable=False, index=True)
     date_filed = Column(DateTime(timezone=True), nullable=False, index=True)
-    locked = Column(Boolean, nullable=False, server_default=text("false"))
-    
-    
-    update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue())
 
-class BalanceSheetData(Base):
-    __tablename__ = 'balance_sheet_data'
-
-    id = Column(Integer, primary_key=True)
-    company_id = Column(ForeignKey('company.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False, index=True)
-    assets = Column(BigInteger)
-    cashneq = Column(BigInteger)
-    investments = Column(BigInteger)
-    investmentsc = Column(BigInteger)
-    investmentsnc = Column(BigInteger)
-    deferredrev = Column(BigInteger)
-    deposits = Column(BigInteger)
-    ppnenet = Column(BigInteger)
-    inventory = Column(BigInteger)
-    taxassets = Column(BigInteger)
-    receivables = Column(BigInteger)
-    payables = Column(BigInteger)
-    intangibles = Column(BigInteger)
-    liabilities = Column(BigInteger)
-    equity = Column(BigInteger)
-    retearn = Column(BigInteger)
-    accoci = Column(BigInteger)
-    assetsc = Column(BigInteger)
-    assetsnc = Column(BigInteger)
-    liabilitiesc = Column(BigInteger)
-    liabilitiesnc = Column(BigInteger)
-    taxliabilities = Column(BigInteger)
-    debt = Column(BigInteger)
-    debtc = Column(BigInteger)
-    debtnc = Column(BigInteger)
-    calendar_date = Column(DateTime(timezone=True), nullable=False, index=True)
-    date_filed = Column(DateTime(timezone=True), nullable=False, index=True)
-    locked = Column(Boolean, nullable=False, server_default=text("false"))
-    update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue())
-    fx = Column(Numeric)
-
-class IncomeStatementData(Base):
-    __tablename__ = 'income_statement_data'
-
-    id = Column(Integer, primary_key=True)
-    company_id = Column(ForeignKey('company.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False, index=True)
+    #income statement
     revenue = Column(BigInteger)
     cor = Column(BigInteger)
     opex = Column(BigInteger)
@@ -97,19 +55,8 @@ class IncomeStatementData(Base):
     netinc = Column(BigInteger)
     prefdivis = Column(BigInteger)
     netinccmn = Column(BigInteger)
-    shareswa = Column(BigInteger)
-    shareswadil = Column(BigInteger)
-    calendar_date = Column(DateTime(timezone=True), nullable=False, index=True)
-    date_filed = Column(DateTime(timezone=True), nullable=False, index=True)
-    locked = Column(Boolean, nullable=False, server_default=text("false"))
-    update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue())
-    fx_usd = Column(Numeric)
 
-class CashFlowStatementData(Base):
-    __tablename__ = 'cash_flow_statement_data'
-
-    id = Column(Integer, primary_key=True)
-    company_id = Column(ForeignKey('company.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False, index=True)
+    #cash flow statement
     capex = Column(BigInteger)
     ncfbus = Column(BigInteger)
     ncfi = Column(BigInteger)
@@ -123,11 +70,17 @@ class CashFlowStatementData(Base):
     ncf = Column(BigInteger)
     sbcomp = Column(BigInteger)
     depamor = Column(BigInteger)
-    calendar_date = Column(DateTime(timezone=True), nullable=False, index=True)
-    date_filed = Column(DateTime(timezone=True), nullable=False, index=True)
-    locked = Column(Boolean, nullable=False, server_default=text("false"))
-    update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue())
+    
+    #shares info
+    sharesbas = Column(BigInteger)
+    shareswa = Column(BigInteger)
+    shareswadil = Column(BigInteger)
+
     fx_usd = Column(Numeric)
+
+    locked = Column(Boolean, nullable=False, server_default=text("false"))
+    
+    update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue())
 
 class CompanyFundamentalRatios(Base):
     __tablename__ = 'company_fundamental_ratios'

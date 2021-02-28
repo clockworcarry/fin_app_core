@@ -22,6 +22,17 @@ OCCURENCE_MONTHLY = 4
 OCCURENCE_QUARTERLY = 8
 OCCURENCE_YEARLY = 16
 
+METRIC_TYPE_NUMBER = 0
+METRIC_TYPE_PERENTAGE = 1
+
+LOOK_BACK_QUARTER = 0
+LOOK_BACK_SIX_MO = 1
+LOOK_BACK_NINE_MO = 2
+LOOK_BACK_ONE_YEAR = 3
+
+NOTE_TYPE_TEXT = 0
+NOTE_TYPE_TEXT_DOC = 1
+
 from db.base_models import Base, meta
 
 t_company_exchange_relation = Table(
@@ -104,18 +115,6 @@ class Industry(Base):
     update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue())
 
 
-class CompanyMiscInfo(Base):
-    __tablename__ = 'company_misc_info'
-
-    id = Column(BigInteger, primary_key=True)
-    company_id = Column(ForeignKey('company.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False, index=True)
-    occurence = Column(SmallInteger, nullable=True)
-    shares_bas = Column(BigInteger)
-    shares_dil = Column(BigInteger)
-    date_recorded = Column(DateTime(timezone=True), nullable=False, index=True)
-    locked = Column(Boolean, nullable=False, server_default=text("false"))
-    update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue())
-
 class EquityBarData(Base):
     __tablename__ = 'equity_bar_data'
 
@@ -148,6 +147,58 @@ class CurrencyBarData(Base):
     locked = Column(Boolean, nullable=False, server_default=text("false"))
 
     #__table_args__ = (UniqueConstraint('company_id', 'bar_type', 'bar_size', 'bar_date'), )
+
+class CompanyMetric(Base): #Very low write, every column can be indexed
+    __tablename__ = 'company_metric'
+
+    id = Column(Integer, primary_key=True)
+    company_id = Column(ForeignKey('company.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=True, index=True)
+    company_metric_description_id = Column(ForeignKey('company_metric_description.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False, index=True)
+    data = Column(Numeric, nullable=False)
+    look_back = Column(SmallInteger, nullable=False)
+    date_recorded = Column(DateTime(timezone=True), nullable=False, index=True)
+
+class CompanyMetricDescription(Base):
+    __tablename__ = 'company_metric_description'
+
+    id = Column(Integer, primary_key=True)
+    code = Column(String(60), nullable=False)
+    display_name = Column(String(120), nullable=False)
+    metric_data_type = Column(SmallInteger, nullable=False)
+    update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue(), index=True)
+
+    notes = relationship("CompanyMetricDescriptionNote", back_populates="descriptions")
+
+class CompanyMetricDescriptionNote(Base):
+    __tablename__ = 'company_metric_description_note'
+    
+    company_metric_description_id = Column(ForeignKey('company_metric_description.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False, index=True)
+    id = Column(Integer, primary_key=True)
+    company_id = Column(ForeignKey('company.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=True, index=True) #if null, note applies to all companies
+    note_data = Column(LargeBinary, nullable=False)
+    note_type = Column(SmallInteger, nullable=False)
+    update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue(), index=True)
+
+    descriptions = relationship("CompanyMetricDescription", back_populates="notes")
+
+class CompanyDevelopment(Base):
+    __tablename__ = 'company_development'
+
+    id = Column(BigInteger, primary_key=True)
+    company_id = Column(ForeignKey('company.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False, index=True)
+    display_name = Column(String(120), nullable=False)
+    dev_type = Column(SmallInteger, nullable=False, index=True) #conference, devcon, news release, interview, etc.
+    data_type = Column(SmallInteger, nullable=False, index=True) #png, link, text, etc.
+    data = Column(LargeBinary)
+    date_recorded = Column(DateTime(timezone=True), nullable=False, index=True)
+
+class CompanySummary(Base):
+    __tablename__ = 'company_summary'
+
+    id = Column(Integer, primary_key=True)
+    company_id = Column(ForeignKey('company.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False, index=True)
+    data = Column(LargeBinary)# rich text (google doc, word, etc.)
+    update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue(), index=True)
 
 class Log(Base):
     __tablename__ = 'log'
