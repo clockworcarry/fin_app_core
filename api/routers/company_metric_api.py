@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, status, HTTPException
 from typing import Optional, List
 from pydantic import BaseModel, ValidationError, validator
 
@@ -10,24 +10,24 @@ from psycopg2 import *
 from sqlalchemy import create_engine, select, insert, exists
 from sqlalchemy.orm import sessionmaker
 
-import datetime
+import datetime, base64
 
 import simplejson as json
 
-import config
+import api.config
 
 router = APIRouter(
-    prefix="/companyMetrics",
-    tags=["companyMetrics"],
+    prefix="/companyMetric",
+    tags=["companyMetric"],
     dependencies=[],
     responses={404: {"description": "Not found"}},
 )
 
-class CompanyMetricDescriptionNoteApiModel(BaseModel):
+class CompanyMetricDescriptionNoteApiModelOut(BaseModel):
     data: bytes = None
     note_type: int = None
 
-class CompanyMetricApiModel(BaseModel):
+class CompanyMetricApiModelOut(BaseModel):
     code: str
     display_name: str
     metric_data_type: int
@@ -45,6 +45,16 @@ class CompanyMetricApiModel(BaseModel):
             raise ValueError('Code must not be empty.')
         return code
 
+class CompanyMetricDescriptionApiModelIn(BaseModel):
+    code: str
+    display_name: str
+    metric_data_type: int
+
+class CompanyMetricDescriptionNoteApiModelIn(BaseModel):
+    data: str
+    note_type: int
+    company_ids: List[int] = None #list of companies this note applies to. if None, applies to all companies
+
 
 @router.get("/{company_id}")
 def get_company_metrics(company_id, loadDescriptions: Optional[bool] = True, loadDescriptionsNotes: Optional[bool] = True):
@@ -60,7 +70,7 @@ def get_company_metrics(company_id, loadDescriptions: Optional[bool] = True, loa
             resp = []
             
             for res in query_res:
-                new_metric = CompanyMetricApiModel(code=res[1].code, display_name=res[1].display_name, metric_data_type=res[1].metric_data_type, \
+                new_metric = CompanyMetricApiModelOut(code=res[1].code, display_name=res[1].display_name, metric_data_type=res[1].metric_data_type, \
                                                    data=res[0].data, date_recorded=res[0].date_recorded, look_back=res[0].look_back)
                 for note in res[1].notes:
                     note_model = CompanyMetricDescriptionNoteApiModel()
@@ -73,6 +83,129 @@ def get_company_metrics(company_id, loadDescriptions: Optional[bool] = True, loa
             return resp
 
     except ValidationError as val_err:
-        return val_err.json()
+        raise HTTPException(status_code=500, detail=str(gen_ex))
     except Exception as gen_ex:
-        return {"errMsg": str(gen_ex)}
+        raise HTTPException(status_code=500, detail=str(gen_ex))
+
+@router.post("/{company_id}/{company_metric_description_id}", status_code=status.HTTP_201_CREATED)
+def save_company_metric(company_id, metric: CompanyMetricApiModelOut):
+    try:
+        manager = SqlAlchemySessionManager()
+        with manager.session_scope(db_url=config.global_api_config.db_conn_str, template_name='default_session') as session:
+            db_metric = CompanyMetric(company_id=company_id, )
+    except ValidationError as val_err:
+        raise HTTPException(status_code=500, detail=str(gen_ex))
+    except Exception as gen_ex:
+        raise HTTPException(status_code=500, detail=str(gen_ex))
+
+@router.delete("/{company_id}/{code}")
+def delete_company_metric(company_id, code):
+    pass
+
+
+
+#metric descriptions
+
+@router.post("/description")
+def save_company_metric_description(metric_description: CompanyMetricDescriptionApiModelIn):
+    try:
+        manager = SqlAlchemySessionManager()
+        with manager.session_scope(db_url=config.global_api_config.db_conn_str, template_name='default_session') as session:
+            db_metric_desc = CompanyMetricDescription(code=metric_description.code, display_name=metric_description.display_name, metric_data_type=metric_description.metric_data_type)
+            session.add(db_metric_desc)
+    except ValidationError as val_err:
+        raise HTTPException(status_code=500, detail=str(gen_ex))
+    except Exception as gen_ex:
+        raise HTTPException(status_code=500, detail=str(gen_ex))
+
+@router.post("/description/{description_id}")
+def update_company_metric_description(metric_description: CompanyMetricDescriptionApiModelIn):
+    try:
+        manager = SqlAlchemySessionManager()
+        with manager.session_scope(db_url=config.global_api_config.db_conn_str, template_name='default_session') as session:
+            db_metric_desc = session.query(CompanyMetricDescription).filter(CompanyMetricDescription.id == description_id).first()
+            if db_metric_desc is None:
+                raise HTTPException(status_code=500, detail="No metric description with id: " + description_id + " exists.")
+            
+            db_metric_desc.code = metric_description.code
+            db_metric_desc.display_name = metric_description.display_name
+            db_metric_desc.metric_data_type = metric_description.metric_data_type
+            session.add(db_metric_desc)
+    except ValidationError as val_err:
+        raise HTTPException(status_code=500, detail=str(gen_ex))
+    except Exception as gen_ex:
+        raise HTTPException(status_code=500, detail=str(gen_ex))
+
+@router.delete("/description/{description_id}")
+def delete_company_metric_description(description_id):
+    try:
+        manager = SqlAlchemySessionManager()
+        with manager.session_scope(db_url=config.global_api_config.db_conn_str, template_name='default_session') as session:
+            session.query(CompanyMetricDescription).filter(CompanyMetricDescription.id == description_id).delete()
+    except Exception as gen_ex:
+        raise HTTPException(status_code=500, detail=str(gen_ex))
+
+
+#metric descriptions notes
+
+@router.post("/description/note/{metric_description_id}", status_code=status.HTTP_201_CREATED)
+def save_company_metric_description(metric_description_id, description_note: CompanyMetricDescriptionNoteApiModelIn):
+    try:
+        manager = SqlAlchemySessionManager()
+        with manager.session_scope(db_url=config.global_api_config.db_conn_str, template_name='default_session') as session:
+            binary_data = base64.b64decode(description_note.data)
+            
+            db_desc_note = CompanyMetricDescriptionNote(note_data=binary_data, note_type=description_note.note_type)
+            session.flush()
+
+            if description_note.company_ids is None:
+                metric_relation = CompanyMetricRelation(company_id=None, company_metric_description_id=metric_description_id, company_metric_description_note_id=db_desc_note.id)
+                session.add(metric_relation)
+            else:                
+                for company_id in description_note.company_ids:              
+                    metric_relation = CompanyMetricRelation(company_id=company_id, company_metric_description_id=metric_description_id, company_metric_description_note_id=db_desc_note.id)
+                    session.add(metric_relation)
+    except ValidationError as val_err:
+        raise HTTPException(status_code=500, detail=str(gen_ex))
+    except Exception as gen_ex:
+        raise HTTPException(status_code=500, detail=str(gen_ex))
+
+@router.post("/description/note/{metric_description_id}/{note_id}")
+def update_company_metric_description_note(metric_description_id, note_id, description_note: CompanyMetricDescriptionNoteApiModelIn):
+    try:
+        manager = SqlAlchemySessionManager()
+        with manager.session_scope(db_url=config.global_api_config.db_conn_str, template_name='default_session') as session:
+            existing_db_note = session.query(CompanyMetricDescriptionNote).filter(CompanyMetricDescriptionNote.id == note_id).first()
+            if existing_db_note is None:
+                raise HTTPException(status_code=500, detail="No metric description note with id: " + note_id + " exists.")
+            
+            binary_data = base64.b64decode(description_note.data)
+            
+            existing_db_note.note_data=binary_data
+            existing_db_note.note_type = description_note.note_type
+
+            existing_metrics_relations = session.query(CompanyMetricRelation).filter(CompanyMetricRelation.company_metric_description_id == metric_description_id, \
+                                                       CompanyMetricRelation.company_metric_description_note_id == note_id).all()
+
+            if description_note.company_ids is None:
+                for relation in existing_metrics_relations:
+                    if relation.company_id is not None:
+                        session.delete(relation)
+            else:
+                for relation in existing_metrics_relations:
+                    it = next((x for x in description_note.company_ids if x == relation.company_id), None)
+                    if it == None:
+                        session.delete(relation)
+    except ValidationError as val_err:
+        raise HTTPException(status_code=500, detail=str(gen_ex))
+    except Exception as gen_ex:
+        raise HTTPException(status_code=500, detail=str(gen_ex))
+
+@router.delete("/description/note/{note_id}")
+def delete_company_metric_description_note(note_id):
+    try:
+        manager = SqlAlchemySessionManager()
+        with manager.session_scope(db_url=config.global_api_config.db_conn_str, template_name='default_session') as session:
+            session.query(CompanyMetricDescriptionNote).filter(CompanyMetricDescriptionNote.id == note_id).delete()
+    except Exception as gen_ex:
+        raise HTTPException(status_code=500, detail=str(gen_ex))

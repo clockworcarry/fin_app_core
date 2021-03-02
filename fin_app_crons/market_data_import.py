@@ -6,6 +6,8 @@ from db.db_utils import *
 from data_vendors.factory import get_vendor_instance
 from data_vendors.vendor import *
 
+import api.routers.company_metric_api
+
 import pandas as pd
 import numpy as np
 from psycopg2 import *

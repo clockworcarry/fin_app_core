@@ -167,19 +167,21 @@ class CompanyMetricDescription(Base):
     metric_data_type = Column(SmallInteger, nullable=False)
     update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue(), index=True)
 
-    notes = relationship("CompanyMetricDescriptionNote", back_populates="descriptions")
-
 class CompanyMetricDescriptionNote(Base):
     __tablename__ = 'company_metric_description_note'
     
-    company_metric_description_id = Column(ForeignKey('company_metric_description.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False, index=True)
     id = Column(Integer, primary_key=True)
-    company_id = Column(ForeignKey('company.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=True, index=True) #if null, note applies to all companies
     note_data = Column(LargeBinary, nullable=False)
     note_type = Column(SmallInteger, nullable=False)
     update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue(), index=True)
 
-    descriptions = relationship("CompanyMetricDescription", back_populates="notes")
+class CompanyMetricRelation(Base):
+    __tablename__ = 'company_metric_relation'
+
+    company_id = Column(ForeignKey('company.id', ondelete='CASCADE', onupdate='CASCADE'), primary_key=True, nullable=True)
+    company_metric_description_id = Column(ForeignKey('company_metric_description.id', ondelete='CASCADE', onupdate='CASCADE'), primary_key=True, nullable=False)
+    company_metric_description_note_id = Column(ForeignKey('company_metric_description_note.id', ondelete='CASCADE', onupdate='CASCADE'), primary_key=True, nullable=False)
+    update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue(), index=True)
 
 class CompanyDevelopment(Base):
     __tablename__ = 'company_development'
