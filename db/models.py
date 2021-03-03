@@ -29,25 +29,27 @@ LOOK_BACK_QUARTER = 0
 LOOK_BACK_SIX_MO = 1
 LOOK_BACK_NINE_MO = 2
 LOOK_BACK_ONE_YEAR = 3
+LOOK_BACK_INFINITY = -1
 
 NOTE_TYPE_TEXT = 0
 NOTE_TYPE_TEXT_DOC = 1
 
 from db.base_models import Base, meta
 
-t_company_exchange_relation = Table(
-    'company_exchange_relation', meta,
-    Column('company_id', ForeignKey('company.id', ondelete='CASCADE', onupdate='CASCADE'), primary_key=True, nullable=False),
-    Column('exchange_id', ForeignKey('exchange.id', ondelete='CASCADE', onupdate='CASCADE'), primary_key=True, nullable=False),
-    Column('update_stamp', DateTime(timezone=True), nullable=False, server_default=FetchedValue())
-)
+class CompanyExchangeRelation(Base):
+    __tablename__ = 'company_exchange_relation'
 
-t_company_sector_relation = Table(
-    'company_sector_relation', meta,
-    Column('company_id', ForeignKey('company.id', ondelete='CASCADE', onupdate='CASCADE'), primary_key=True, nullable=False),
-    Column('sector_id', ForeignKey('sector.id', ondelete='CASCADE', onupdate='CASCADE'), primary_key=True, nullable=False),
-    Column('update_stamp', DateTime(timezone=True), nullable=False, server_default=FetchedValue())
-)
+    company_id = Column(ForeignKey('company.id', ondelete='CASCADE', onupdate='CASCADE'), primary_key=True, nullable=False)
+    exchange_id = Column(ForeignKey('exchange.id', ondelete='CASCADE', onupdate='CASCADE'), primary_key=True, nullable=False)
+    update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue())
+
+class CompanySectorRelation(Base):
+    __tablename__ = "company_sector_relation"
+
+    company_id = Column(ForeignKey('company.id', ondelete='CASCADE', onupdate='CASCADE'), primary_key=True, nullable=False)
+    sector_id = Column(ForeignKey('sector.id', ondelete='CASCADE', onupdate='CASCADE'), primary_key=True, nullable=False)
+    update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue())
+
 
 class Company(Base):
     __tablename__ = 'company'
@@ -59,8 +61,8 @@ class Company(Base):
     delisted = Column(Boolean, nullable=False, index=True, server_default=text("false"))
     update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue())
     
-    exchanges = relationship("Exchange", secondary=t_company_exchange_relation, backref='companies')
-    sectors = relationship("Sector", secondary=t_company_sector_relation)
+    #exchanges = relationship("Exchange", secondary=t_company_exchange_relation, backref='companies')
+    #sectors = relationship("Sector", secondary=t_company_sector_relation)
     #balance_sheet_data = relationship('BalanceSheetData')
     #income_statement_data = relationship('IncomeStatementData')
     #cash_flow_statement_data = relationship('CashFlowStatementData')
@@ -152,7 +154,7 @@ class CompanyMetric(Base): #Very low write, every column can be indexed
     __tablename__ = 'company_metric'
 
     id = Column(Integer, primary_key=True)
-    company_id = Column(ForeignKey('company.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=True, index=True)
+    company_id = Column(ForeignKey('company.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False, index=True)
     company_metric_description_id = Column(ForeignKey('company_metric_description.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False, index=True)
     data = Column(Numeric, nullable=False)
     look_back = Column(SmallInteger, nullable=False)

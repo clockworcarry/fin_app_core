@@ -6,6 +6,7 @@ class FinAppApiConfig:
             raise KeyError("Missing mandatory db connection string in config.")
         self.log_file_path = config['logFilePath']
         self.db_conn_str = config['dbConnString']
+        
 
 def init_config(config):
     global global_api_config

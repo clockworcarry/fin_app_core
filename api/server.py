@@ -2,7 +2,7 @@ import uvicorn, argparse, json
 
 from fastapi import Depends, FastAPI
 
-from config import init_config
+from api.config import init_config
 
 import api.routers.company_metric_api as company_metric_api
 
