@@ -1,8 +1,8 @@
-"""add trigger stamp new tbl
+"""add update stamp new tbl
 
-Revision ID: 10f145d3959d
-Revises: c7fd3782bc09
-Create Date: 2021-03-01 20:38:36.777009
+Revision ID: 2121be493849
+Revises: c3b655948ceb
+Create Date: 2021-03-04 18:56:25.433773
 
 """
 from alembic import op
@@ -10,8 +10,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '10f145d3959d'
-down_revision = 'c7fd3782bc09'
+revision = '2121be493849'
+down_revision = 'c3b655948ceb'
 branch_labels = None
 depends_on = None
 

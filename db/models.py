@@ -158,7 +158,7 @@ class CompanyMetric(Base): #Very low write, every column can be indexed
     company_metric_description_id = Column(ForeignKey('company_metric_description.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False, index=True)
     data = Column(Numeric, nullable=False)
     look_back = Column(SmallInteger, nullable=False)
-    date_recorded = Column(DateTime(timezone=True), nullable=False, index=True)
+    date_recorded = Column(Date, nullable=False, index=True)
 
 class CompanyMetricDescription(Base):
     __tablename__ = 'company_metric_description'
@@ -180,10 +180,13 @@ class CompanyMetricDescriptionNote(Base):
 class CompanyMetricRelation(Base):
     __tablename__ = 'company_metric_relation'
 
-    company_id = Column(ForeignKey('company.id', ondelete='CASCADE', onupdate='CASCADE'), primary_key=True, nullable=True)
-    company_metric_description_id = Column(ForeignKey('company_metric_description.id', ondelete='CASCADE', onupdate='CASCADE'), primary_key=True, nullable=False)
-    company_metric_description_note_id = Column(ForeignKey('company_metric_description_note.id', ondelete='CASCADE', onupdate='CASCADE'), primary_key=True, nullable=False)
+    id = Column(Integer, primary_key=True)
+    company_metric_description_id = Column(ForeignKey('company_metric_description.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False)
+    company_metric_description_note_id = Column(ForeignKey('company_metric_description_note.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False)
+    company_id = Column(ForeignKey('company.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=True)
     update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue(), index=True)
+    
+    __table_args__ = (UniqueConstraint('company_metric_description_id', 'company_metric_description_note_id', 'company_id'), )
 
 class CompanyDevelopment(Base):
     __tablename__ = 'company_development'
