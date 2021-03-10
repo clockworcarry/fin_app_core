@@ -124,7 +124,6 @@ def get_company_metrics(company_id, loadDescriptions: Optional[bool] = True, loa
 
 @router.post("/description", status_code=status.HTTP_201_CREATED, response_model=CompanyMetricDescriptionApiModelOut)
 def save_company_metric_description(metric_description: CompanyMetricDescriptionApiModelIn):
-    db_metric_desc = None
     try:
         manager = SqlAlchemySessionManager()
         with manager.session_scope(db_url=api_config.global_api_config.db_conn_str, template_name='default_session') as session:

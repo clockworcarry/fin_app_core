@@ -34,6 +34,8 @@ LOOK_BACK_INFINITY = -1
 NOTE_TYPE_TEXT = 0
 NOTE_TYPE_TEXT_DOC = 1
 
+company_dev_news_relase = 0
+
 from db.base_models import Base, meta
 
 class CompanyExchangeRelation(Base):
@@ -154,7 +156,7 @@ class CompanyMetric(Base): #Very low write, every column can be indexed
     __tablename__ = 'company_metric'
 
     id = Column(Integer, primary_key=True)
-    company_id = Column(ForeignKey('company.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False, index=True)
+    company_business_or_product = Column(ForeignKey('company_business_or_product.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False, index=True)
     company_metric_description_id = Column(ForeignKey('company_metric_description.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False, index=True)
     data = Column(Numeric, nullable=False)
     look_back = Column(SmallInteger, nullable=False)
@@ -188,16 +190,25 @@ class CompanyMetricRelation(Base):
     
     __table_args__ = (UniqueConstraint('company_metric_description_id', 'company_metric_description_note_id', 'company_id'), )
 
+class CompanyBusinessOrProduct(Base):
+    __tablename__ = 'company_business_or_product'
+
+    id = Column(Integer, primary_key=True)
+    company_id = Column(ForeignKey('company.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False, index=True)
+    code = Column(String(60), nullable=False)
+    display_name = Column(String(120), nullable=False)
+
 class CompanyDevelopment(Base):
     __tablename__ = 'company_development'
 
     id = Column(BigInteger, primary_key=True)
-    company_id = Column(ForeignKey('company.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False, index=True)
-    display_name = Column(String(120), nullable=False)
+    company_business_or_product = Column(ForeignKey('company_business_or_product.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False, index=True)
+    code = Column(String(60), nullable=False) #ex: aapl_dev_2020_01_01
+    display_name = Column(String(120), nullable=False) #ex: aapl_dev_2020_01_01
     dev_type = Column(SmallInteger, nullable=False, index=True) #conference, devcon, news release, interview, etc.
     data_type = Column(SmallInteger, nullable=False, index=True) #png, link, text, etc.
     data = Column(LargeBinary)
-    date_recorded = Column(DateTime(timezone=True), nullable=False, index=True)
+    date_recorded = Column(Date, nullable=False, index=True)
 
 class CompanySummary(Base):
     __tablename__ = 'company_summary'
