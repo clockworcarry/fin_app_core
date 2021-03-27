@@ -57,7 +57,6 @@ def cleanup_db_from_db_str(db_conn_str):
             session.query(CompanyDevelopment).delete()
             session.query(CompanySummary).delete()
             session.query(CountryInfo).delete()
-            session.query(StateInfo).delete()
             session.query(CompanyMetricRelation).delete()
             session.query(CompanyQuarterlyFinancialData).delete()
     except Exception as gen_ex:

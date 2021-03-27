@@ -49,27 +49,33 @@ def exec_import_fx_data(session, logger, input_fx_df, bar_size):
     except Exception as gen_ex:
         raise gen_ex
 
-def exec_import_companies(session, logger, input_companies_df):
+def exec_import_companies(session, logger, input_companies_df, report):
     #log unknown echanges so they can be manually added to db
     unique_exchange_serie = pd.Series(input_companies_df['exchange'].unique())
     unique_exchange_serie = unique_exchange_serie.fillna('Missing')
     for elem in unique_exchange_serie:
         if session.query(exists().where(Exchange.name_code==elem)).scalar() is False:
-            logger.warning("Unknown exchange detected: " + elem)
+            msg = "Unknown exchange detected: " + elem
+            report.warnings.append(msg)
+            logger.warning(msg)
     
     #log unknown sectors so they can be manually added to db
     unique_sector_serie = pd.Series(input_companies_df['sector'].unique())
     unique_sector_serie = unique_sector_serie.fillna('Missing')
     for elem in unique_sector_serie:
         if session.query(exists().where(Sector.name==elem)).scalar() is False:
-            logger.warning("Unknown sector detected: " + elem)
+            msg = "Unknown sector detected: " + elem
+            report.warnings.append(msg)
+            logger.warning(msg)
 
     #log unknown industries so they can be manually added to db
     unique_industry_serie = pd.Series(input_companies_df['industry'].unique())
     unique_industry_serie = unique_industry_serie.fillna('Missing')
     for elem in unique_industry_serie:
         if session.query(exists().where(Industry.name==elem)).scalar() is False:
-            logger.warning("Unknown industry detected: " + elem)
+            msg = "Unknown industry detected: " + elem
+            report.warnings.append(msg)
+            logger.warning(msg)
 
     nb_rows = input_companies_df.shape[0]
     current_row = 0
@@ -83,7 +89,9 @@ def exec_import_companies(session, logger, input_companies_df):
         stmt = select([tbl.c.id, tbl.c.name]).where(tbl.c.name == row['sector']).limit(1)
         sector_res = session.connection().execute(stmt).first()
         if sector_res is None:
-            logger.warning("None result when fetching first sector matching: " + row['sector'])
+            msg = "None result when fetching first sector matching: " + row['sector']
+            report.warnings.append(msg)
+            logger.warning(msg)
             continue
         else:
             exch_tbl = Exchange.__table__
@@ -95,42 +103,43 @@ def exec_import_companies(session, logger, input_companies_df):
                 elif row['isdelisted'] == 'N':
                     row['isdelisted'] = False
                 else:
-                    logger.critical("Unknown value in delisted column: " + row['isdelisted'])
+                    msg = "Unknown value in delisted column: " + row['isdelisted']
+                    report.warnings.append(msg)
+                    logger.errors(msg)
                     continue
                 
-                '''db_company = session.query(Company).filter(Company.name == row['name']).first()
-                if db_company is not None and not db_company.locked and db_company.ticker != row['ticker']: # company ticker was changed but name stayed the same
-                    logger.info("Company with name " + row['name'] + " ticker changed from " + db_company.ticker + " to " + row['ticker'])
-                    db_company_retry = session.query(Company).filter(Company.ticker == row['ticker']).first() # ticker already taken, this probably means company changed name AND ticker
-                    if db_company_retry is not None and db_company.delisted:
-                        logger.warning("Deleting existing company with ticker: " + db_company.ticker + ". Probably simultaneous change of name and ticker. Validate.")
-                        session.delete(db_company)
-                    else:
-                        db_company.ticker = row['ticker']'''
-                    
-
+                
                 db_company = session.query(Company).filter(Company.ticker == row['ticker']).first()
-                if db_company is not None and not db_company.locked and db_company.name != row['name']: # company name was changed but ticker stayed the same
-                    '''logger.info("Company with ticker " + row['ticker'] + " name changed from " + db_company.name + " to " + row['name'])
-                    db_company.name = row['name']'''
-                    session.delete(db_company)
-                    db_company = None
+                if db_company is not None and db_company.name != row['name']:
+                    report.tickers_with_name_changes.append((db_company.ticker, db_company.name, row['name']))
+                    continue 
+
+                db_company_name = session.query(Company).filter(Company.name == row['name']).first()
+                if db_company_name is not None and db_company_name.ticker != row['ticker']:
+                    report.company_names_with_ticker_changes.append((row['name'], db_company_name.ticker, row['ticker']))
+                    continue 
+                
 
                 if db_company is None: #insert
                     if session.query(exists().where(Company.name==row['name'])).scalar() is False: #it is possible that there a company is listed with same name with different tickers ...
                         company = Company(ticker=row['ticker'], name=row['name'], delisted=row['isdelisted'])
                         session.add(company)
-                        session.flush() #force company id creation
-                        stmt = t_company_exchange_relation.insert()
-                        session.connection().execute(stmt, company_id=company.id, exchange_id=exch_res.id) #insert company and exch id in the relation table
-                        stmt = t_company_sector_relation.insert()
-                        session.connection().execute(stmt, company_id=company.id, sector_id=sector_res.id) #insert company and sector id in the relation table
+                        session.flush()
+                        cbop = CompanyBusinessOrProduct(company_id=company.id, code=company.ticker + '_default', display_name='Default business or product')
+                        session.add(cbop)
+                        cer = CompanyExchangeRelation(company_id=company.id, exchange_id=exch_res.id)
+                        session.add(cer)
+                        csr = CompanySectorRelation(company_id=company.id, sector_id=sector_res.id)
+                        session.add(csr)
                     else:
                         logger.warning("Company already exists: " + row['name'])
                 elif not db_company.locked: #update
                     db_company.name = row['name']
                     db_company.delisted = row['isdelisted']
-                    logger.info("The following ticker was updated in the company table: " + db_company.ticker)
+                    db_cbop = session.query(CompanyBusinessOrProduct).filter(CompanyBusinessOrProduct.company_id == db_company.id).first()
+                    if db_cbop is None:
+                        cbop = CompanyBusinessOrProduct(company_id=db_company.id, code=db_company.ticker + '_default', display_name='Default business or product')
+                        session.add(cbop)
         
         current_row += 1
 
@@ -255,6 +264,8 @@ def exec_import(config, session):
                 #res is a (CronJobRun, Log) tuple
                 res = session.query(CronJobRun, Log).join(Log).filter(Log.log_type == current_operation).filter(CronJobRun.success == True).order_by(CronJobRun.id.desc()).first()
                 
+
+                import_companies_report = ImportCompaniesReport()
                 if res is None or 'fullImportCompanies' in src and src['fullImportCompanies']:
                     stamp_without_tz = '' #first time script is ran
                     logger.info("Importing tickers with no date filter.")
@@ -262,7 +273,7 @@ def exec_import(config, session):
                     if input_companies_df.empty:
                         logger.info("No new companies were updated for vendor: " + src['vendor'])
                     else:
-                        exec_import_companies(session, logger, input_companies_df)
+                        exec_import_companies(session, logger, input_companies_df, import_companies_report)
                 else:
                     if res[0].success is False:
                         logger.warning("Executing companies import when the last import has failed. Last import cron id: " + str(res[0].id))
@@ -273,9 +284,11 @@ def exec_import(config, session):
                     if input_companies_df.empty:
                         logger.info("No new companies were updated for vendor: " + src['vendor'] + " at or after date: " + stamp_without_tz)
                     else:
-                        exec_import_companies(session, logger, input_companies_df)
+                        exec_import_companies(session, logger, input_companies_df, import_companies_report)
                 
-                add_cron_job_run_info_to_session(session, current_operation, "Successfully imported companies supported by: " + src['vendor'] + " to database.", None, True)
+                report_json_str = json.dumps(import_companies_report.__dict__)
+                report_json_str_encoded = str.encode(report_json_str)
+                add_cron_job_run_info_to_session(session, current_operation, "Successfully imported companies supported by: " + src['vendor'] + " to database.", report_json_str_encoded, True)
             
             if 'importFundamentalDataPoints' in src and src['importFundamentalDataPoints']:
                 current_operation = EXEC_COMPANIES_IMPORT_FUNDAMENTAL_DATA_POINTS_LOG_TYPE

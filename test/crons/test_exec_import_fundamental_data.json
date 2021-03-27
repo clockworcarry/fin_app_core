@@ -1,0 +1,23 @@
+{
+    "sourcesFilteredOut": ["vendor_1"],
+    "sourcesFilteredIn": [],
+    "logFilePath": "/home/ghelie/fin_app/dev_logs/test_logs.log",
+    "dbConnString": "postgresql://postgres:navo1234@localhost:5432/fin_app_core_db_test",
+    "sources": [
+        {
+            "active": true,
+            "importCompanies": false,
+            "importFundamentalDataPoints": true,
+            "applyDelta": false,
+            "vendor": "mock_vendor",
+            "vendorConfigFilePath": "/home/ghelie/fin_app/fin_app_core/test/crons/test_mock_vendor_fundamental_import.json"
+        },
+        {
+            "active": true,
+            "importCompanies": false,
+            "importFundamentalDataPoints": false,
+            "applyDelta": false,
+            "vendor": "vendor_1"
+        }
+    ]
+}

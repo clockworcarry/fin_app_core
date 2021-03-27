@@ -11,7 +11,7 @@
             "importFundamentalDataPoints": false,
             "importStockPrices": true,
             "vendor": "mock_vendor",
-            "vendorConfigFilePath": "/home/ghelie/fin_app/fin_app_core/fin_app_crons/test/test_mock_vendor_stock_prices_import.json"
+            "vendorConfigFilePath": "/home/ghelie/fin_app/fin_app_core/test/crons/test_mock_vendor_stock_prices_import.json"
         }
     ]
 }

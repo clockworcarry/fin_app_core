@@ -6,8 +6,11 @@ from sqlalchemy.schema import *
 from db.base_models import Base, meta
 from db.models import Company
 
-class CompanyQuarterlyFinancialData(Base):
-    __tablename__ = 'company_quarterly_financial_data'
+data_type_quarterly = 0
+data_type_annual = 1
+
+class CompanyFinancialData(Base):
+    __tablename__ = 'company_financial_data'
 
     id = Column(Integer, primary_key=True)
     company_id = Column(ForeignKey('company.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False, index=True)
@@ -38,8 +41,8 @@ class CompanyQuarterlyFinancialData(Base):
     debt = Column(BigInteger)
     debtc = Column(BigInteger)
     debtnc = Column(BigInteger)
-    calendar_date = Column(DateTime(timezone=True), nullable=False, index=True)
-    date_filed = Column(DateTime(timezone=True), nullable=False, index=True)
+    calendar_date = Column(Date, nullable=False, index=True)
+    date_filed = Column(Date, nullable=False, index=True)
 
     #income statement
     revenue = Column(BigInteger)
@@ -76,7 +79,12 @@ class CompanyQuarterlyFinancialData(Base):
     shareswa = Column(BigInteger)
     shareswadil = Column(BigInteger)
 
+    #misc
+    effective_tax_rate = Column(Numeric) #is the tax rate that was reported in last 10K
+
     fx_usd = Column(Numeric)
+
+    data_type = Column(SmallInteger)
 
     locked = Column(Boolean, nullable=False, server_default=text("false"))
     

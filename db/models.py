@@ -62,6 +62,7 @@ class Company(Base):
     locked = Column(Boolean, nullable=False, server_default=text("false"))
     delisted = Column(Boolean, nullable=False, index=True, server_default=text("false"))
     update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue())
+    group_id = Column(ForeignKey('company_group.id', ondelete='CASCADE', onupdate='CASCADE'), index=True)
     
     #exchanges = relationship("Exchange", secondary=t_company_exchange_relation, backref='companies')
     #sectors = relationship("Sector", secondary=t_company_sector_relation)
@@ -79,14 +80,6 @@ class CountryInfo(Base):
     currency = Column(String(10), nullable=False)
     update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue())
 
-class StateInfo(Base):
-    __tablename__ = 'state_info'
-
-    id = Column(Integer, primary_key=True)
-    country_info_id = Column(ForeignKey('country_info.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False, index=True)
-    name = Column(String(60), nullable=False, unique=True)
-    update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue())
-
 
 class Sector(Base):
     __tablename__ = 'sector'
@@ -95,6 +88,14 @@ class Sector(Base):
     name_code = Column(String(50), nullable=False, unique=True)
     name = Column(String(60), nullable=False, unique=True)
     locked = Column(Boolean, nullable=False, server_default=text("false"))
+    update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue())
+
+class CompanyGroup(Base): #can be seen as a sub sector.. used when stocks within a sector are very closely related.. ex: twtr, fb, pins, snap
+    __tablename__ = 'company_group'
+
+    id = Column(Integer, primary_key=True)
+    name_code = Column(String(50), nullable=False, unique=True)
+    name = Column(String(60), nullable=False, unique=True)
     update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue())
 
 
@@ -156,7 +157,7 @@ class CompanyMetric(Base): #Very low write, every column can be indexed
     __tablename__ = 'company_metric'
 
     id = Column(Integer, primary_key=True)
-    company_business_or_product = Column(ForeignKey('company_business_or_product.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False, index=True)
+    company_business_or_product_id = Column(ForeignKey('company_business_or_product.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False, index=True)
     company_metric_description_id = Column(ForeignKey('company_metric_description.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False, index=True)
     data = Column(Numeric, nullable=False)
     look_back = Column(SmallInteger, nullable=False)
@@ -236,6 +237,14 @@ class CronJobRun(Base):
     success = Column(Boolean, nullable=False)
 
     log = relationship("Log", uselist=False, backref="cron_job_run")
+
+class ImportCompaniesReport:
+    def __init__(self):
+        self.errors = []
+        self.warnings = []
+        self.info = []
+        self.tickers_with_name_changes = []
+        self.company_names_with_ticker_changes = []
 
 
 def create_database(args):

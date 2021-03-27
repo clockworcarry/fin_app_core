@@ -17,7 +17,7 @@ import simplejson as json
 import api.config as api_config
 
 router = APIRouter(
-    prefix="/companyMetric",
+    prefix="/company/metric",
     tags=["companyMetric"],
     dependencies=[],
     responses={404: {"description": "Not found"}},
@@ -27,7 +27,7 @@ class CompanyMetricDescriptionNoteApiModelOut(BaseModel):
     data: bytes = None
     note_type: int = None
 
-'''class CompanyMetricApiModelOut(BaseModel):
+class CompanyMetricsApiModelOut(BaseModel):
     code: str
     display_name: str
     metric_data_type: int
@@ -43,7 +43,7 @@ class CompanyMetricDescriptionNoteApiModelOut(BaseModel):
     def code_must_not_be_empty(cls, code):
         if code == None or code == '':
             raise ValueError('Code must not be empty.')
-        return code'''
+        return code
 
 class CompanyMetricApiModelIn(BaseModel):
     data: float
@@ -55,6 +55,7 @@ class CompanyMetricApiModelOut(BaseModel):
     data: float
     look_back: int
     date_recorded: datetime.date
+    
 
 class CompanyMetricDescriptionApiModelIn(BaseModel):
     code: str
@@ -90,16 +91,17 @@ class CompanyMetricDescriptionNoteApiModelOut(BaseModel):
     company_ids: List[int] = None #list of companies this note applies to. if None, applies to all companies'''
 
 
-'''@router.get("/{company_id}")
+@router.get("/{company_id}")
 def get_company_metrics(company_id, loadDescriptions: Optional[bool] = True, loadDescriptionsNotes: Optional[bool] = True):
     try:
         manager = SqlAlchemySessionManager()
-        with manager.session_scope(db_url=config.global_api_config.db_conn_str, template_name='default_session') as session:
-            query_res = session.query(CompanyMetric, CompanyMetricDescription, CompanyMetricDescriptionNote), \
-                                .join(CompanyMetricRelation, or_(CompanyMetricRelation.company_id == CompanyMetric.company_id, CompanyMetricRelation.company_id == None)) \
+        with manager.session_scope(db_url=api_config.global_api_config.db_conn_str, template_name='default_session') as session:
+            query_res = session.query(CompanyBusinessOrProduct, CompanyMetric, CompanyMetricDescription, CompanyMetricDescriptionNote) \
+                                .join(CompanyMetric, CompanyMetric.company_business_or_product_id == CompanyBusinessOrProduct.id) \
+                                .join(CompanyMetricRelation, or_(CompanyMetricRelation.company_id == CompanyBusinessOrProduct.company_id, CompanyMetricRelation.company_id == None)) \
                                 .join(CompanyMetricDescription, CompanyMetricDescription.id == CompanyMetricRelation.company_metric_description_id) \
-                                .outerjoin(CompanyMetricDescriptionNote, CompanyMetricDescriptionNote.company_metric_description_id == CompanyMetricDescription.id) \
-                                .filter(CompanyMetric.company_id == company_id).order_by(CompanyMetric.date_recorded.desc()).all()
+                                .join(CompanyMetricDescriptionNote, CompanyMetricDescriptionNote.id == CompanyMetricRelation.company_metric_description_note_id) \
+                                .filter(CompanyBusinessOrProduct.company_id == company_id).order_by(CompanyMetric.date_recorded.desc()).all()
 
             
             resp = []
@@ -120,7 +122,7 @@ def get_company_metrics(company_id, loadDescriptions: Optional[bool] = True, loa
     except ValidationError as val_err:
         raise HTTPException(status_code=500, detail=str(gen_ex))
     except Exception as gen_ex:
-        raise HTTPException(status_code=500, detail=str(gen_ex))'''
+        raise HTTPException(status_code=500, detail=str(gen_ex))
 
 @router.post("/description", status_code=status.HTTP_201_CREATED, response_model=CompanyMetricDescriptionApiModelOut)
 def save_company_metric_description(metric_description: CompanyMetricDescriptionApiModelIn):

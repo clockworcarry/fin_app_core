@@ -4,6 +4,10 @@ class FinAppApiConfig:
             raise KeyError("Missing mandatory log file path in config.")
         if 'dbConnString' not in config:
             raise KeyError("Missing mandatory db connection string in config.")
+        if 'verbose' in config and config['verbose']:
+            self.verbose = True
+        else:
+            self.verbose = False
         self.log_file_path = config['logFilePath']
         self.db_conn_str = config['dbConnString']
         

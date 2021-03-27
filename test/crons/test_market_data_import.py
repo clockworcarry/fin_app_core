@@ -227,15 +227,17 @@ def test_empty_db_missing_records(caplog):
 
             #add exchanges
 
+            usa_country = session.query(CountryInfo).filter(CountryInfo.name_code == 'USA').first()
+
             #1 = USA
-            nasdaq_exch = Exchange(country_info_id='1', name_code='NASDAQ', name='NASDAQ')
+            nasdaq_exch = Exchange(country_info_id=usa_country.id, name_code='NASDAQ', name='NASDAQ')
             session.add(nasdaq_exch)
 
-            otc_exch = Exchange(country_info_id='1', name_code='OTC', name='Over the counter')
+            otc_exch = Exchange(country_info_id=usa_country.id, name_code='OTC', name='Over the counter')
             session.add(otc_exch)
 
             #when no exchange is provided
-            missing_exch = Exchange(country_info_id='1', name_code='Missing', name='Missing')
+            missing_exch = Exchange(country_info_id=usa_country.id, name_code='Missing', name='Missing')
             session.add(missing_exch)
 
             #add sectors
@@ -326,8 +328,7 @@ def test_empty_db_missing_records(caplog):
             
             #verify proper relations were inserted
             
-            stmt = select([t_company_exchange_relation]).order_by(t_company_exchange_relation.c.company_id.asc())
-            res = session.connection().execute(stmt).fetchall()
+            res = session.query(CompanyExchangeRelation).order_by(CompanyExchangeRelation.company_id.asc()).all()
             assert len(res) == 5
             assert res[0].company_id == db_companies[0].id
             assert res[0].exchange_id == missing_exch.id
@@ -341,8 +342,7 @@ def test_empty_db_missing_records(caplog):
             assert res[4].exchange_id == nasdaq_exch.id
 
 
-            stmt = select([t_company_sector_relation]).order_by(t_company_sector_relation.c.company_id.asc())
-            res = session.connection().execute(stmt).fetchall()
+            res = session.query(CompanySectorRelation).order_by(CompanySectorRelation.company_id.asc()).all()
             assert len(res) == 5
             assert res[0].company_id == db_companies[0].id
             assert res[0].sector_id == tech_sector.id
@@ -388,18 +388,20 @@ def test_existing_db_missing_records(caplog):
 
             #add exchanges
 
+            usa_country = session.query(CountryInfo).filter(CountryInfo.name_code == 'USA').first()
+
             #1 = USA
-            nasdaq_exch = Exchange(country_info_id='1', name_code='NASDAQ', name='NASDAQ')
+            nasdaq_exch = Exchange(country_info_id=usa_country.id, name_code='NASDAQ', name='NASDAQ')
             session.add(nasdaq_exch)
 
-            otc_exch = Exchange(country_info_id='1', name_code='OTC', name='Over the counter')
+            otc_exch = Exchange(country_info_id=usa_country.id, name_code='OTC', name='Over the counter')
             session.add(otc_exch)
 
-            nyse_exch = Exchange(country_info_id='1', name_code='NYSE', name='New York Stock Exchange')
+            nyse_exch = Exchange(country_info_id=usa_country.id, name_code='NYSE', name='New York Stock Exchange')
             session.add(nyse_exch)
 
             #when no exchange is provided
-            missing_exch = Exchange(country_info_id='1', name_code='Missing', name='Missing')
+            missing_exch = Exchange(country_info_id=usa_country.id, name_code='Missing', name='Missing')
             session.add(missing_exch)
 
             #add sectors
@@ -453,32 +455,23 @@ def test_existing_db_missing_records(caplog):
             session.flush()
 
             #add relations
-            stmt = t_company_exchange_relation.insert()
-            session.connection().execute(stmt, company_id=apple_company.id, exchange_id=nasdaq_exch.id)
-            stmt = t_company_exchange_relation.insert()
-            session.connection().execute(stmt, company_id=msft_company.id, exchange_id=nasdaq_exch.id)
-            stmt = t_company_exchange_relation.insert()
-            session.connection().execute(stmt, company_id=amd_company.id, exchange_id=nasdaq_exch.id)
-            stmt = t_company_exchange_relation.insert()
-            session.connection().execute(stmt, company_id=twtr_company.id, exchange_id=nyse_exch.id)
-            stmt = t_company_exchange_relation.insert()
-            session.connection().execute(stmt, company_id=cmg_company.id, exchange_id=nyse_exch.id)
-            stmt = t_company_exchange_relation.insert()
-            session.connection().execute(stmt, company_id=fb_company.id, exchange_id=nasdaq_exch.id)
+            
+            cer_one = CompanyExchangeRelation(company_id=apple_company.id, exchange_id=nasdaq_exch.id)
+            cer_two = CompanyExchangeRelation(company_id=msft_company.id, exchange_id=nasdaq_exch.id)
+            cer_three = CompanyExchangeRelation(company_id=amd_company.id, exchange_id=nasdaq_exch.id)
+            cer_four = CompanyExchangeRelation(company_id=twtr_company.id, exchange_id=nyse_exch.id)
+            cer_five = CompanyExchangeRelation(company_id=cmg_company.id, exchange_id=nyse_exch.id)
+            cer_six = CompanyExchangeRelation(company_id=fb_company.id, exchange_id=nasdaq_exch.id)
 
+            csr_one = CompanySectorRelation(company_id=apple_company.id, sector_id=tech_sector.id)
+            csr_two = CompanySectorRelation(company_id=msft_company.id, sector_id=tech_sector.id)
+            csr_three = CompanySectorRelation(company_id=amd_company.id, sector_id=tech_sector.id)
+            csr_four = CompanySectorRelation(company_id=twtr_company.id, sector_id=tech_sector.id)
+            csr_five = CompanySectorRelation(company_id=cmg_company.id, sector_id=cons_cyc_sector.id)
+            csr_six = CompanySectorRelation(company_id=fb_company.id, sector_id=tech_sector.id)
 
-            stmt = t_company_sector_relation.insert()
-            session.connection().execute(stmt, company_id=apple_company.id, sector_id=tech_sector.id)
-            stmt = t_company_sector_relation.insert()
-            session.connection().execute(stmt, company_id=msft_company.id, sector_id=tech_sector.id)
-            stmt = t_company_sector_relation.insert()
-            session.connection().execute(stmt, company_id=amd_company.id, sector_id=tech_sector.id)
-            stmt = t_company_sector_relation.insert()
-            session.connection().execute(stmt, company_id=twtr_company.id, sector_id=tech_sector.id)
-            stmt = t_company_sector_relation.insert()
-            session.connection().execute(stmt, company_id=cmg_company.id, sector_id=cons_cyc_sector.id)
-            stmt = t_company_sector_relation.insert()
-            session.connection().execute(stmt, company_id=fb_company.id, sector_id=tech_sector.id)
+            session.add_all([cer_one, cer_two, cer_three, cer_four, cer_five, cer_six])
+            session.add_all([csr_one, csr_two, csr_three, csr_four, csr_five, csr_six])
 
             session.commit()
 
@@ -497,7 +490,7 @@ def test_existing_db_missing_records(caplog):
             #force update_stamp change. Needed since it is a trigger in db
             session.commit()
 
-            assert len(caplog.records) == 11
+            assert len(caplog.records) == 5
 
             assert caplog.records[0].levelname == 'INFO'
             assert caplog.records[0].name == 'fund_cron_logger'
@@ -513,35 +506,11 @@ def test_existing_db_missing_records(caplog):
 
             assert caplog.records[3].levelname == 'INFO'
             assert caplog.records[3].name == 'fund_cron_logger'
-            assert caplog.records[3].message == "The following ticker was updated in the company table: MSFT"
+            assert caplog.records[3].message == "The following vendor source is filtered out: vendor_1"
 
             assert caplog.records[4].levelname == 'INFO'
             assert caplog.records[4].name == 'fund_cron_logger'
-            assert caplog.records[4].message == "Company with ticker TWTR name changed from Twitter Inc to twatter"
-
-            assert caplog.records[5].levelname == 'INFO'
-            assert caplog.records[5].name == 'fund_cron_logger'
-            assert caplog.records[5].message == "The following ticker was updated in the company table: TWTR"
-
-            assert caplog.records[6].levelname == 'INFO'
-            assert caplog.records[6].name == 'fund_cron_logger'
-            assert caplog.records[6].message == "The following ticker was updated in the company table: FB"
-
-            assert caplog.records[7].levelname == 'INFO'
-            assert caplog.records[7].name == 'fund_cron_logger'
-            assert caplog.records[7].message == "Company with name Facebook Inc ticker changed from FB to FB2"
-
-            assert caplog.records[8].levelname == 'INFO'
-            assert caplog.records[8].name == 'fund_cron_logger'
-            assert caplog.records[8].message == "The following ticker was updated in the company table: FB2"
-
-            assert caplog.records[9].levelname == 'INFO'
-            assert caplog.records[9].name == 'fund_cron_logger'
-            assert caplog.records[9].message == "The following vendor source is filtered out: vendor_1"
-
-            assert caplog.records[10].levelname == 'INFO'
-            assert caplog.records[10].name == 'fund_cron_logger'
-            assert caplog.records[10].message == "Market data import exited successfully."
+            assert caplog.records[4].message == "Market data import exited successfully."
 
             #check db has correct records after import
             db_companies = session.query(Company).order_by(Company.id.asc()).all()
@@ -552,41 +521,35 @@ def test_existing_db_missing_records(caplog):
             assert db_companies[0].name == 'Apple Inc'
             assert db_companies[0].delisted == False
             assert db_companies[0].locked == False
-            assert db_companies[0].update_stamp == aapl_stamp
 
             #delisted modified
             assert db_companies[1].ticker == 'MSFT'
             assert db_companies[1].name == 'Microsoft Corp'
             assert db_companies[1].delisted == True
             assert db_companies[1].locked == False
-            assert db_companies[1].update_stamp != msft_stamp
 
             #untouched because locked
             assert db_companies[2].ticker == 'AMD'
             assert db_companies[2].name == 'Advanced Micro Devices Inc'
             assert db_companies[2].delisted == True
             assert db_companies[2].locked == True
-            assert db_companies[2].update_stamp == amd_stamp
 
             #name modified
             assert db_companies[3].ticker == 'TWTR'
-            assert db_companies[3].name == 'twatter'
+            assert db_companies[3].name == 'Twitter Inc'
             assert db_companies[3].delisted == False
             assert db_companies[3].locked == False
-            assert db_companies[3].update_stamp != twtr_stamp
 
             #untouched because locked
             assert db_companies[4].ticker == 'CMG'
             assert db_companies[4].name == 'Chipotle Grill'
             assert db_companies[4].delisted == False
             assert db_companies[4].locked == True
-            assert db_companies[4].update_stamp == cmg_stamp
 
-            assert db_companies[5].ticker == 'FB2'
+            assert db_companies[5].ticker == 'FB'
             assert db_companies[5].name == 'Facebook Inc'
             assert db_companies[5].delisted == False
             assert db_companies[5].locked == False
-            assert db_companies[5].update_stamp != fb_stamp
 
             assert db_companies[6].ticker == 'FSLY'
             assert db_companies[6].name == 'Fastly Inc'
@@ -604,8 +567,7 @@ def test_existing_db_missing_records(caplog):
             assert db_companies[8].locked == False
 
             #check relations
-            stmt = select([t_company_exchange_relation]).order_by(t_company_exchange_relation.c.company_id.asc())
-            res = session.connection().execute(stmt).fetchall()
+            res = session.query(CompanyExchangeRelation).order_by(CompanyExchangeRelation.company_id.asc()).all()
             assert len(res) == 9
             assert res[0].company_id == db_companies[0].id
             assert res[0].exchange_id == nasdaq_exch.id
@@ -626,9 +588,7 @@ def test_existing_db_missing_records(caplog):
             assert res[8].company_id == db_companies[8].id
             assert res[8].exchange_id == nasdaq_exch.id
 
-
-            stmt = select([t_company_sector_relation]).order_by(t_company_sector_relation.c.company_id.asc())
-            res = session.connection().execute(stmt).fetchall()
+            res = session.query(CompanySectorRelation).order_by(CompanySectorRelation.company_id.asc()).all()
             assert len(res) == 9
             assert res[0].company_id == db_companies[0].id
             assert res[0].sector_id == tech_sector.id
@@ -653,7 +613,13 @@ def test_existing_db_missing_records(caplog):
             assert len(logs) == 1
             assert logs[0].log_type == EXEC_IMPORT_COMPANIES_LOG_TYPE
             assert logs[0].message == "Successfully imported companies supported by: mock_vendor to database."
-            assert logs[0].data is None
+            assert logs[0].data is not None
+            data_str = logs[0].data.decode('ascii')
+            data_json = json.loads(data_str)
+            assert len(data_json['errors']) == 0
+            assert len(data_json['warnings']) == 2
+            assert len(data_json['tickers_with_name_changes']) == 3
+            assert len(data_json['company_names_with_ticker_changes']) == 1
             assert logs[0].update_stamp is not None
             cron_job_runs = session.query(CronJobRun).all()
             assert len(cron_job_runs) == 1
@@ -702,18 +668,20 @@ def test_exec_import_companies_fundamental_data(caplog):
         with manager.session_scope(db_url=config['dbConnString'], template_name='first_session') as session:
             cleanup_db(session.connection())
 
+            usa_country = session.query(CountryInfo).filter(CountryInfo.name_code == 'USA').first()
+
             #1 = USA
-            nasdaq_exch = Exchange(country_info_id='1', name_code='NASDAQ', name='NASDAQ')
+            nasdaq_exch = Exchange(country_info_id=usa_country.id, name_code='NASDAQ', name='NASDAQ')
             session.add(nasdaq_exch)
 
-            otc_exch = Exchange(country_info_id='1', name_code='OTC', name='Over the counter')
+            otc_exch = Exchange(country_info_id=usa_country.id, name_code='OTC', name='Over the counter')
             session.add(otc_exch)
 
-            nyse_exch = Exchange(country_info_id='1', name_code='NYSE', name='New York Stock Exchange')
+            nyse_exch = Exchange(country_info_id=usa_country.id, name_code='NYSE', name='New York Stock Exchange')
             session.add(nyse_exch)
 
             #when no exchange is provided
-            missing_exch = Exchange(country_info_id='1', name_code='Missing', name='Missing')
+            missing_exch = Exchange(country_info_id=usa_country.id, name_code='Missing', name='Missing')
             session.add(missing_exch)
 
             #add sectors
@@ -764,22 +732,17 @@ def test_exec_import_companies_fundamental_data(caplog):
             session.flush()
 
             #add relations
-            stmt = t_company_exchange_relation.insert()
-            session.connection().execute(stmt, company_id=apple_company.id, exchange_id=nasdaq_exch.id)
-            stmt = t_company_exchange_relation.insert()
-            session.connection().execute(stmt, company_id=msft_company.id, exchange_id=nasdaq_exch.id)
-            stmt = t_company_exchange_relation.insert()
-            session.connection().execute(stmt, company_id=amd_company.id, exchange_id=nasdaq_exch.id)
-            stmt = t_company_exchange_relation.insert()
+            cer_one = CompanyExchangeRelation(company_id=apple_company.id, exchange_id=nasdaq_exch.id)
+            cer_two = CompanyExchangeRelation(company_id=msft_company.id, exchange_id=nasdaq_exch.id)
+            cer_three = CompanyExchangeRelation(company_id=amd_company.id, exchange_id=nasdaq_exch.id)
 
+            session.add_all([cer_one, cer_two, cer_three])
 
-            stmt = t_company_sector_relation.insert()
-            session.connection().execute(stmt, company_id=apple_company.id, sector_id=tech_sector.id)
-            stmt = t_company_sector_relation.insert()
-            session.connection().execute(stmt, company_id=msft_company.id, sector_id=tech_sector.id)
-            stmt = t_company_sector_relation.insert()
-            session.connection().execute(stmt, company_id=amd_company.id, sector_id=tech_sector.id)
-            stmt = t_company_sector_relation.insert()
+            csr_one = CompanySectorRelation(company_id=apple_company.id, sector_id=tech_sector.id)
+            csr_two = CompanySectorRelation(company_id=msft_company.id, sector_id=tech_sector.id)
+            csr_three = CompanySectorRelation(company_id=amd_company.id, sector_id=tech_sector.id)
+
+            session.add_all([csr_one, csr_two, csr_three])
 
             session.commit()
 

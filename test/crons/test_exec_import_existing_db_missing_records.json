@@ -10,7 +10,7 @@
             "importFundamentalDataPoints": false,
             "applyDelta": false,
             "vendor": "mock_vendor",
-            "vendorConfigFilePath": "/home/ghelie/fin_app/fin_app_core/fin_app_crons/test/test_mock_vendor_empty_db.json"
+            "vendorConfigFilePath": "/home/ghelie/fin_app/fin_app_core/test/crons/test_mock_vendor_existing_db_missing_records.json"
         },
         {
             "active": true,

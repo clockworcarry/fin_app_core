@@ -29,12 +29,14 @@ class CompanyApiModelIn(BaseModel):
     name: str
     locked: bool
     delisted: bool
+    group_id: int
 
 class CompanyApiModelOut(BaseModel):
     id: int
     ticker: str
     name: str
     locked: bool
+    group_id: int
     delisted: bool
 
 class CompanyApiModelUpdateIn(BaseModel):
@@ -43,12 +45,113 @@ class CompanyApiModelUpdateIn(BaseModel):
     locked: bool = None
     delisted: bool = None
 
+class CompanyImportApiModelOut(BaseModel):
+    companies_with_null_exchange: List[str] = []
+    companies_with_null_sector: List[str] = []
+    companies_with_null_industry: List[str] = []
+    companies_with_unknown_sector: List[str] = []
+    companies_with_name_change: List[str] = []
+    companies_with_ticker_change: List[str] = []
+
+class CompanyProductsModelOut(BaseModel):
+    id: int
+    code: str
+    display_name: str
+
+class CompanyGroupModelOut(BaseModel):
+    id: int
+    name_code: str
+    name: str
+
+class CompanyUpdateGroupIdModelIn(BaseModel):
+    group_id: int
+
+@router.get("/groups", response_model=List[CompanyGroupModelOut])
+def get_groups():
+    try:
+        manager = SqlAlchemySessionManager()
+        with manager.session_scope(db_url=api_config.global_api_config.db_conn_str, template_name='default_session') as session:
+            groups = session.query(CompanyGroup).all()
+
+            ret = []
+            for grp in groups:
+                camo = CompanyGroupModelOut(id=grp.id, grp.name_code, grp.name)
+                ret.append(camo)
+            
+            return ret
+
+    except ValidationError as val_err:
+        raise HTTPException(status_code=500, detail=str(val_err))
+    except Exception as gen_ex:
+        raise HTTPException(status_code=500, detail=str(gen_ex))
+
+@router.get("/group/{grp_id}", response_model=CompanyGroupModelOut)
+def get_group():
+    try:
+        manager = SqlAlchemySessionManager()
+        with manager.session_scope(db_url=api_config.global_api_config.db_conn_str, template_name='default_session') as session:
+            grp = session.query(CompanyGroup).filter(CompanyGroup.id == grp_id).all()
+            if grp is None:
+                raise HTTPException(status_code=500, "No company group with id: " + grp_id + " exists.")
+
+            ret = CompanyGroupModelOut(id=grp.id, name_code=grp.name_code, name=grp.name)
+            return ret
+
+    except ValidationError as val_err:
+        raise HTTPException(status_code=500, detail=str(val_err))
+    except Exception as gen_ex:
+        raise HTTPException(status_code=500, detail=str(gen_ex))
+
+@router.patch("/group/{company_id}", response_model=CompanyApiModelOut)
+def update_company_group_id(body: CompanyUpdateGroupIdModelIn):
+    try:
+        manager = SqlAlchemySessionManager()
+        with manager.session_scope(db_url=api_config.global_api_config.db_conn_str, template_name='default_session') as session:
+            company = session.query(Company).filter(Company.id == company_id).first()
+            if company is None:
+                raise HTTPException(status_code=500, "No company with id: " + company_id + " exists.")
+            
+            company.group_id = body.group_id
+            ret = CompanyApiModelOut(id=company.id.id, ticker=company.ticker, name=company.name, delisted=company.delisted, locked=company.locked, group_id=company.group_id)
+            return ret
+
+    except ValidationError as val_err:
+        raise HTTPException(status_code=500, detail=str(val_err))
+    except Exception as gen_ex:
+        raise HTTPException(status_code=500, detail=str(gen_ex))
+
+@router.delete("/group/{group_id}")
+def delete_group():
+    try:
+        manager = SqlAlchemySessionManager()
+        with manager.session_scope(db_url=api_config.global_api_config.db_conn_str, template_name='default_session') as session:
+            session.query(CompanyGroup).filter(CompanyGroup.id == group_id).delete()
+    except Exception as gen_ex:
+        raise HTTPException(status_code=500, detail=str(gen_ex))
+
+@router.get("/{ticker}", status_code=status.HTTP_201_CREATED, response_model=CompanyApiModelOut)
+def get_company_by_ticker(company_body: CompanyApiModelIn):
+    try:
+        manager = SqlAlchemySessionManager()
+        with manager.session_scope(db_url=api_config.global_api_config.db_conn_str, template_name='default_session') as session:
+            company = session.query(Company).filter(Company.ticker == ticker).first()
+            if company is None:
+                raise HTTPException(status_code=500, "No company with ticker: " + ticker + " exists.")
+
+            ret = CompanyApiModelOut(id=company.id, ticker=company.ticker, name=company.name, locked=company.locked, delisted=company.delisted, group_id=company.group_id)
+            return ret
+
+    except ValidationError as val_err:
+        raise HTTPException(status_code=500, detail=str(val_err))
+    except Exception as gen_ex:
+        raise HTTPException(status_code=500, detail=str(gen_ex))
+
 @router.post("/", status_code=status.HTTP_201_CREATED, response_model=CompanyApiModelOut)
 def save_company(company_body: CompanyApiModelIn):
     try:
         manager = SqlAlchemySessionManager()
         with manager.session_scope(db_url=api_config.global_api_config.db_conn_str, template_name='default_session') as session:
-            company = Company(ticker=company_body.ticker, name=company_body.name, locked=company_body.locked, delisted=company_body.delisted)
+            company = Company(ticker=company_body.ticker, name=company_body.name, locked=company_body.locked, delisted=company_body.delisted, group_id=company_body.group_id)
             session.add(company)
             session.flush()
             ret = CompanyApiModelOut(id=company.id, ticker=company.ticker, name=company.name, locked=company.locked, delisted=company.delisted)
@@ -67,15 +170,6 @@ def update_company(company_body: CompanyApiModelIn):
             db_company = session.query(Company).filter(Company.id == company_id).first()
             if db_company is None:
                 raise HTTPException(status_code=500, detail="No company with id: " + company_id + " exists.")
-            
-                if company_body.ticker is not None:
-                    db_company.ticker = company_body.ticker
-                if company_body.name is not None:
-                    db_company.name = company_body.name
-                if company_body.locked is not None:
-                    db_company.locked = company_body.locked
-                if company_body.delisted is not None:
-                    db_company.delisted = company_body.delisted
 
             session.flush()
             ret = CompanyApiModelOut(id=db_company.id, ticker=db_company.ticker, name=db_company.name, locked=db_company.locked, delisted=db_company.delisted)
@@ -95,92 +189,6 @@ def delete_company():
     except Exception as gen_ex:
         raise HTTPException(status_code=500, detail=str(gen_ex))
 
-@router.post("/file", status_code=status.HTTP_201_CREATED)
-def import_companies_from_file(csv_file: UploadFile = File(...), supplier_format: Optional[str] = Query(None, max_length=30)):
-    try:
-        input_companies_df = pd.read_csv(io.BytesIO(csv_file.file), compression='zip')
-        
-        unique_exchange_serie = pd.Series(input_companies_df['exchange'].unique())
-        unique_exchange_serie = unique_exchange_serie.fillna('Missing')
-        for elem in unique_exchange_serie:
-            if session.query(exists().where(Exchange.name_code==elem)).scalar() is False:
-                logger.warning("Unknown exchange detected: " + elem)
-        
-        #log unknown sectors so they can be manually added to db
-        unique_sector_serie = pd.Series(input_companies_df['sector'].unique())
-        unique_sector_serie = unique_sector_serie.fillna('Missing')
-        for elem in unique_sector_serie:
-            if session.query(exists().where(Sector.name==elem)).scalar() is False:
-                logger.warning("Unknown sector detected: " + elem)
 
-        #log unknown industries so they can be manually added to db
-        unique_industry_serie = pd.Series(input_companies_df['industry'].unique())
-        unique_industry_serie = unique_industry_serie.fillna('Missing')
-        for elem in unique_industry_serie:
-            if session.query(exists().where(Industry.name==elem)).scalar() is False:
-                logger.warning("Unknown industry detected: " + elem)
 
-        nb_rows = input_companies_df.shape[0]
-        current_row = 0
-        #save every new company in the db and update the ones that are not locked in the db
-        for idx, row in input_companies_df.iterrows():
-            if verbose:
-                print("Current row: " + str(current_row) + " out of " + str(nb_rows) + ". Ticker: " + row['ticker'])
-            row = row.fillna('Missing')
-            #get sector_id for company to init new company with it
-            tbl = Sector.__table__
-            stmt = select([tbl.c.id, tbl.c.name]).where(tbl.c.name == row['sector']).limit(1)
-            sector_res = session.connection().execute(stmt).first()
-            if sector_res is None:
-                logger.warning("None result when fetching first sector matching: " + row['sector'])
-                continue
-            else:
-                exch_tbl = Exchange.__table__
-                stmt = select([exch_tbl.c.id, exch_tbl.c.name]).where(exch_tbl.c.name_code == row['exchange']).limit(1)
-                exch_res = session.connection().execute(stmt).first()
-                if exch_res is not None:
-                    if row['isdelisted'] == 'Y':
-                        row['isdelisted'] = True
-                    elif row['isdelisted'] == 'N':
-                        row['isdelisted'] = False
-                    else:
-                        logger.critical("Unknown value in delisted column: " + row['isdelisted'])
-                        continue
-                    
-                    '''db_company = session.query(Company).filter(Company.name == row['name']).first()
-                    if db_company is not None and not db_company.locked and db_company.ticker != row['ticker']: # company ticker was changed but name stayed the same
-                        logger.info("Company with name " + row['name'] + " ticker changed from " + db_company.ticker + " to " + row['ticker'])
-                        db_company_retry = session.query(Company).filter(Company.ticker == row['ticker']).first() # ticker already taken, this probably means company changed name AND ticker
-                        if db_company_retry is not None and db_company.delisted:
-                            logger.warning("Deleting existing company with ticker: " + db_company.ticker + ". Probably simultaneous change of name and ticker. Validate.")
-                            session.delete(db_company)
-                        else:
-                            db_company.ticker = row['ticker']'''
-                        
 
-                    db_company = session.query(Company).filter(Company.ticker == row['ticker']).first()
-                    if db_company is not None and not db_company.locked and db_company.name != row['name']: # company name was changed but ticker stayed the same
-                        '''logger.info("Company with ticker " + row['ticker'] + " name changed from " + db_company.name + " to " + row['name'])
-                        db_company.name = row['name']'''
-                        session.delete(db_company)
-                        db_company = None
-
-                    if db_company is None: #insert
-                        if session.query(exists().where(Company.name==row['name'])).scalar() is False: #it is possible that there a company is listed with same name with different tickers ...
-                            company = Company(ticker=row['ticker'], name=row['name'], delisted=row['isdelisted'])
-                            session.add(company)
-                            session.flush() #force company id creation
-                            stmt = t_company_exchange_relation.insert()
-                            session.connection().execute(stmt, company_id=company.id, exchange_id=exch_res.id) #insert company and exch id in the relation table
-                            stmt = t_company_sector_relation.insert()
-                            session.connection().execute(stmt, company_id=company.id, sector_id=sector_res.id) #insert company and sector id in the relation table
-                        else:
-                            logger.warning("Company already exists: " + row['name'])
-                    elif not db_company.locked: #update
-                        db_company.name = row['name']
-                        db_company.delisted = row['isdelisted']
-                        logger.info("The following ticker was updated in the company table: " + db_company.ticker)
-            
-            current_row += 1
-    except Exception as gen_ex:
-        raise HTTPException(status_code=500, detail=str(gen_ex))
