@@ -6,8 +6,8 @@ from sqlalchemy.schema import *
 from db.base_models import Base, meta
 from db.models import Company
 
-data_type_quarterly = 0
-data_type_annual = 1
+DATA_TYPE_QUARTERLY = 0
+DATA_TYPE_ANNUAL = 1
 
 class CompanyFinancialData(Base):
     __tablename__ = 'company_financial_data'

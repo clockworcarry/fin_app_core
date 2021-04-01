@@ -93,53 +93,64 @@ def exec_import_companies(session, logger, input_companies_df, report):
             report.warnings.append(msg)
             logger.warning(msg)
             continue
-        else:
-            exch_tbl = Exchange.__table__
-            stmt = select([exch_tbl.c.id, exch_tbl.c.name]).where(exch_tbl.c.name_code == row['exchange']).limit(1)
-            exch_res = session.connection().execute(stmt).first()
-            if exch_res is not None:
-                if row['isdelisted'] == 'Y':
-                    row['isdelisted'] = True
-                elif row['isdelisted'] == 'N':
-                    row['isdelisted'] = False
+
+        industry_res = session.query(Industry).filter(Industry.name == row['industry']).first()
+        if industry_res is None:
+            msg = "None result when fetching first industry matching: " + row['industry']
+            report.warnings.append(msg)
+            logger.warning(msg)
+        
+        exch_tbl = Exchange.__table__
+        stmt = select([exch_tbl.c.id, exch_tbl.c.name]).where(exch_tbl.c.name_code == row['exchange']).limit(1)
+        exch_res = session.connection().execute(stmt).first()
+        if exch_res is not None:
+            if row['isdelisted'] == 'Y':
+                row['isdelisted'] = True
+            elif row['isdelisted'] == 'N':
+                row['isdelisted'] = False
+            else:
+                msg = "Unknown value in delisted column: " + row['isdelisted']
+                report.warnings.append(msg)
+                logger.errors(msg)
+                continue
+            
+            
+            db_company = session.query(Company).filter(Company.ticker == row['ticker']).first()
+            if db_company is not None and db_company.name != row['name']:
+                report.tickers_with_name_changes.append((db_company.ticker, db_company.name, row['name']))
+                continue 
+
+            db_company_name = session.query(Company).filter(Company.name == row['name']).first()
+            if db_company_name is not None and db_company_name.ticker != row['ticker']:
+                report.company_names_with_ticker_changes.append((row['name'], db_company_name.ticker, row['ticker']))
+                continue 
+            
+
+            if db_company is None: #insert
+                if session.query(exists().where(Company.name==row['name'])).scalar() is False: #it is possible that there a company is listed with same name with different tickers ...
+                    company = Company(ticker=row['ticker'], name=row['name'], delisted=row['isdelisted'])
+                    if industry_res is not None:
+                        company.industry_id = industry_res.id
+
+                    session.add(company)
+                    session.flush()
+                    cbop = CompanyBusinessOrProduct(company_id=company.id, code=company.ticker + '_default', display_name='Default business or product')
+                    session.add(cbop)
+                    cer = CompanyExchangeRelation(company_id=company.id, exchange_id=exch_res.id)
+                    session.add(cer)
+                    csr = CompanySectorRelation(company_id=company.id, sector_id=sector_res.id)
+                    session.add(csr)
                 else:
-                    msg = "Unknown value in delisted column: " + row['isdelisted']
-                    report.warnings.append(msg)
-                    logger.errors(msg)
-                    continue
-                
-                
-                db_company = session.query(Company).filter(Company.ticker == row['ticker']).first()
-                if db_company is not None and db_company.name != row['name']:
-                    report.tickers_with_name_changes.append((db_company.ticker, db_company.name, row['name']))
-                    continue 
-
-                db_company_name = session.query(Company).filter(Company.name == row['name']).first()
-                if db_company_name is not None and db_company_name.ticker != row['ticker']:
-                    report.company_names_with_ticker_changes.append((row['name'], db_company_name.ticker, row['ticker']))
-                    continue 
-                
-
-                if db_company is None: #insert
-                    if session.query(exists().where(Company.name==row['name'])).scalar() is False: #it is possible that there a company is listed with same name with different tickers ...
-                        company = Company(ticker=row['ticker'], name=row['name'], delisted=row['isdelisted'])
-                        session.add(company)
-                        session.flush()
-                        cbop = CompanyBusinessOrProduct(company_id=company.id, code=company.ticker + '_default', display_name='Default business or product')
-                        session.add(cbop)
-                        cer = CompanyExchangeRelation(company_id=company.id, exchange_id=exch_res.id)
-                        session.add(cer)
-                        csr = CompanySectorRelation(company_id=company.id, sector_id=sector_res.id)
-                        session.add(csr)
-                    else:
-                        logger.warning("Company already exists: " + row['name'])
-                elif not db_company.locked: #update
-                    db_company.name = row['name']
-                    db_company.delisted = row['isdelisted']
-                    db_cbop = session.query(CompanyBusinessOrProduct).filter(CompanyBusinessOrProduct.company_id == db_company.id).first()
-                    if db_cbop is None:
-                        cbop = CompanyBusinessOrProduct(company_id=db_company.id, code=db_company.ticker + '_default', display_name='Default business or product')
-                        session.add(cbop)
+                    logger.warning("Company already exists: " + row['name'])
+            elif not db_company.locked: #update
+                db_company.name = row['name']
+                db_company.delisted = row['isdelisted']
+                if industry_res is not None:
+                    db_company.industry_id = industry_res.id
+                db_cbop = session.query(CompanyBusinessOrProduct).filter(CompanyBusinessOrProduct.company_id == db_company.id).first()
+                if db_cbop is None:
+                    cbop = CompanyBusinessOrProduct(company_id=db_company.id, code=db_company.ticker + '_default', display_name='Default business or product')
+                    session.add(cbop)
         
         current_row += 1
 
@@ -155,9 +166,13 @@ def exec_import_companies_fundamental_data(session, logger, fundamental_data_df)
             logger.warning("Company with ticker: " + row['ticker'] + " does not exist in the database.")
             continue
         else:
-            db_company_quarterly_data = session.query(CompanyQuarterlyFinancialData).filter(CompanyQuarterlyFinancialData.company_id == db_company.id, CompanyQuarterlyFinancialData.calendar_date == row['calendardate']).first()
+            data_type = DATA_TYPE_QUARTERLY
+            if row['dimension'] == 'MRY':
+                data_type = DATA_TYPE_ANNUAL
+            db_company_quarterly_data = session.query(CompanyFinancialData).filter(CompanyFinancialData.company_id == db_company.id, CompanyFinancialData.calendar_date == row['calendardate'], \
+                                                                                   CompanyFinancialData.data_type==data_type).first()
             if db_company_quarterly_data is None or not db_company_quarterly_data.locked:
-                company_quarterly_data = CompanyQuarterlyFinancialData(company_id=db_company.id, assets=row['assets'], cashneq=row['cashneq'], investments=row['investments'], investmentsc=row['investmentsc'], investmentsnc=row['investmentsnc'], \
+                company_quarterly_data = CompanyFinancialData(company_id=db_company.id, assets=row['assets'], cashneq=row['cashneq'], investments=row['investments'], investmentsc=row['investmentsc'], investmentsnc=row['investmentsnc'], \
                                                     deferredrev=row['deferredrev'], deposits=row['deposits'], ppnenet=row['ppnenet'], inventory=row['inventory'], taxassets=row['taxassets'], receivables=row['receivables'], \
                                                     payables=row['payables'], intangibles=row['intangibles'], liabilities=row['liabilities'], equity=row['equity'], retearn=row['retearn'], accoci=row['accoci'], assetsc=row['assetsc'], \
                                                     assetsnc=row['assetsnc'], liabilitiesc=row['liabilitiesc'], liabilitiesnc=row['liabilitiesnc'], taxliabilities=row['taxliabilities'], debt=row['debt'], debtc=row['debtc'], \
@@ -171,7 +186,7 @@ def exec_import_companies_fundamental_data(session, logger, fundamental_data_df)
 
                                                     shareswa=row['shareswa'], shareswadil=row['shareswadil'], sharesbas=row['sharesbas'],
 
-                                                    fx_usd = row['fxusd']
+                                                    fx_usd = row['fxusd'], data_type=data_type
                                                     )
                 if db_company_quarterly_data is not None:
                     session.delete(db_company_quarterly_data)
@@ -270,7 +285,7 @@ def exec_import(config, session):
                     stamp_without_tz = '' #first time script is ran
                     logger.info("Importing tickers with no date filter.")
                     input_companies_df = vendor.get_all_companies()
-                    if input_companies_df.empty:
+                    if input_companies_df is None or input_companies_df.empty:
                         logger.info("No new companies were updated for vendor: " + src['vendor'])
                     else:
                         exec_import_companies(session, logger, input_companies_df, import_companies_report)
@@ -281,7 +296,7 @@ def exec_import(config, session):
                     stamp_without_tz = stamp_without_tz.strftime("%Y-%m-%d")
                     logger.info("Importing tickers that were updated after or on: " + stamp_without_tz)
                     input_companies_df = vendor.get_all_companies(from_date=stamp_without_tz)
-                    if input_companies_df.empty:
+                    if input_companies_df is None or input_companies_df.empty:
                         logger.info("No new companies were updated for vendor: " + src['vendor'] + " at or after date: " + stamp_without_tz)
                     else:
                         exec_import_companies(session, logger, input_companies_df, import_companies_report)
@@ -312,7 +327,7 @@ def exec_import(config, session):
                         stamp_without_tz = ''
 
                 fundamental_data_df = vendor.get_fundamental_data(from_date=stamp_without_tz)
-                if fundamental_data_df.empty:
+                if fundamental_data_df is None or fundamental_data_df.empty:
                     logger.info("No companies fundamental data was updated for vendor: " + src['vendor'] + " at or after date: " + stamp_without_tz)
                 else:
                     exec_import_companies_fundamental_data(session, logger, fundamental_data_df)
@@ -323,7 +338,7 @@ def exec_import(config, session):
                 if 'importCompanies' in src and src['importCompanies']:
                     session.flush()
                 current_operation = EXEC_IMPORT_STOCK_PRICES_LOG_TYPE
-                company_attributes = session.query(Company, Exchange, CountryInfo).join(t_company_exchange_relation, t_company_exchange_relation.c.company_id == Company.id).join(Exchange).join(CountryInfo).all()
+                company_attributes = session.query(Company, Exchange, CountryInfo).join(CompanyExchangeRelation, CompanyExchangeRelation.company_id == Company.id).join(Exchange).join(CountryInfo).all()
                 ticker_attributes_map = {}
                 for attr in company_attributes:
                     ticker_attributes_map[attr[0].ticker] = attr
@@ -344,47 +359,51 @@ def exec_import(config, session):
                         stamp_without_tz = ''
                 
                 stock_prices_df = vendor.get_historical_bar_data(stamp_without_tz, '', 1, 'd', True, data_type_stock) #might be huge
-                    
-                if 'tickersFilteredOut' in src:
-                    for ticker in src['tickersFilteredOut']:
-                        logger.info("The following ticker is filtered out for stock prices import: " + ticker)
-                        stock_prices_df = stock_prices_df[stock_prices_df['ticker'] != ticker]
-                    
-                if 'exchangesFilteredOut' in src:
-                    for exch in src['exchangesFilteredOut']:
-                        logger.info("The following exchange is filtered out for stock prices import: " + exch)
-                        stock_prices_df = stock_prices_df[stock_prices_df['exchange'] != exch]
-
-                list_df = []
-                nb_rows_df = stock_prices_df.shape[0]          
-                i = 0
-                nb_rows_per_df = 2000000
                 
-                while i <= nb_rows_df:
-                    if (nb_rows_df - i) < nb_rows_per_df:
-                        list_df.append(stock_prices_df.iloc[i:i + (nb_rows_df - i + 1)])
-                    else:
-                        list_df.append(stock_prices_df.iloc[i:i + nb_rows_per_df])
-                    i += nb_rows_per_df
+                if stock_prices_df is None or stock_prices_df.empty:
+                    logger.info("No stock prices were updated for vendor: " + src['vendor'] + " at or after date: " + stamp_without_tz)
+                else:                    
+                    if 'tickersFilteredOut' in src:
+                        for ticker in src['tickersFilteredOut']:
+                            logger.info("The following ticker is filtered out for stock prices import: " + ticker)
+                            stock_prices_df = stock_prices_df[stock_prices_df['ticker'] != ticker]
+                        
+                    if 'exchangesFilteredOut' in src:
+                        for exch in src['exchangesFilteredOut']:
+                            logger.info("The following exchange is filtered out for stock prices import: " + exch)
+                            stock_prices_df = stock_prices_df[stock_prices_df['exchange'] != exch]
 
-                print("Dataframe views created. There are " + str(len(list_df)) + " dataframes.")
+                    list_df = []
+                    nb_rows_df = stock_prices_df.shape[0]          
+                    i = 0
+                    nb_rows_per_df = 2000000
+                    
+                    while i <= nb_rows_df:
+                        if (nb_rows_df - i) < nb_rows_per_df:
+                            list_df.append(stock_prices_df.iloc[i:i + (nb_rows_df - i + 1)])
+                        else:
+                            list_df.append(stock_prices_df.iloc[i:i + nb_rows_per_df])
+                        i += nb_rows_per_df
 
-                processes = []
-                for idx, df in enumerate(list_df):
-                    proc = mp.Process(target=exec_import_stock_prices, args=(config['dbConnString'], 'stk_imp_proc_' + str(idx), logger, df, ticker_attributes_map, str(1) + ' ' + src['importStockPricesResolution']))
-                    processes.append(proc)
+                    print("Dataframe views created. There are " + str(len(list_df)) + " dataframes.")
 
-                for idx, proc in enumerate(processes):
-                    print("Starting process " + str(idx + 1) + " out of " + str(len(processes)))
-                    proc.start()
+                    processes = []
+                    for idx, df in enumerate(list_df):
+                        proc = mp.Process(target=exec_import_stock_prices, args=(config['dbConnString'], 'stk_imp_proc_' + str(idx), logger, df, ticker_attributes_map, str(1) + ' ' + src['importStockPricesResolution']))
+                        processes.append(proc)
 
-                for idx, proc in enumerate(processes):
-                    proc.join()
-                    print("Process " + str(idx + 1) + " ended")
+                    for idx, proc in enumerate(processes):
+                        print("Starting process " + str(idx + 1) + " out of " + str(len(processes)))
+                        proc.start()
 
-                print("Stock prices import done.")
-                #processes = [Process(target=exec_import_stock_prices, args=(session, logger, stock)) for x in range(len(list_df))]
-                #exec_import_stock_prices(session, logger, stock_prices_df, ticker_attributes_map, str(1) + ' ' + src['importStockPricesResolution'])
+                    for idx, proc in enumerate(processes):
+                        proc.join()
+                        print("Process " + str(idx + 1) + " ended")
+
+                    print("Stock prices import done.")
+                    #processes = [Process(target=exec_import_stock_prices, args=(session, logger, stock)) for x in range(len(list_df))]
+                    #exec_import_stock_prices(session, logger, stock_prices_df, ticker_attributes_map, str(1) + ' ' + src['importStockPricesResolution'])
+                
                 add_cron_job_run_info_to_session(session, current_operation, "Successfully imported stock prices supported by: " + src['vendor'] + " to database.", None, True)
 
             if 'importFxData' in src and src['importFxData']:

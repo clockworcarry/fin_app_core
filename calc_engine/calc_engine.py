@@ -2,20 +2,31 @@ from db.company_financials import *
 from py_common_utils_gh.db_utils.db_utils import SqlAlchemySessionManager
 
 
-def is_good_dcf_candidate():
+def is_good_dcf_candidate(financials):
+#    if len(financials)
     pass
 
-def calculate__average_book_value_of_debt(financials, sort=False):
-    if financials.data_type == data_type_quarterly and len(financials) % 4 != 0:
+def calculate_average_book_value_of_debt(financials, sort=False, financials_data_type = DATA_TYPE_QUARTERLY):
+    sorted_financials = []
+    if len(financials) == 0:
+        raise ValueError("Empty financials array in : calculate_average_book_value_of_debt")
+    if financials_data_type == DATA_TYPE_QUARTERLY and len(financials) % 4 != 0:
         raise ValueError("Length of financials must be a multiple of 4 when quarterly is used.")
     if sort:
          sorted_financials = sorted(financials, key=lambda x: x.calendar_date, reverse=True)
     
     book_value_of_debt = 0
-    if len(sorted_financials) == 4:
-        book_value_of_debt = financials[0].debtc + financials[0].debtnc
-    elif len(sorted_financials >= 8):
-        book_value_of_debt = (financials[0].debtc + financials[4].debtc) / 2 + (financials[0].debtnc + financials[4].debtnc) / 2
+
+    if financials_data_type == DATA_TYPE_ANNUAL:
+        if len(sorted_financials) == 1:
+            book_value_of_debt = financials[0].debtc + financials[0].debtnc
+        else:
+            book_value_of_debt = (financials[0].debtc + financials[1].debtc) / 2 + (financials[0].debtnc + financials[1].debtnc) / 2
+    else:       
+        if len(sorted_financials) == 4:
+            book_value_of_debt = financials[0].debtc + financials[0].debtnc
+        elif len(sorted_financials >= 8):
+            book_value_of_debt = (financials[0].debtc + financials[4].debtc) / 2 + (financials[0].debtnc + financials[4].debtnc) / 2
     
     return book_value_of_debt
 
@@ -40,7 +51,10 @@ def calculate_expected_return_of_market():
     
 def calculate_wacc(weight_of_equity, cost_of_equity, weight_of_debt, cost_of_debt):
     #market cap is synonymous to equity
-    wacc =  weight_of_equity * cost_of_equity + weight_of_debt * cost_of_debt  
+    wacc =  weight_of_equity * cost_of_equity + weight_of_debt * cost_of_debt
+
+def calculate_terminal_value(perpetual_growth_rate, last_fcf_value, discount_rate):
+    return (last_fcf_value * (1 + perpetual_growth_rate)) / (discount_rate - perpetual_growth_rate)
 
 def calculate_consensus_analyst_financial_metric():
     pass

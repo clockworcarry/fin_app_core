@@ -28,15 +28,16 @@ class Sharadar(Vendor):
         if r.status_code == 200:
             r = r.json()
             zip_url = r['datatable_bulk_download']['file']['link']
-            zip_req = requests.get(zip_url, stream=True)
-            if zip_req.status_code == 200:
-                df = pd.read_csv(io.BytesIO(zip_req.content), compression='zip')
-                if df.empty:
-                    return df
+            if zip_url is not None:
+                zip_req = requests.get(zip_url, stream=True)
+                if zip_req.status_code == 200:
+                    df = pd.read_csv(io.BytesIO(zip_req.content), compression='zip')
+                    if df.empty:
+                        return df
+                    else:
+                        return df[['ticker', 'name', 'exchange', 'isdelisted', 'famaindustry', 'sector', 'industry', 'location']]
                 else:
-                    return df[['ticker', 'name', 'exchange', 'isdelisted', 'famaindustry', 'sector', 'industry', 'location']]
-            else:
-                raise Exception("Sharadar returned http " + str(r.status_code) + " for method get_all_companies while trying to get zip data.")
+                    raise Exception("Sharadar returned http " + str(r.status_code) + " for method get_all_companies while trying to get zip data.")
         else:
             raise Exception("Sharadar returned http " + str(r.status_code) + " for method get_all_companies while trying to get zip link.")
 
@@ -47,7 +48,11 @@ class Sharadar(Vendor):
 
         if 'queryStrParams' in self.config['fundamentalDataPointsTableParams']:
             for param in self.config['fundamentalDataPointsTableParams']['queryStrParams']:
-                full_url += "&" + param['key'] + "=" + param['value']
+                full_url += "&" + param['key'] + "="
+                for idx, val in enumerate(param['values']):
+                    full_url += val
+                    if idx != len(param['values']) - 1:
+                        full_url += ","
 
         if 'from_date' in kwargs and kwargs['from_date'] != '':
             full_url = full_url + "&lastupdated.gte=" + kwargs['from_date']
@@ -57,12 +62,13 @@ class Sharadar(Vendor):
         if r.status_code == 200:
             r = r.json()
             zip_url = r['datatable_bulk_download']['file']['link']
-            zip_req = requests.get(zip_url, stream=True)
-            if zip_req.status_code == 200:
-                df = pd.read_csv(io.BytesIO(zip_req.content), compression='zip')
-                return df
-            else:
-                raise Exception("Sharadar returned http " + str(r.status_code) + " for method get_all_companies_fundamental_datapoints while trying to get zip data.")
+            if zip_url is not None:
+                zip_req = requests.get(zip_url, stream=True)
+                if zip_req.status_code == 200:
+                    df = pd.read_csv(io.BytesIO(zip_req.content), compression='zip')
+                    return df
+                else:
+                    raise Exception("Sharadar returned http " + str(r.status_code) + " for method get_all_companies_fundamental_datapoints while trying to get zip data.")
         else:
             raise Exception("Sharadar returned http " + str(r.status_code) + " for method get_all_companies_fundamental_datapoints while trying to get zip link.")
 
@@ -84,12 +90,15 @@ class Sharadar(Vendor):
         if r.status_code == 200:
             r = r.json()
             zip_url = r['datatable_bulk_download']['file']['link']
-            zip_req = requests.get(zip_url, stream=True)
-            if zip_req.status_code == 200:
-                df = pd.read_csv(io.BytesIO(zip_req.content), compression='zip')
-                return df
-            else:
-                raise Exception("Sharadar returned http " + str(r.status_code) + " for method get_historical_bar_data while trying to get zip data.")
+            if zip_url is not None:
+                zip_req = requests.get(zip_url, stream=True)
+                if zip_req.status_code == 200:
+                    df = pd.read_csv(io.BytesIO(zip_req.content), compression='zip')
+                    return df
+                else:
+                    raise Exception("Sharadar returned http " + str(r.status_code) + " for method get_historical_bar_data while trying to get zip data.")
+        else:
+            raise Exception("Sharadar returned http " + str(r.status_code) + " for method get_historical_bar_data while trying to get zip link.")
 
 if __name__ == "__main__":
     try:

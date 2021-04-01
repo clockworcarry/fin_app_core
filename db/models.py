@@ -52,7 +52,6 @@ class CompanySectorRelation(Base):
     sector_id = Column(ForeignKey('sector.id', ondelete='CASCADE', onupdate='CASCADE'), primary_key=True, nullable=False)
     update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue())
 
-
 class Company(Base):
     __tablename__ = 'company'
 
@@ -62,13 +61,28 @@ class Company(Base):
     locked = Column(Boolean, nullable=False, server_default=text("false"))
     delisted = Column(Boolean, nullable=False, index=True, server_default=text("false"))
     update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue())
-    group_id = Column(ForeignKey('company_group.id', ondelete='CASCADE', onupdate='CASCADE'), index=True)
+    industry_id = Column(ForeignKey('industry.id', ondelete='CASCADE', onupdate='CASCADE'), index=True)
     
     #exchanges = relationship("Exchange", secondary=t_company_exchange_relation, backref='companies')
     #sectors = relationship("Sector", secondary=t_company_sector_relation)
     #balance_sheet_data = relationship('BalanceSheetData')
     #income_statement_data = relationship('IncomeStatementData')
     #cash_flow_statement_data = relationship('CashFlowStatementData')
+
+class CompanyGroupRelation(Base):
+    __tablename__ = 'company_group_relation'
+
+    company_id = Column(ForeignKey('company.id', ondelete='CASCADE', onupdate='CASCADE'), primary_key=True, nullable=False)
+    group_id = Column(ForeignKey('company_group.id', ondelete='CASCADE', onupdate='CASCADE'), primary_key=True, nullable=False)
+    update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue())
+
+class CompanyGroup(Base): #can be seen as a sub sector.. used when stocks within a sector are very closely related.. ex: twtr, fb, pins, snap
+    __tablename__ = 'company_group'
+
+    id = Column(Integer, primary_key=True)
+    name_code = Column(String(50), nullable=False, unique=True)
+    name = Column(String(60), nullable=False, unique=True)
+    update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue())
 
 
 class CountryInfo(Base):
@@ -88,14 +102,6 @@ class Sector(Base):
     name_code = Column(String(50), nullable=False, unique=True)
     name = Column(String(60), nullable=False, unique=True)
     locked = Column(Boolean, nullable=False, server_default=text("false"))
-    update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue())
-
-class CompanyGroup(Base): #can be seen as a sub sector.. used when stocks within a sector are very closely related.. ex: twtr, fb, pins, snap
-    __tablename__ = 'company_group'
-
-    id = Column(Integer, primary_key=True)
-    name_code = Column(String(50), nullable=False, unique=True)
-    name = Column(String(60), nullable=False, unique=True)
     update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue())
 
 
