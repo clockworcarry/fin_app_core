@@ -115,6 +115,7 @@ class CompanyFinancialStatsOut(BaseModel):
     shares_outstanding: int
     stock_price: float
     intrinsic_value: float
+    #custom metrics + analyst ratings
 
 class FcfGrowth(BaseModel):
     index: int
@@ -151,11 +152,38 @@ class CompanyFinancialStatsIn(BaseModel):
     calculate_intrinsic_value: bool
     dcf_params: DcfParams = None
 
+class FcfGrowthOut(BaseModel):
+    index: int
+    nb_years: int
+    avg_historical_rev_cagr: float
+    avg_historical_rev_cagr: float
+    low_historical_rev_cagr: float
+    high_historical_rev_cagr: float
+    avg_historical_net_income_margin: float
+    low_historical_net_income_margin: float
+    high_historical_net_income_margin: float
+    avg_historical_fcf_to_net_income_ratio: float
+    low_historical_fcf_to_net_income_ratio: float
+    high_historical_fcf_to_net_income_ratio: float
+
+class DcfParamsDefaultOut(BaseModel):
+    avg_book_value_of_debt: float = None
+    discount_rate: float = None #if not specified, wacc will be used = 
+    cost_of_debt: float = None
+    risk_free_rate: float = None
+    beta_asset: float = None
+    expected_market_return: float = None
+    int_exp: float = None
+    avg_tax_rate: float = None
+    
+    fcf_growth_periods: List[FcfGrowthOut]
+    perpetual_growth_rate: float
+
 class CompanyFinancialStatsDefaultOut(BaseModel):
     stock_price: float
     shares_bas: int
 
-    dcf_params: DcfParams = None
+    dcf_params: DcfParamsDefaultOut = None
 
     dcf_score: int
 
@@ -321,13 +349,13 @@ def get_default_company_stats_params(company_id):
         with manager.session_scope(db_url=api_config.global_api_config.db_conn_str, template_name='default_session') as session:
             db_financials_annual = session.query(CompanyFinancialData).filter(CompanyFinancialData.company_id == company_id, CompanyFinancialData.data_type==DATA_TYPE_ANNUAL) \
                                           .order_by(CompanyFinancialData.calendar_date.desc()).all()
-            if db_financials_annual is None or len(db_financials) == 0:
-                ret.is_dcf_candidate = False
+            if db_financials_annual is None or len(db_financials) < 3:
+                ret.dcf_score = 0
                 return ret
             db_financials_quarterly = session.query(CompanyFinancialData).filter(CompanyFinancialData.company_id == company_id, CompanyFinancialData.data_type==DATA_TYPE_QUARTERLY) \
                                              .order_by(CompanyFinancialData.calendar_date.desc()).all()
             if db_financials_quarterly is None or len(db_financials_quarterly) == 0:
-                ret.is_dcf_candidate = False
+                ret.dcf_score = 0
                 return ret
             else:
                 ret.has_financials = True
@@ -340,6 +368,25 @@ def get_default_company_stats_params(company_id):
                 ret.dcf_params.avg_book_value_of_debt = calculate_average_book_value_of_debt(db_financials_annual, False, DATA_TYPE_ANNUAL)               
                 ret.dcf_params.risk_free_rate = 0.02
                 ret.dcf_params.int_exp = db_financials_annual[0].intexp
+                ret.dcf_params.avg_tax_rate = 0.21
+                ret.dcf_params.expected_market_return = 0.09
+                ret.dcf_params.perpetual_growth_rate = 0.025
+
+                ret.dcf_params.fcf_growth_periods = []
+                growth_period = FcfGrowthOut()
+                growth_period.nb_years = 5
+                growth_period.index = 0
+                nb_years_back = 5
+                if len(db_financials_annual) < 5:
+                    nb_years_back = len(db_financials_annual)
+                
+                historical_financials = db_financials_annual[:nb_years_back]
+
+                rev_cagr_history = []
+                #for fin in historical_financials:
+
+
+
                     
                     
 

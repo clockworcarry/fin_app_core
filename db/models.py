@@ -36,6 +36,14 @@ NOTE_TYPE_TEXT_DOC = 1
 
 company_dev_news_relase = 0
 
+trade_type_buy_to_open = 0
+trade_type_sell_to_open = 1
+trade_type_buy_to_close = 2
+trade_type_sell_to_close = 3
+
+ibkr_brokerage_id = 0
+questrade_brokerage_id = 1
+
 from db.base_models import Base, meta
 
 class CompanyExchangeRelation(Base):
@@ -244,6 +252,33 @@ class CronJobRun(Base):
 
     log = relationship("Log", uselist=False, backref="cron_job_run")
 
+class AccountTrade(Base):
+    __tablename__ = 'account_trade'
+
+    id = Column(Integer, primary_key=True)
+    currency = Column(String(20), nullable=False, index=True)
+    fx_rate_to_base = Column(Numeric, nullable=False)
+    asset_class = Column(String(10), nullable=False, index=True)
+    underlying_symbol = Column(String(10), nullable=True, index=True)
+    symbol = Column(String(60), nullable=False, index=True)
+    description = Column(String(200), nullable=True, index=False)
+    trade_date = Column(Date, nullable=False, index=True)
+    trade_type = Column(SmallInteger, nullable=False, index=True)
+    quantity = Column(Integer, nullable=False, index=False)
+    strike = Column(Integer, nullable=True, index=False)
+    is_call = Column(Boolean, nullable=True, index=False)
+    expiry = Column(Date, nullable=True, index=True)
+    multiplier = Column(Integer, nullable=True, index=False)
+    trade_price = Column(Numeric, nullable=False, index=False)
+    commission = Column(Numeric, nullable=False, index=False)
+    commission_currency = Column(String(20), nullable=False, index=True)
+    cost_basis = Column(Numeric, nullable=False, index=False)
+    proceeds = Column(Numeric, nullable=False, index=False)
+    update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue())
+    brokerage_id = Column(SmallInteger, nullable=False, index=True)
+
+
+
 class ImportCompaniesReport:
     def __init__(self):
         self.errors = []
@@ -251,7 +286,6 @@ class ImportCompaniesReport:
         self.info = []
         self.tickers_with_name_changes = []
         self.company_names_with_ticker_changes = []
-
 
 def create_database(args):
     try:
