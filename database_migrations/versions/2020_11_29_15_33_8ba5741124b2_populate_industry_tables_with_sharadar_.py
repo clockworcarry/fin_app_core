@@ -122,7 +122,7 @@ def upgrade():
 
     session.flush()
 
-    df = pd.read_csv("/home/ghelie/fin_app/companies.csv")
+    df = pd.read_csv("/home/ghelie/fin_app/data_files/companies.csv")
     for idx, row in df.iterrows():
         row = row.fillna('Missing')
         if session.query(exists().where(Industry.name==row['industry'])).scalar() is False:

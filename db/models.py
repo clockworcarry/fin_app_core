@@ -65,7 +65,7 @@ class Company(Base):
 
     id = Column(Integer, primary_key=True)
     ticker = Column(String(10), nullable=False, unique=True)
-    name = Column(String(60), unique=True)
+    name = Column(String(200), unique=True)
     locked = Column(Boolean, nullable=False, server_default=text("false"))
     delisted = Column(Boolean, nullable=False, index=True, server_default=text("false"))
     update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue())

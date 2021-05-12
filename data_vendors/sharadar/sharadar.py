@@ -17,8 +17,8 @@ class Sharadar(Vendor):
             self.config = json.loads(config_raw)
     
     def get_all_companies(self, **kwargs):
-        full_url = self.config['domainUrl'] + "/" + self.config['apiVersion'] + "/" + self.config['baseUrlExtension'] + "/" + self.config['tickerTableUrlExtension'] + \
-                   "&" + "api_key=" + self.config['apiKey'] + "&qopts.export=true"
+        full_url = self.config['domainUrl'] + "/" + self.config['apiVersion'] + "/" + self.config['baseUrlExtension'] + "/" + self.config['companiesTableParams']['urlExtension'] + \
+                   "?" + "api_key=" + self.config['apiKey'] + "&qopts.export=true"
 
         if 'from_date' in kwargs:
             full_url = full_url + "&lastupdated.gte=" + kwargs['from_date']
@@ -83,7 +83,11 @@ class Sharadar(Vendor):
 
         if 'queryStrParams' in self.config['equityPricesTableParams']:
             for param in self.config['equityPricesTableParams']['queryStrParams']:
-                full_url += "&" + param['key'] + "=" + param['value']
+                full_url += "&" + param['key'] + "="
+                for idx, val in enumerate(param['values']):
+                    full_url += val
+                    if idx != len(param['values']) - 1:
+                        full_url += ","
         
         r = requests.get(full_url)
 
