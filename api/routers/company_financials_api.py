@@ -29,6 +29,8 @@ router = APIRouter(
 class CompanyFinancialsApiModel(BaseModel):
     id: int
     calendar_date: datetime.date
+    date_filed: datetime.date
+    data_type: int
 
     assets: int = None #assets 
     cash_and_equivalents: int = None #cashneq
@@ -91,6 +93,11 @@ class CompanyFinancialsApiModel(BaseModel):
     fx_usd: float = None #fx_usd
 
     locked: bool = None #locked
+
+class CompanyFinancialsApiModelOut(BaseModel):
+    id: int
+    calendar_date: datetime.date
+    data_type: int
 
 class CompanyFinancialStatsOut(BaseModel):
     id: int
@@ -190,15 +197,22 @@ class CompanyFinancialStatsDefaultOut(BaseModel):
     has_financials: bool
 
 
-@router.post("/{company_id}", response_model=CompanyFinancialsApiModel)
+@router.post("/{company_id}", response_model=CompanyFinancialsApiModelOut)
 def update_financials(company_id, body: CompanyFinancialsApiModel):
     try:
         manager = SqlAlchemySessionManager()
         with manager.session_scope(db_url=api_config.global_api_config.db_conn_str, template_name='default_session') as session:
             db_financials = session.query(CompanyFinancialData).filter(and_(CompanyFinancialData.company_id == company_id, CompanyFinancialData.calendar_date == body.calendar_date)).first()
-            if db_financials is None:
-                raise HTTPException(status_code=500, detail="No financial report with date: " + str(body.calendar_date) + " exists.")
+            if db_financials is not None:
+                raise HTTPException(status_code=500, detail="Financials for calendar_date: " + str(body.calendar_date) + " and data_type " + str(body.data_type) + " already exist.")
             
+            db_financials = CompanyFinancialData()
+
+            db_financials.company_id = company_id
+            db_financials.data_type = body.data_type
+            db_financials.calendar_date = body.calendar_date
+            db_financials.date_filed = body.date_filed
+
             db_financials.assets = body.assets
             db_financials.cashneq = body.cash_and_equivalents
             db_financials.investments = body.investments
@@ -230,9 +244,7 @@ def update_financials(company_id, body: CompanyFinancialsApiModel):
             db_financials.sgna = body.sgna
             db_financials.rnd = body.rnd
             db_financials.intexp = body.interest_expense
-            db_financials.taxexp = body.tax_expense
-            db_financials.netincdis = body.net_income_loss_discontinued_operations
-            db_financials.consolinc = body.consolidated_income
+            db_financials.taxexp = body.consolidated_income
             db_financials.netincnci = body.net_income_non_controlling_interests
             db_financials.netinc = body.net_income
             db_financials.prefdivis = body.preferred_dividends_impact
@@ -261,22 +273,28 @@ def update_financials(company_id, body: CompanyFinancialsApiModel):
 
             db_financials.locked = body.locked
 
+            session.add(db_financials)
+            session.flush()
+            ret = CompanyFinancialsApiModelOut(id=db_financials.id, calendar_date=db_financials.calendar_date, data_type=db_financials.data_type)
+            return ret
+
             
     except ValidationError as val_err:
         raise HTTPException(status_code=500, detail=str(val_err))
     except Exception as gen_ex:
         raise HTTPException(status_code=500, detail=str(gen_ex))
 
-@router.get("/{company_id}/{calendar_date}", response_model=CompanyFinancialsApiModel)
-def get_financials(company_id, calendar_date):
+@router.get("/{company_id}/{calendar_date}/{data_type}", response_model=CompanyFinancialsApiModel)
+def get_financials(company_id, calendar_date, data_type):
     try:
         manager = SqlAlchemySessionManager()
         with manager.session_scope(db_url=api_config.global_api_config.db_conn_str, template_name='default_session') as session:
-            db_financials = session.query(CompanyFinancialData).filter(and_(CompanyFinancialData.company_id == company_id, CompanyFinancialData.calendar_date == calendar_date)).first()
+            db_financials = session.query(CompanyFinancialData).filter(and_(CompanyFinancialData.company_id == company_id, CompanyFinancialData.calendar_date == calendar_date,
+                                                                            CompanyFinancialData.data_type == data_type)).first()
             if db_financials is None:
                 raise HTTPException(status_code=500, detail="No financial report with date: " + str(calendar_date) + " or company_id " + str(company_id) + " exists.")
             
-            ret = CompanyFinancialsApiModel(id=db_financials.id, calendar_date=db_financials.calendar_date, assets=db_financials.assets, cash_and_equivalents=db_financials.cashneq, \
+            ret = CompanyFinancialsApiModel(id=db_financials.id, calendar_date=db_financials.calendar_date, date_filed=db_financials.date_filed, data_type=db_financials.data_type, assets=db_financials.assets, cash_and_equivalents=db_financials.cashneq, \
                                             investments=db_financials.investments, investments_current=db_financials.investmentsc, investments_non_current=db_financials.investmentsnc, \
                                             deferred_revenue=db_financials.deferredrev, deposits=db_financials.deposits, property_and_plant_equip_net=db_financials.ppnenet, inventory=db_financials.inventory, \
                                             tax_assets=db_financials.taxassets, receivables=db_financials.receivables, payables=db_financials.payables, intangibles=db_financials.intangibles, \

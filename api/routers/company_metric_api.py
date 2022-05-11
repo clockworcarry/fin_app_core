@@ -52,6 +52,9 @@ class CompanyMetricApiModelIn(BaseModel):
 
 class CompanyMetricApiModelOut(BaseModel):
     id: int
+    metric_code: str
+    metric_display_name: str
+    metric_look_back_type: int
     data: float
     look_back: int
     date_recorded: datetime.date
@@ -107,13 +110,13 @@ def get_company_metrics(company_id, loadDescriptions: Optional[bool] = True, loa
             resp = []
             
             for res in query_res:
-                new_metric = CompanyMetricApiModelOut(code=res[1].code, display_name=res[1].display_name, metric_data_type=res[1].metric_data_type, \
-                                                   data=res[0].data, date_recorded=res[0].date_recorded, look_back=res[0].look_back)
-                for note in res[1].notes:
+                new_metric = CompanyMetricApiModelOut(code=res.code, metric_display_name=res.display_name, metric_data_type=res.metric_data_type, \
+                                                   data=res.data, date_recorded=res.date_recorded, look_back=res.look_back)
+                '''for note in res[1].notes:
                     note_model = CompanyMetricDescriptionNoteApiModel()
                     note_model.data = note.note_data
                     note_model.note_type = note.note_type
-                    new_metric.notes.append(note_model)
+                    new_metric.notes.append(note_model)'''
                 
                 resp.append(new_metric)
             

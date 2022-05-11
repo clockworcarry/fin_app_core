@@ -23,7 +23,7 @@ OCCURENCE_QUARTERLY = 8
 OCCURENCE_YEARLY = 16
 
 METRIC_TYPE_NUMBER = 0
-METRIC_TYPE_PERENTAGE = 1
+METRIC_TYPE_PERCENTAGE = 1
 
 LOOK_BACK_QUARTER = 0
 LOOK_BACK_SIX_MO = 1
@@ -40,6 +40,10 @@ trade_type_buy_to_open = 0
 trade_type_sell_to_open = 1
 trade_type_buy_to_close = 2
 trade_type_sell_to_close = 3
+trade_type_assigment = 4
+trade_type_expiration = 5
+trade_type_buy = 6
+trade_type_sell = 7
 
 ibkr_brokerage_id = 0
 questrade_brokerage_id = 1

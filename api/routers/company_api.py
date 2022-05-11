@@ -24,6 +24,15 @@ router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
+class CompanyGroupModelOut(BaseModel):
+    id: int
+    name_code: str
+    name: str
+
+class CompanyGroupModelIn(BaseModel):
+    name_code: str
+    name: str
+
 class CompanyApiModelIn(BaseModel):
     ticker: str
     name: str
@@ -36,8 +45,13 @@ class CompanyApiModelOut(BaseModel):
     ticker: str
     name: str
     locked: bool
-    group_id: int
+    groups: List[CompanyGroupModelOut]
     delisted: bool
+
+class CompanyBusinessOrProductOut(BaseModel):
+    id: int
+    code: str
+    display_name: str
 
 class CompanyApiModelUpdateIn(BaseModel):
     ticker: str = None
@@ -58,24 +72,42 @@ class CompanyProductsModelOut(BaseModel):
     code: str
     display_name: str
 
-class CompanyGroupModelOut(BaseModel):
-    id: int
-    name_code: str
-    name: str
-
 class CompanyUpdateGroupIdModelIn(BaseModel):
     group_id: int
 
-@router.get("/groups", response_model=List[CompanyGroupModelOut])
-def get_groups():
+class CompanyGroupsModelIn(BaseModel):
+    limit: int = 200
+    page: int = 0
+
+def get_company_groups(company_id, session):
+    manager = SqlAlchemySessionManager()
+    grps = session.query(Company, CompanyGroup, CompanyGroupRelation) \
+                .join(CompanyGroupRelation, Company.id == CompanyGroupRelation.company_id) \
+                .join(CompanyGroup, CompanyGroupRelation.group_id == CompanyGroup.id) \
+                .filter(Company.id == company_id) \
+                .all()
+    return grps
+
+def get_company_groups(company_id):
+    manager = SqlAlchemySessionManager()
+    with manager.session_scope(db_url=api_config.global_api_config.db_conn_str, template_name='default_session') as session:
+        grps = get_company_groups(company_id, session)
+        return grps
+
+
+@router.post("/groups", response_model=List[CompanyGroupModelOut])
+def get_groups(body: CompanyGroupsModelIn):
     try:
         manager = SqlAlchemySessionManager()
         with manager.session_scope(db_url=api_config.global_api_config.db_conn_str, template_name='default_session') as session:
-            groups = session.query(CompanyGroup).all()
+            if body.page_limit > 200:
+                body.page_limit = 200
+            
+            groups = session.query(CompanyGroup).limit(body.page_limit).offset(body.page)
 
             ret = []
             for grp in groups:
-                camo = CompanyGroupModelOut(id=grp.id, grp.name_code, grp.name)
+                camo = CompanyGroupModelOut(id=grp.id, name_code=grp.name_code, name=grp.name)
                 ret.append(camo)
             
             return ret
@@ -85,8 +117,25 @@ def get_groups():
     except Exception as gen_ex:
         raise HTTPException(status_code=500, detail=str(gen_ex))
 
-@router.get("/group/{grp_id}", response_model=CompanyGroupModelOut)
-def get_group():
+@router.get("/groups/{company_id}", response_model=List[CompanyGroupModelOut])
+def get_groups(company_id):
+    try:
+        groups = get_company_groups(company_id)
+
+        ret = []
+        for grp in groups:
+            camo = CompanyGroupModelOut(id=grp.id, name_code=grp.name_code, name=grp.name)
+            ret.append(camo)
+        
+        return ret
+
+    except ValidationError as val_err:
+        raise HTTPException(status_code=500, detail=str(val_err))
+    except Exception as gen_ex:
+        raise HTTPException(status_code=500, detail=str(gen_ex))
+
+@router.put("/groups/{company_id}", response_model=List[CompanyGroupModelOut])
+def add_grp_to_company(company_id):
     try:
         manager = SqlAlchemySessionManager()
         with manager.session_scope(db_url=api_config.global_api_config.db_conn_str, template_name='default_session') as session:
@@ -102,7 +151,28 @@ def get_group():
     except Exception as gen_ex:
         raise HTTPException(status_code=500, detail=str(gen_ex))
 
-@router.patch("/group/{company_id}", response_model=CompanyApiModelOut)
+
+
+'''@router.get("/group/{grp_id}", response_model=CompanyGroupModelOut)
+def get_group():
+    try:
+        manager = SqlAlchemySessionManager()
+        with manager.session_scope(db_url=api_config.global_api_config.db_conn_str, template_name='default_session') as session:
+            grp = session.query(CompanyGroup).filter(CompanyGroup.id == grp_id).all()
+            if grp is None:
+                raise HTTPException(status_code=500, "No company group with id: " + grp_id + " exists.")
+
+            ret = CompanyGroupModelOut(id=grp.id, name_code=grp.name_code, name=grp.name)
+            return ret
+
+    except ValidationError as val_err:
+        raise HTTPException(status_code=500, detail=str(val_err))
+    except Exception as gen_ex:
+        raise HTTPException(status_code=500, detail=str(gen_ex))'''
+
+        
+
+'''@router.patch("/group/{company_id}", response_model=CompanyApiModelOut)
 def update_company_group_id(body: CompanyUpdateGroupIdModelIn):
     try:
         manager = SqlAlchemySessionManager()
@@ -118,25 +188,34 @@ def update_company_group_id(body: CompanyUpdateGroupIdModelIn):
     except ValidationError as val_err:
         raise HTTPException(status_code=500, detail=str(val_err))
     except Exception as gen_ex:
-        raise HTTPException(status_code=500, detail=str(gen_ex))
+        raise HTTPException(status_code=500, detail=str(gen_ex))'''
 
-@router.delete("/group/{group_id}")
+'''@router.delete("/group/{group_id}")
 def delete_group():
     try:
         manager = SqlAlchemySessionManager()
         with manager.session_scope(db_url=api_config.global_api_config.db_conn_str, template_name='default_session') as session:
             session.query(CompanyGroup).filter(CompanyGroup.id == group_id).delete()
     except Exception as gen_ex:
-        raise HTTPException(status_code=500, detail=str(gen_ex))
+        raise HTTPException(status_code=500, detail=str(gen_ex))'''
 
-@router.get("/{ticker}", status_code=status.HTTP_201_CREATED, response_model=CompanyApiModelOut)
-def get_company_by_ticker(company_body: CompanyApiModelIn):
+'''router.get("/{ticker}", status_code=status.HTTP_201_CREATED, response_model=CompanyApiModelOut)
+def get_company_by_ticker(ticker):
     try:
         manager = SqlAlchemySessionManager()
         with manager.session_scope(db_url=api_config.global_api_config.db_conn_str, template_name='default_session') as session:
-            company = session.query(Company).filter(Company.ticker == ticker).first()
+            company = session.query(Company, CompanyGroup).join(CompanyGroupRelation, Company.id == CompanyGroupRelation.company_id).filter(Company.ticker == ticker)
+            filter(Company.ticker == ticker).first()
+
+
+            query_res = session.query(CompanyBusinessOrProduct, CompanyMetric, CompanyMetricDescription, CompanyMetricDescriptionNote) \
+                                .join(CompanyMetric, CompanyMetric.company_business_or_product_id == CompanyBusinessOrProduct.id) \
+                                .join(CompanyMetricRelation, or_(CompanyMetricRelation.company_id == CompanyBusinessOrProduct.company_id, CompanyMetricRelation.company_id == None)) \
+                                .join(CompanyMetricDescription, CompanyMetricDescription.id == CompanyMetricRelation.company_metric_description_id) \
+                                .join(CompanyMetricDescriptionNote, CompanyMetricDescriptionNote.id == CompanyMetricRelation.company_metric_description_note_id) \
+                                .filter(CompanyBusinessOrProduct.company_id == company_id).order_by(CompanyMetric.date_recorded.desc()).all()
             if company is None:
-                raise HTTPException(status_code=500, "No company with ticker: " + ticker + " exists.")
+                raise HTTPException(status_code=500, detail="No company with ticker: " + ticker + " exists.")
 
             ret = CompanyApiModelOut(id=company.id, ticker=company.ticker, name=company.name, locked=company.locked, delisted=company.delisted, group_id=company.group_id)
             return ret
@@ -144,7 +223,7 @@ def get_company_by_ticker(company_body: CompanyApiModelIn):
     except ValidationError as val_err:
         raise HTTPException(status_code=500, detail=str(val_err))
     except Exception as gen_ex:
-        raise HTTPException(status_code=500, detail=str(gen_ex))
+        raise HTTPException(status_code=500, detail=str(gen_ex))'''
 
 @router.post("/", status_code=status.HTTP_201_CREATED, response_model=CompanyApiModelOut)
 def save_company(company_body: CompanyApiModelIn):
@@ -163,7 +242,7 @@ def save_company(company_body: CompanyApiModelIn):
         raise HTTPException(status_code=500, detail=str(gen_ex))
 
 @router.post("/{company_id}", response_model=CompanyApiModelUpdateIn)
-def update_company(company_body: CompanyApiModelIn):
+def update_company(company_id, company_body: CompanyApiModelIn):
     try:
         manager = SqlAlchemySessionManager()
         with manager.session_scope(db_url=api_config.global_api_config.db_conn_str, template_name='default_session') as session:
@@ -179,6 +258,50 @@ def update_company(company_body: CompanyApiModelIn):
         raise HTTPException(status_code=500, detail=str(val_err))
     except Exception as gen_ex:
         raise HTTPException(status_code=500, detail=str(gen_ex))
+
+@router.post("/{company_id}", response_model=CompanyApiModelUpdateIn)
+def add_business_or_product_to_company(company_body: CompanyApiModelIn):
+    pass
+    '''try:
+        manager = SqlAlchemySessionManager()
+        with manager.session_scope(db_url=api_config.global_api_config.db_conn_str, template_name='default_session') as session:
+            db_company = session.query(Company).filter(Company.id == company_id).first()
+            if db_company is None:
+                raise HTTPException(status_code=500, detail="No company with id: " + company_id + " exists.")
+
+            session.flush()
+            ret = CompanyApiModelOut(id=db_company.id, ticker=db_company.ticker, name=db_company.name, locked=db_company.locked, delisted=db_company.delisted)
+            return ret
+
+    except ValidationError as val_err:
+        raise HTTPException(status_code=500, detail=str(val_err))
+    except Exception as gen_ex:
+        raise HTTPException(status_code=500, detail=str(gen_ex))'''
+
+@router.get("/businessOrProduct/{company_id}", status_code=status.HTTP_200_OK, response_model=CompanyBusinessOrProductOut)
+def get_company_businesses_and_products(company_id):
+    try:
+        manager = SqlAlchemySessionManager()
+        with manager.session_scope(db_url=api_config.global_api_config.db_conn_str, template_name='default_session') as session:
+            company = session.query(Company).filter(Company.id == company_id).first()
+            if company is None:
+                raise HTTPException(status_code=500, detail="No company with id: " + str(company_id) + " exists.")
+
+            business_or_product = session.query(CompanyBusinessOrProduct).filter(CompanyBusinessOrProduct.company_id == company_id).all()
+
+            resp = []
+
+            for bop in business_or_product:
+                resp.append(CompanyBusinessOrProductOut(id=bop.id, code=bop.code, display_name=bop.display_name))
+
+            return resp
+
+    except ValidationError as val_err:
+        raise HTTPException(status_code=500, detail=str(val_err))
+    except Exception as gen_ex:
+        raise HTTPException(status_code=500, detail=str(gen_ex))
+
+
 
 @router.delete("/{company_id}")
 def delete_company():

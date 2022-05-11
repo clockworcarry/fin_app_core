@@ -4,13 +4,16 @@ from fastapi import Depends, FastAPI
 
 from api.config import init_config
 
+import api.routers.company_api as company_api
 import api.routers.company_metric_api as company_metric_api
 import api.routers.company_financials_api as company_financials_api
+
 
 app = FastAPI()
 
 app.include_router(company_metric_api.router)
 app.include_router(company_financials_api.router)
+app.include_router(company_api.router)
 
 
 @app.get("/version")
