@@ -1,3 +1,4 @@
+from xmlrpc.client import boolean
 from fastapi import APIRouter, status, HTTPException
 from typing import Optional, List
 from pydantic import BaseModel, ValidationError, validator
@@ -60,22 +61,6 @@ class CompanyMetricApiModelOut(BaseModel):
     date_recorded: datetime.date
     
 
-class CompanyMetricDescriptionApiModelIn(BaseModel):
-    code: str
-    display_name: str
-    metric_data_type: int
-
-class CompanyMetricDescriptionApiModelOut(BaseModel):
-    id: int
-    code: str
-    display_name: str
-    metric_data_type: int
-
-class CompanyMetricDescriptionApiModelUpdateIn(BaseModel):
-    code: str = None
-    display_name: str = None
-    metric_data_type: int = None
-
 class CompanyMetricDescriptionNoteApiModelIn(BaseModel):
     data: str
     note_type: int
@@ -86,13 +71,74 @@ class CompanyMetricDescriptionNoteApiModelOut(BaseModel):
     note_id: int
     data: str
     note_type: int
-    company_ids: List[int] = None
+
+class CompanyMetricDescriptionApiModelIn(BaseModel):
+    code: str
+    display_name: str
+    metric_data_type: int
+    metric_duration: int
+    metric_duration_type: int
+    look_back: bool
+    group_id: int = None
+    
+    #notes: List[CompanyMetricDescriptionNoteApiModelIn]
+
+class CompanyMetricDescriptionApiModelOut(BaseModel):
+    id: int
+    code: str
+    display_name: str
+    metric_data_type: int
+    metric_duration: int
+    metric_duration_type: int
+    look_back: bool
+
+    
+    #notes: List[CompanyMetricDescriptionNoteApiModelOut] too big
 
 '''class CompanyMetricDescriptionNoteApiModelOut(BaseModel):
     data: str
     note_type: int
     company_ids: List[int] = None #list of companies this note applies to. if None, applies to all companies'''
 
+
+
+@router.post("/description/note", status_code=status.HTTP_201_CREATED, response_model=CompanyMetricDescriptionNoteApiModelOut)
+def save_company_metric_description_note(description_note: CompanyMetricDescriptionNoteApiModelIn):
+    try:
+        manager = SqlAlchemySessionManager()
+        with manager.session_scope(db_url=api_config.global_api_config.db_conn_str, template_name='default_session') as session:
+            binary_data = description_note.data
+            if description_note.note_type != NOTE_TYPE_TEXT:
+                binary_data = base64.b64decode(description_note.data)
+            
+            if description_note.note_type == NOTE_TYPE_TEXT:
+                binary_data = binary_data.encode('ascii')
+            
+            db_desc_note = CompanyMetricDescriptionNote(note_data=binary_data, note_type=description_note.note_type)
+            session.add(db_desc_note)
+            session.flush()
+
+            '''if description_note.company_ids is None or len(description_note.company_ids) == 0:
+                metric_relation = CompanyMetricRelation(company_id=None, company_metric_description_id=int(metric_description_id), company_metric_description_note_id=db_desc_note.id)
+                session.add(metric_relation)
+            else:                
+                for company_id in description_note.company_ids:              
+                    metric_relation = CompanyMetricRelation(company_id=company_id, company_metric_description_id=int(metric_description_id), company_metric_description_note_id=db_desc_note.id)
+                    session.add(metric_relation)
+            
+            session.add(db_desc_note)'''
+
+            session.flush()
+            ret_data = None
+            if db_desc_note.note_type == NOTE_TYPE_TEXT_DOC:
+                ret_data = base64.b64encode(db_desc_note.note_data)
+
+            return CompanyMetricDescriptionNoteApiModelOut(note_id=db_desc_note.id, metric_description_id=metric_description_id, data=ret_data, note_type=db_desc_note.note_type)
+
+    except ValidationError as val_err:
+        raise HTTPException(status_code=500, detail=str(val_err))
+    except Exception as gen_ex:
+        raise HTTPException(status_code=500, detail=str(gen_ex))
 
 @router.get("/{company_id}")
 def get_company_metrics(company_id, loadDescriptions: Optional[bool] = True, loadDescriptionsNotes: Optional[bool] = True):
@@ -127,24 +173,51 @@ def get_company_metrics(company_id, loadDescriptions: Optional[bool] = True, loa
     except Exception as gen_ex:
         raise HTTPException(status_code=500, detail=str(gen_ex))
 
-@router.post("/description", status_code=status.HTTP_201_CREATED, response_model=CompanyMetricDescriptionApiModelOut)
-def save_company_metric_description(metric_description: CompanyMetricDescriptionApiModelIn):
+@router.get("/descriptions/{group_id}", status_code=status.HTTP_200_OK, response_model=List[CompanyMetricDescriptionApiModelOut])
+def get_company_metric_descriptions(group_id, loadDescriptionsNotes: Optional[bool] = True):
     try:
         manager = SqlAlchemySessionManager()
         with manager.session_scope(db_url=api_config.global_api_config.db_conn_str, template_name='default_session') as session:
-            db_metric_desc = CompanyMetricDescription(code=metric_description.code, display_name=metric_description.display_name, metric_data_type=metric_description.metric_data_type)
-            session.add(db_metric_desc)
-            session.flush()
-            ret = CompanyMetricDescriptionApiModelOut(id=db_metric_desc.id, code=db_metric_desc.code, display_name=db_metric_desc.display_name, metric_data_type=db_metric_desc.metric_data_type)
-            return ret
+            query_res = session.query(CompanyMetricDescription) \
+                               .join(CompanyMetricRelation, CompanyMetricRelation.company_metric_description_id == CompanyMetricDescription.id) \
+                               .filter(or_(CompanyMetricRelation.company_group_id == group_id, CompanyMetricRelation.company_group_id == None)).all()
+
+            
+            resp = []
+            
+            for res in query_res:
+                resp.append(CompanyMetricDescriptionApiModelOut(id=res.id, code=res.code, display_name=res.display_name, metric_data_type=res.metric_data_type,
+                                                                metric_duration=res.metric_duration, metric_duration_type=res.metric_duration_type, look_back=res.look_back))
+            
+            return resp
 
     except ValidationError as val_err:
         raise HTTPException(status_code=500, detail=str(val_err))
     except Exception as gen_ex:
         raise HTTPException(status_code=500, detail=str(gen_ex))
 
-@router.post("/description/{description_id}")
-def update_company_metric_description(description_id, metric_description: CompanyMetricDescriptionApiModelUpdateIn):
+@router.post("/description", status_code=status.HTTP_201_CREATED, response_model=CompanyMetricDescriptionApiModelOut)
+def create_company_metric_description(body: CompanyMetricDescriptionApiModelIn):
+    try:
+        manager = SqlAlchemySessionManager()
+        with manager.session_scope(db_url=api_config.global_api_config.db_conn_str, template_name='default_session') as session:
+            new_desc = CompanyMetricDescription(code=body.code, display_name=body.display_name, metric_data_type=body.metric_data_type, metric_duration=body.metric_duration, 
+                                                metric_duration_type=body.metric_duration_type, look_back=body.look_back)
+            session.add(new_desc)                     
+            session.flush()
+
+            session.add(CompanyMetricRelation(company_metric_description_id=new_desc.id, company_group_id=body.group_id))
+            
+            return CompanyMetricDescriptionApiModelOut(id=new_desc.id, code=new_desc.code, display_name=new_desc.display_name, metric_data_type=new_desc.metric_data_type,
+                                                       metric_duration=new_desc.metric_duration, metric_duration_type=new_desc.metric_duration_type, look_back=new_desc.look_back)
+    
+    except ValidationError as val_err:
+        raise HTTPException(status_code=500, detail=str(val_err))
+    except Exception as gen_ex:
+        raise HTTPException(status_code=500, detail=str(gen_ex))
+
+@router.put("/description/{description_id}")
+def update_company_metric_description(description_id, body: CompanyMetricDescriptionApiModelIn):
     try:
         manager = SqlAlchemySessionManager()
         with manager.session_scope(db_url=api_config.global_api_config.db_conn_str, template_name='default_session') as session:
@@ -152,16 +225,15 @@ def update_company_metric_description(description_id, metric_description: Compan
             if db_metric_desc is None:
                 raise HTTPException(status_code=500, detail="No metric description with id: " + description_id + " exists.")
             
-            if metric_description.code is not None:
-                db_metric_desc.code = metric_description.code
-            if metric_description.display_name is not None:
-                db_metric_desc.display_name = metric_description.display_name
-            if metric_description.metric_data_type is not None:
-                db_metric_desc.metric_data_type = metric_description.metric_data_type
+            db_metric_desc.code = body.code
+            db_metric_desc.display_name = body.display_name
+            db_metric_desc.metric_data_type = body.metric_data_type
+            db_metric_desc.metric_duration = body.metric_duration
+            db_metric_desc.metric_duration_type = body.metric_data_type
+            db_metric_desc.look_back = body.look_back
 
-            session.flush()
-            ret = CompanyMetricDescriptionApiModelOut(id=db_metric_desc.id, code=db_metric_desc.code, display_name=db_metric_desc.display_name, metric_data_type=db_metric_desc.metric_data_type)
-            return ret
+            return CompanyMetricDescriptionApiModelOut(id=db_metric_desc.id, code=db_metric_desc.code, display_name=db_metric_desc.display_name, metric_data_type=db_metric_desc.metric_data_type)
+
     except ValidationError as val_err:
         raise HTTPException(status_code=500, detail=str(val_err))
     except Exception as gen_ex:
@@ -176,45 +248,6 @@ def delete_company_metric_description(description_id):
     except Exception as gen_ex:
         raise HTTPException(status_code=500, detail=str(gen_ex))
 
-
-@router.post("/description/note/{metric_description_id}", status_code=status.HTTP_201_CREATED, response_model=CompanyMetricDescriptionNoteApiModelOut)
-def save_company_metric_description_note(metric_description_id, description_note: CompanyMetricDescriptionNoteApiModelIn):
-    try:
-        manager = SqlAlchemySessionManager()
-        with manager.session_scope(db_url=api_config.global_api_config.db_conn_str, template_name='default_session') as session:
-            existing_metric_desc = session.query(CompanyMetricDescription).filter(CompanyMetricDescription.id == metric_description_id).first()
-            if existing_metric_desc is None:
-                raise HTTPException(status_code=500, detail="No metric description with id: " + metric_description_id + " exists.")
-            
-            binary_data = description_note.data
-            if description_note.note_type != NOTE_TYPE_TEXT:
-                binary_data = base64.b64decode(description_note.data)
-            
-            if description_note.note_type == NOTE_TYPE_TEXT:
-                binary_data = binary_data.encode('ascii')
-            
-            db_desc_note = CompanyMetricDescriptionNote(note_data=binary_data, note_type=description_note.note_type)
-            session.add(db_desc_note)
-            session.flush()
-
-            if description_note.company_ids is None or len(description_note.company_ids) == 0:
-                metric_relation = CompanyMetricRelation(company_id=None, company_metric_description_id=int(metric_description_id), company_metric_description_note_id=db_desc_note.id)
-                session.add(metric_relation)
-            else:                
-                for company_id in description_note.company_ids:              
-                    metric_relation = CompanyMetricRelation(company_id=company_id, company_metric_description_id=int(metric_description_id), company_metric_description_note_id=db_desc_note.id)
-                    session.add(metric_relation)
-            
-            session.add(db_desc_note)
-
-            session.flush()
-            ret = CompanyMetricDescriptionNoteApiModelOut(note_id=db_desc_note.id, metric_description_id=metric_description_id, data=base64.b64encode(binary_data), note_type=db_desc_note.note_type, company_ids=description_note.company_ids)
-            return ret
-
-    except ValidationError as val_err:
-        raise HTTPException(status_code=500, detail=str(val_err))
-    except Exception as gen_ex:
-        raise HTTPException(status_code=500, detail=str(gen_ex))
 
 #you can add, delete companies that share the note for same desc
 #you can change data/note type
@@ -283,24 +316,23 @@ def delete_company_metric_description_note(note_id):
         raise HTTPException(status_code=500, detail=str(gen_ex))
 
 
-@router.post("/{company_id}/{description_id}", status_code=status.HTTP_201_CREATED)
-def save_company_metric(company_id, description_id, metric: CompanyMetricApiModelIn):
+@router.post("/{company_id}/{bop_id}/{description_id}", status_code=status.HTTP_201_CREATED)
+def save_company_metric(company_id, bop_id, description_id, body: CompanyMetricApiModelIn):
     try:
         manager = SqlAlchemySessionManager()
         with manager.session_scope(db_url=api_config.global_api_config.db_conn_str, template_name='default_session') as session:
-            db_metric = CompanyMetric(company_id=company_id, company_metric_description_id=description_id, data=metric.data, look_back=metric.look_back, date_recorded=metric.date_recorded)
-            session.add(db_metric)
-
+            new_metric = CompanyMetric(date_recorded=body.date_recorded, data=body.data, look_back=body.look_back, company_metric_description_id=description_id, company_business_or_product_id=bop_id)          
+            session.add(new_metric)
             session.flush()
-            ret = CompanyMetricApiModelOut(id=db_metric.id, data=db_metric.data, look_back=db_metric.look_back, date_recorded=db_metric.date_recorded)
-            return ret
+            return CompanyMetricApiModelOut(id=new_metric.id, data=new_metric.data, look_back=new_metric.look_back, date_recorded=new_metric.date_recorded)
+    
     except ValidationError as val_err:
         raise HTTPException(status_code=500, detail=str(val_err))
     except Exception as gen_ex:
         raise HTTPException(status_code=500, detail=str(gen_ex))
 
-@router.post("/{company_id}/{description_id}/{metric_id}")
-def update_company_metric(company_id, metric_id, metric: CompanyMetricApiModelIn):
+@router.put("/{metric_id}", status_code=status.HTTP_200_OK)
+def update_company_metric(company_id, metric_id, body: CompanyMetricApiModelIn):
     try:
         manager = SqlAlchemySessionManager()
         with manager.session_scope(db_url=api_config.global_api_config.db_conn_str, template_name='default_session') as session:
@@ -308,13 +340,12 @@ def update_company_metric(company_id, metric_id, metric: CompanyMetricApiModelIn
             if db_metric is None:
                 raise HTTPException(status_code=500, detail="No metric with id: " + metric_id + " exists.")
 
-            db_metric.data = metric.data
-            db_metric.look_back = metric.look_back
-            db_metric.date_recorded = metric.date_recorded
+            db_metric.data = body.data
+            db_metric.look_back = body.look_back
+            db_metric.date_recorded = body.date_recorded
 
-            session.flush()
-            ret = CompanyMetricApiModelOut(id=db_metric.id, data=db_metric.data, look_back=db_metric.look_back, date_recorded=db_metric.date_recorded)
-            return ret
+            return CompanyMetricApiModelOut(id=db_metric.id, data=db_metric.data, look_back=db_metric.look_back, date_recorded=db_metric.date_recorded)
+            
     except ValidationError as val_err:
         raise HTTPException(status_code=500, detail=str(val_err))
     except Exception as gen_ex:

@@ -198,14 +198,10 @@ class CompanyFinancialStatsDefaultOut(BaseModel):
 
 
 @router.post("/{company_id}", response_model=CompanyFinancialsApiModelOut)
-def update_financials(company_id, body: CompanyFinancialsApiModel):
+def create_financials(company_id, body: CompanyFinancialsApiModel):
     try:
         manager = SqlAlchemySessionManager()
         with manager.session_scope(db_url=api_config.global_api_config.db_conn_str, template_name='default_session') as session:
-            db_financials = session.query(CompanyFinancialData).filter(and_(CompanyFinancialData.company_id == company_id, CompanyFinancialData.calendar_date == body.calendar_date)).first()
-            if db_financials is not None:
-                raise HTTPException(status_code=500, detail="Financials for calendar_date: " + str(body.calendar_date) + " and data_type " + str(body.data_type) + " already exist.")
-            
             db_financials = CompanyFinancialData()
 
             db_financials.company_id = company_id

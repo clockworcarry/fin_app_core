@@ -90,6 +90,8 @@ class CompanyFinancialData(Base):
     
     update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue())
 
+    __table_args__ = (UniqueConstraint('company_id', 'data_type', 'calendar_date'), )
+
 class CompanyFundamentalRatios(Base):
     __tablename__ = 'company_fundamental_ratios'
 

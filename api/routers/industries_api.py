@@ -17,51 +17,52 @@ import simplejson as json
 import api.config as api_config
 
 router = APIRouter(
-    prefix="/sector",
-    tags=["sector"],
+    prefix="/industries",
+    tags=["industries"],
     dependencies=[],
     responses={404: {"description": "Not found"}},
 )
 
-class SectorSaveModelIn(BaseModel):
-    name: str
-    name_code: str
-    locked: bool
-
-class SectorSaveModelOut(BaseModel):
+class IndustriesApiModelOut(BaseModel):
     id: int
+    sector_id: int
     name: str
     name_code: str
     locked: bool
 
-
-
-@router.post("", status_code=status.HTTP_201_CREATED, response_model=SectorSaveModelOut)
-def create_sector(body: SectorSaveModelIn):
+@router.get("", response_model=List[IndustriesApiModelOut])
+def get_all_industries():
     try:
         manager = SqlAlchemySessionManager()
         with manager.session_scope(db_url=api_config.global_api_config.db_conn_str, template_name='default_session') as session:
-            new_sector = Sector(name=body.name, name_code=body.name_code, locked=body.locked)
-            session.add(new_sector)
-            session.flush()
+            query_res = session.query(Industry).all()
             
-            return SectorSaveModelOut(id=new_sector.id, name=new_sector.name, name_code=new_sector.name_code, locked=new_sector.locked)
-    
+            resp = []
+            
+            for res in query_res:
+                resp.append(IndustriesApiModelOut(id=res.id, sector_id=res.sector_id, name=res.name, name_code=res.name_code, locked=res.locked))
+            
+            return resp
+
     except ValidationError as val_err:
         raise HTTPException(status_code=500, detail=str(val_err))
     except Exception as gen_ex:
         raise HTTPException(status_code=500, detail=str(gen_ex))
 
-@router.put("/{sector_id}", status_code=status.HTTP_200_OK, response_model=SectorSaveModelOut)
-def update_sector(sector_id, body: SectorSaveModelIn):
+@router.get("/{sector_id}", response_model=List[IndustriesApiModelOut])
+def get_all_sector_industries(sector_id):
     try:
         manager = SqlAlchemySessionManager()
         with manager.session_scope(db_url=api_config.global_api_config.db_conn_str, template_name='default_session') as session:
-            db_sector = Sector(id=sector_id, name=body.name, name_code=body.name_code, locked=body.locked)
-            session.add(db_sector)
+            query_res = session.query(Industry).filter(Industry.sector_id == sector_id).all()
             
-            return SectorSaveModelOut(id=db_sector.id, name=db_sector.name, name_code=db_sector.name_code, locked=db_sector.locked)
-    
+            resp = []
+            
+            for res in query_res:
+                resp.append(IndustriesApiModelOut(id=res.id, sector_id=res.sector_id, name=res.name, name_code=res.name_code, locked=res.locked))
+            
+            return resp
+
     except ValidationError as val_err:
         raise HTTPException(status_code=500, detail=str(val_err))
     except Exception as gen_ex:

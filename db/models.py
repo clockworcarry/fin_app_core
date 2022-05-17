@@ -24,12 +24,11 @@ OCCURENCE_YEARLY = 16
 
 METRIC_TYPE_NUMBER = 0
 METRIC_TYPE_PERCENTAGE = 1
+METRIC_TYPE_CAGR = 2 #a percentage, but applied every year for the duration
 
-LOOK_BACK_QUARTER = 0
-LOOK_BACK_SIX_MO = 1
-LOOK_BACK_NINE_MO = 2
-LOOK_BACK_ONE_YEAR = 3
-LOOK_BACK_INFINITY = -1
+METRIC_DURATION_QUARTER = 0
+METRIC_DURATION_ANNUAL = 1
+METRIC_DURATION_INFINITY = 2
 
 NOTE_TYPE_TEXT = 0
 NOTE_TYPE_TEXT_DOC = 1
@@ -60,7 +59,7 @@ class CompanyExchangeRelation(Base):
 class CompanySectorRelation(Base):
     __tablename__ = "company_sector_relation"
 
-    company_id = Column(ForeignKey('company.id', ondelete='CASCADE', onupdate='CASCADE'), primary_key=True, nullable=False)
+    group_id = Column(ForeignKey('company_group.id', ondelete='CASCADE', onupdate='CASCADE'), primary_key=True, nullable=False)
     sector_id = Column(ForeignKey('sector.id', ondelete='CASCADE', onupdate='CASCADE'), primary_key=True, nullable=False)
     update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue())
 
@@ -73,7 +72,6 @@ class Company(Base):
     locked = Column(Boolean, nullable=False, server_default=text("false"))
     delisted = Column(Boolean, nullable=False, index=True, server_default=text("false"))
     update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue())
-    industry_id = Column(ForeignKey('industry.id', ondelete='CASCADE', onupdate='CASCADE'), index=True)
     
     #exchanges = relationship("Exchange", secondary=t_company_exchange_relation, backref='companies')
     #sectors = relationship("Sector", secondary=t_company_sector_relation)
@@ -84,9 +82,9 @@ class Company(Base):
 class CompanyGroupRelation(Base):
     __tablename__ = 'company_group_relation'
 
-    company_id = Column(ForeignKey('company.id', ondelete='CASCADE', onupdate='CASCADE'), primary_key=True, nullable=False)
+    company_business_or_product_id = Column(ForeignKey('company_business_or_product.id', ondelete='CASCADE', onupdate='CASCADE'), primary_key=True, nullable=False)
     group_id = Column(ForeignKey('company_group.id', ondelete='CASCADE', onupdate='CASCADE'), primary_key=True, nullable=False)
-    update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue())
+    update_stamp = Column(DateTime(timezone=True),  nullable=False, server_default=FetchedValue())
 
 class CompanyGroup(Base): #can be seen as a sub sector.. used when stocks within a sector are very closely related.. ex: twtr, fb, pins, snap
     __tablename__ = 'company_group'
@@ -94,6 +92,8 @@ class CompanyGroup(Base): #can be seen as a sub sector.. used when stocks within
     id = Column(Integer, primary_key=True)
     name_code = Column(String(50), nullable=False, unique=True)
     name = Column(String(60), nullable=False, unique=True)
+    description = Column(Text, nullable=True, unique=False)
+    industry_id = Column(ForeignKey('industry.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=True, index=True)
     update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue())
 
 
@@ -175,20 +175,25 @@ class CompanyMetric(Base): #Very low write, every column can be indexed
     __tablename__ = 'company_metric'
 
     id = Column(Integer, primary_key=True)
-    company_business_or_product_id = Column(ForeignKey('company_business_or_product.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False, index=True)
-    company_metric_description_id = Column(ForeignKey('company_metric_description.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False, index=True)
+    company_metric_relation_id = Column(ForeignKey('company_metric_relation.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False, index=True)
+    company_business_or_product_id = Column(ForeignKey('company_business_or_product.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False, index=True) 
     data = Column(Numeric, nullable=False)
-    look_back = Column(SmallInteger, nullable=False)
     date_recorded = Column(Date, nullable=False, index=True)
 
+#low write index everything
 class CompanyMetricDescription(Base):
     __tablename__ = 'company_metric_description'
 
     id = Column(Integer, primary_key=True)
-    code = Column(String(60), nullable=False)
+    code = Column(String(60), nullable=False, index=True)
     display_name = Column(String(120), nullable=False)
-    metric_data_type = Column(SmallInteger, nullable=False)
+    metric_data_type = Column(SmallInteger, nullable=False, index=True)
+    metric_duration = Column(SmallInteger, nullable=False, index=True)
+    metric_duration_type = Column(SmallInteger, nullable=False, index=True)
+    look_back = Column(Boolean, nullable=False, index=True)
     update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue(), index=True)
+
+    __table_args__ = (UniqueConstraint('code', 'metric_data_type', 'metric_duration', 'metric_duration_type', 'look_back'), )
 
 class CompanyMetricDescriptionNote(Base):
     __tablename__ = 'company_metric_description_note'
@@ -196,6 +201,7 @@ class CompanyMetricDescriptionNote(Base):
     id = Column(Integer, primary_key=True)
     note_data = Column(LargeBinary, nullable=False)
     note_type = Column(SmallInteger, nullable=False)
+    company_metric_relation_id = Column(ForeignKey('company_metric_relation.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False, index=True)
     update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue(), index=True)
 
 class CompanyMetricRelation(Base):
@@ -203,11 +209,10 @@ class CompanyMetricRelation(Base):
 
     id = Column(Integer, primary_key=True)
     company_metric_description_id = Column(ForeignKey('company_metric_description.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False)
-    company_metric_description_note_id = Column(ForeignKey('company_metric_description_note.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False)
-    company_id = Column(ForeignKey('company.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=True)
+    company_group_id = Column(ForeignKey('company_group.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=True)
     update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue(), index=True)
     
-    __table_args__ = (UniqueConstraint('company_metric_description_id', 'company_metric_description_note_id', 'company_id'), )
+    __table_args__ = (UniqueConstraint('company_metric_description_id', 'company_group_id'), )
 
 class CompanyBusinessOrProduct(Base):
     __tablename__ = 'company_business_or_product'
