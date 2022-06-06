@@ -29,6 +29,7 @@ METRIC_TYPE_CAGR = 2 #a percentage, but applied every year for the duration
 METRIC_DURATION_QUARTER = 0
 METRIC_DURATION_ANNUAL = 1
 METRIC_DURATION_INFINITY = 2
+METRIC_DURATION_FIXED = 3
 
 NOTE_TYPE_TEXT = 0
 NOTE_TYPE_TEXT_DOC = 1
@@ -178,7 +179,6 @@ class CompanyMetric(Base): #Very low write, every column can be indexed
     company_metric_relation_id = Column(ForeignKey('company_metric_relation.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False, index=True)
     company_business_or_product_id = Column(ForeignKey('company_business_or_product.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False, index=True) 
     data = Column(Numeric, nullable=False)
-    date_recorded = Column(Date, nullable=False, index=True)
 
 #low write index everything
 class CompanyMetricDescription(Base):
@@ -187,13 +187,21 @@ class CompanyMetricDescription(Base):
     id = Column(Integer, primary_key=True)
     code = Column(String(60), nullable=False, index=True)
     display_name = Column(String(120), nullable=False)
+    
     metric_data_type = Column(SmallInteger, nullable=False, index=True)
-    metric_duration = Column(SmallInteger, nullable=False, index=True)
     metric_duration_type = Column(SmallInteger, nullable=False, index=True)
+    
+    year_recorded = Column(SmallInteger, nullable=True, index=True)
+    quarter_recorded = Column(SmallInteger, nullable=True, index=True)
+    metric_duration = Column(SmallInteger, nullable=True, index=True)
     look_back = Column(Boolean, nullable=False, index=True)
+    
+    metric_fixed_year = Column(SmallInteger, nullable=True, index=True)
+    metric_fixed_quarter = Column(SmallInteger, nullable=True, index=True)
+
     update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue(), index=True)
 
-    __table_args__ = (UniqueConstraint('code', 'metric_data_type', 'metric_duration', 'metric_duration_type', 'look_back'), )
+    __table_args__ = (UniqueConstraint('code', 'metric_data_type', 'metric_duration', 'metric_duration_type', 'look_back', 'metric_fixed_year', 'metric_fixed_quarter'), )
 
 class CompanyMetricDescriptionNote(Base):
     __tablename__ = 'company_metric_description_note'
