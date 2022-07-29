@@ -11,6 +11,7 @@ from psycopg2 import *
 from sqlalchemy import create_engine, select, insert, exists
 from sqlalchemy.orm import sessionmaker
 
+
 import datetime, base64
 
 import simplejson as json
@@ -24,12 +25,35 @@ router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
+class CompanyGroupModelOutShort(BaseModel):
+    id: int
+    name_code: str
+    name: str
+    description: str = None
+    industry_id: int = None
+
+class CompanyApiModelOut(BaseModel):
+    id: int
+    ticker: str
+    name: str
+    locked: bool
+    groups: List[CompanyGroupModelOutShort] = None
+    delisted: bool
+
+class CompanyBusinessOrProductOut(BaseModel):
+    id: int
+    code: str
+    display_name: str
+    company_info: CompanyApiModelOut
+    
+
 class CompanyGroupModelOut(BaseModel):
     id: int
     name_code: str
     name: str
     description: str = None
-    industry_id: int
+    industry_id: int = None
+    business_segments: List[CompanyBusinessOrProductOut] = []
 
 class CompanyGroupModelIn(BaseModel):
     name_code: str
@@ -49,7 +73,7 @@ class CompanySaveGroupModelOut(BaseModel):
     name_code: str
     name: str
     description: str
-    industry_id: int
+    industry_id: int = None
     company_business_or_product_ids: List[int]
 
 class CompanyApiModelIn(BaseModel):
@@ -58,20 +82,6 @@ class CompanyApiModelIn(BaseModel):
     locked: bool
     delisted: bool
     group_id: int
-
-class CompanyApiModelOut(BaseModel):
-    id: int
-    ticker: str
-    name: str
-    locked: bool
-    groups: List[CompanyGroupModelOut]
-    delisted: bool
-
-class CompanyBusinessOrProductOut(BaseModel):
-    id: int
-    code: str
-    display_name: str
-    company_id: int
 
 class CompanyApiModelUpdateIn(BaseModel):
     ticker: str = None
@@ -99,20 +109,134 @@ class CompanyGroupsModelIn(BaseModel):
     page_limit: int = 200
     page: int = 0
 
-def get_company_groups_session(bop_id, session):
+def get_company_groups_session(bop_id, session, load_bops = False):
     manager = SqlAlchemySessionManager()
-    grps = session.query(CompanyGroup) \
+    
+    ret = []
+    db_ret = None
+    if load_bops:
+        if bop_id is None:    
+            db_ret = session.query(CompanyGroup, CompanyGroupRelation, CompanyBusinessOrProduct, Company) \
                 .join(CompanyGroupRelation, CompanyGroupRelation.group_id == CompanyGroup.id) \
-                .filter(CompanyGroupRelation.company_business_or_product_id == bop_id) \
+                .join(CompanyBusinessOrProduct, CompanyGroupRelation.company_business_or_product_id == CompanyBusinessOrProduct.id) \
+                .join(Company, CompanyBusinessOrProduct.company_id == Company.id) \
                 .all()
-    return grps
+            
 
-def get_company_groups(bop_id):
+        else:
+            #.filter(CompanyGroupRelation.company_business_or_product_id == bop_id) \
+            db_ret = session.query(CompanyGroup, CompanyGroupRelation, CompanyBusinessOrProduct, Company) \
+                .join(CompanyGroupRelation, CompanyGroupRelation.group_id == CompanyGroup.id) \
+                .join(CompanyBusinessOrProduct, CompanyGroupRelation.company_business_or_product_id == CompanyBusinessOrProduct.id) \
+                .join(Company, CompanyBusinessOrProduct.company_id == Company.id) \
+                .all()
+            
+
+
+        
+    
+    else:
+        if bop_id is None:
+            db_ret = session.query(CompanyGroup, CompanyGroupRelation, CompanyBusinessOrProduct, Company) \
+                        .join(CompanyGroupRelation, CompanyGroupRelation.group_id == CompanyGroup.id) \
+                        .all()
+        else:
+            db_ret = session.query(CompanyGroup, CompanyGroupRelation, CompanyBusinessOrProduct, Company) \
+                        .join(CompanyGroupRelation, CompanyGroupRelation.group_id == CompanyGroup.id) \
+                        .filter(CompanyGroupRelation.company_business_or_product_id == bop_id) \
+                        .all() 
+
+    for dr in db_ret:
+        skip = False
+        for r in ret:
+            if r.id == dr[0].id:
+                skip = True
+
+        if skip:
+            continue
+                
+        segments = []
+        for dr_inner in db_ret:
+            if dr[0].id == dr_inner[0].id:
+                cpny_info = CompanyApiModelOut(id=dr_inner[3].id, ticker=dr_inner[3].ticker, name=dr_inner[3].name, locked=dr_inner[3].locked, delisted=dr_inner[3].delisted)
+                segments.append(CompanyBusinessOrProductOut(id=dr_inner[2].id, code=dr_inner[2].code, display_name=dr_inner[2].display_name, company_info=cpny_info))
+
+        camo = CompanyGroupModelOut(id=dr[0].id, name_code=dr[0].name_code, name=dr[0].name, industry_id=dr[0].industry_id, business_segments=segments)
+        ret.append(camo)
+
+    if bop_id is not None:
+        if isinstance(bop_id, str):
+            bop_id = int(bop_id)
+        grps_with_bop = []
+        for r in ret:
+            for bop in r.business_segments:
+                if bop.id == bop_id:
+                    grps_with_bop.append(r.id)
+
+        ret = [res for res in ret if res.id in grps_with_bop]
+
+    return ret
+
+def get_company_groups(bop_id, load_bops = False):
     manager = SqlAlchemySessionManager()
     with manager.session_scope(db_url=api_config.global_api_config.db_conn_str, template_name='default_session') as session:
-        grps = get_company_groups_session(bop_id, session)
+        grps = get_company_groups_session(bop_id, session, load_bops)
         session.expunge_all()
         return grps
+
+
+def get_group_bops_session(grp_id, session):
+    db_ret = session.query(Company, CompanyBusinessOrProduct) \
+                    .join(CompanyGroupRelation, CompanyGroupRelation.company_business_or_product_id == CompanyBusinessOrProduct.id) \
+                    .join(Company, Company.id == CompanyBusinessOrProduct.company_id) \
+                    .filter(CompanyGroupRelation.group_id == grp_id) \
+                    .all()
+    
+    ret = []
+    for dr in db_ret:
+        cpny_info = CompanyApiModelOut(id=dr[0].id, ticker=dr[0].ticker, name=dr[0].name, locked=dr[0].locked, delisted=dr[0].delisted)
+        ret.append(CompanyBusinessOrProductOut(id=dr[1].id, code=dr[1].code, display_name=dr[1].display_name, company_info=cpny_info))
+        
+    return ret
+
+def get_group_bops(grp_id):
+    manager = SqlAlchemySessionManager()
+    with manager.session_scope(db_url=api_config.global_api_config.db_conn_str, template_name='default_session') as session:
+        return get_group_bops_session(grp_id, session)
+
+
+def get_bop_info_session(bop_id, session):
+    db_ret = session.query(Company, CompanyBusinessOrProduct) \
+                    .join(Company, CompanyBusinessOrProduct.company_id == Company.id) \
+                    .filter(CompanyBusinessOrProduct.id == bop_id) \
+                    .all()
+    
+    ret = []
+    for dr in db_ret:
+        cpny_info = CompanyApiModelOut(id=dr[0].id, ticker=dr[0].ticker, name=dr[0].name, locked=dr[0].locked, delisted=dr[0].delisted)
+        ret.append(CompanyBusinessOrProductOut(id = dr[1].id, code=dr[1].code, display_name=dr[1].display_name, company_info=cpny_info))
+
+    return ret
+
+def get_bop_info(bop_id):
+    manager = SqlAlchemySessionManager()
+    with manager.session_scope(db_url=api_config.global_api_config.db_conn_str, template_name='default_session') as session:
+        return get_bop_info_session(bop_id, session)
+        
+
+def get_bop_info_company(cpny_id):
+    manager = SqlAlchemySessionManager()
+    with manager.session_scope(db_url=api_config.global_api_config.db_conn_str, template_name='default_session') as session:
+        bops = session.query(CompanyBusinessOrProduct).filter(CompanyBusinessOrProduct.company_id == cpny_id).all()
+
+        ret = []
+        for b in bops:
+            tmp = get_bop_info_session(b.id, session)
+            for t in tmp:
+                 ret.append(t)
+
+        return ret
+
 
 def get_company_default_bop(company_id, company_ticker, session):
     return session.query(CompanyBusinessOrProduct).filter(and_(CompanyBusinessOrProduct.company_id == company_id, CompanyBusinessOrProduct.code == company_ticker + "_default")).first()
@@ -135,7 +259,7 @@ def get_company_by_ticker(ticker):
 
             grps_out = []
             for grp in company_grps:
-                grps_out.append(CompanyGroupModelOut(id = grp.id, name_code=grp.name_code, name=grp.name))
+                grps_out.append(CompanyGroupModelOut(id=grp.id, name_code=grp.name_code, name=grp.name, description=grp.description, industry_id=grp.industry_id))
 
             return CompanyApiModelOut(id=company.id, ticker=company.ticker, name=company.name, locked=company.locked, delisted=company.delisted, groups=grps_out)
 
@@ -153,13 +277,8 @@ def get_groups(body: CompanyGroupsModelIn):
             if body.page_limit > 200:
                 body.page_limit = 200
             
-            groups = session.query(CompanyGroup).limit(body.page_limit).offset(body.page)
-
-            ret = []
-            for grp in groups:
-                camo = CompanyGroupModelOut(id=grp.id, name_code=grp.name_code, name=grp.name, industry_id=grp.industry_id)
-                ret.append(camo)
-            
+            ret = get_company_groups(None, True)
+  
             return ret
 
     except ValidationError as val_err:
@@ -170,13 +289,8 @@ def get_groups(body: CompanyGroupsModelIn):
 @router.get("/groups/{bop_id}", response_model=List[CompanyGroupModelOut])
 def get_groups(bop_id):
     try:
-        groups = get_company_groups(bop_id)
-
-        ret = []
-        for grp in groups:
-            camo = CompanyGroupModelOut(id=grp.id, name_code=grp.name_code, name=grp.name, description=grp.description, industry_id=grp.industry_id)
-            ret.append(camo)
-        
+        ret = get_company_groups(bop_id, True)
+  
         return ret
 
     except ValidationError as val_err:
@@ -232,6 +346,27 @@ def update_group(group_id, body: CompanyGroupModelIn):
                 session.add(CompanyGroupRelation(company_business_or_product_id=bop_id, group_id=new_grp.id))
 
             return CompanyGroupModelOut(id=new_grp.id, name_code=new_grp.name_code, name=new_grp.name, description=new_grp.description, industry_id=new_grp.industry_id, company_business_or_product_ids=body.company_business_or_product_ids)
+
+    except ValidationError as val_err:
+        raise HTTPException(status_code=500, detail=str(val_err))
+    except Exception as gen_ex:
+        raise HTTPException(status_code=500, detail=str(gen_ex))
+
+@router.post("/group/{group_id}/{bop_id}", response_model=CompanyGroupModelOut)
+def add_bop_to_group(group_id, bop_id):
+    try:
+        manager = SqlAlchemySessionManager()
+        with manager.session_scope(db_url=api_config.global_api_config.db_conn_str, template_name='default_session') as session:
+            db_grp = session.query(CompanyGroup).filter(CompanyGroup.id == group_id).first()
+            if db_grp is None:
+                raise HTTPException(status_code=500, detail="No company group with id: " + group_id + " exists.")
+            
+            session.add(CompanyGroupRelation(company_business_or_product_id=bop_id, group_id=group_id))
+
+            bops = get_group_bops_session(group_id, session)
+            
+
+            return CompanyGroupModelOut(id=db_grp.id, name_code=db_grp.name_code, name=db_grp.name, description=db_grp.description, industry_id=db_grp.industry_id, business_segments=bops)
 
     except ValidationError as val_err:
         raise HTTPException(status_code=500, detail=str(val_err))
@@ -344,14 +479,8 @@ def get_company_businesses_and_products(company_id):
     try:
         manager = SqlAlchemySessionManager()
         with manager.session_scope(db_url=api_config.global_api_config.db_conn_str, template_name='default_session') as session:
-            bops = session.query(CompanyBusinessOrProduct).filter(CompanyBusinessOrProduct.company_id == company_id).all()
-
-            resp = []
-
-            for bop in bops:
-                resp.append(CompanyBusinessOrProductOut(id=bop.id, code=bop.code, display_name=bop.display_name, company_id=bop.company_id))
-
-            return resp
+            ret = get_bop_info_company(company_id)
+            return ret
 
     except ValidationError as val_err:
         raise HTTPException(status_code=500, detail=str(val_err))

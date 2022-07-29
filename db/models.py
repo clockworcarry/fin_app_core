@@ -191,13 +191,13 @@ class CompanyMetricDescription(Base):
     metric_data_type = Column(SmallInteger, nullable=False, index=True)
     metric_duration_type = Column(SmallInteger, nullable=False, index=True)
     
-    year_recorded = Column(SmallInteger, nullable=True, index=True)
-    quarter_recorded = Column(SmallInteger, nullable=True, index=True)
-    metric_duration = Column(SmallInteger, nullable=True, index=True)
+    year_recorded = Column(SmallInteger, nullable=False, index=True)
+    quarter_recorded = Column(SmallInteger, nullable=False, index=True)
+    metric_duration = Column(SmallInteger, nullable=False, index=True)
     look_back = Column(Boolean, nullable=False, index=True)
     
-    metric_fixed_year = Column(SmallInteger, nullable=True, index=True)
-    metric_fixed_quarter = Column(SmallInteger, nullable=True, index=True)
+    metric_fixed_year = Column(SmallInteger, nullable=False, index=True)
+    metric_fixed_quarter = Column(SmallInteger, nullable=False, index=True)
 
     update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue(), index=True)
 

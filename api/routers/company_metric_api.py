@@ -57,11 +57,13 @@ class CompanyMetricDescriptionApiModelOut(BaseModel):
     metric_fixed_year: int = None
     metric_fixed_quarter: int = None
 
-    metric_relation_ids: List[int]
-    group_ids: List[int]
+    group_ids: List[int] = []
 
     
     #notes: List[CompanyMetricDescriptionNoteApiModelOut] too big
+
+class CompanyMetricSaveApiModelOut(BaseModel):
+    id: int
 
 class CompanyMetricApiModelOut(BaseModel):
     data: float
@@ -69,8 +71,6 @@ class CompanyMetricApiModelOut(BaseModel):
 
 class CompanyMetricApiModelIn(BaseModel):
     data: float
-    company_segment_id: int
-    company_metric_relation_id: int
 
 class CompanyMetricDescriptionNoteApiModelIn(BaseModel):
     data: str
@@ -128,42 +128,6 @@ def save_company_metric_description_note(description_note: CompanyMetricDescript
     except Exception as gen_ex:
         raise HTTPException(status_code=500, detail=str(gen_ex))
 
-@router.get("/{bop_id}")
-def get_company_metrics(bop_id, loadDescriptions: Optional[bool] = True, loadDescriptionsNotes: Optional[bool] = False, response_model=List[CompanyMetricApiModelOut]):
-    try:
-        manager = SqlAlchemySessionManager()
-        with manager.session_scope(db_url=api_config.global_api_config.db_conn_str, template_name='default_session') as session:
-            db_metrics = session.query(CompanyMetric).filter(CompanyMetric.company_business_or_product_id == bop_id).all()
-            
-            db_metrics_descriptions = []
-            if loadDescriptions:
-                for metric in db_metrics:
-                    db_desc = session.query(CompanyMetricDescription).join(CompanyMetricRelation, CompanyMetricDescription.id == CompanyMetricRelation.company_metric_description_id) \
-                                                                     .filter(CompanyMetricRelation.id == metric.company_metric_relation_id).first()
-                                                
-                    if db_desc is not None:
-                        db_metrics_descriptions.append(tuple((metric, db_desc)))
-
-            
-            resp = []
-
-            if len(db_metrics_descriptions) > 0:
-                for md in db_metrics_descriptions:
-                    out_desc = CompanyMetricDescriptionApiModelOut(id=md[1].id, code=md[1].code, display_name=md[1].display_name, metric_data_type=md[1].metric_data_type,
-                                                                    metric_duration=md[1].metric_duration, metric_duration_type=md[1].metric_duration_type, look_back=md[1].look_back,
-                                                                    year_recorded=md[1].year_recorded, quarter_recorded=md[1].quarter_recorded, metric_fixed_year=md[1].metric_fixed_year,
-                                                                    metric_fixed_quarter=md[1].metric_fixed_quarter, group_ids=md[1].group_ids)
-                    
-                    new_metric = CompanyMetricApiModelOut(data=md[0].data, description=out_desc)
-                    resp.append(new_metric)
-            
-            return resp
-
-    except ValidationError as val_err:
-        raise HTTPException(status_code=500, detail=str(gen_ex))
-    except Exception as gen_ex:
-        raise HTTPException(status_code=500, detail=str(gen_ex))
-
 @router.get("/descriptions/{group_id}", status_code=status.HTTP_200_OK, response_model=List[CompanyMetricDescriptionApiModelOut])
 def get_company_metric_descriptions(group_id, loadDescriptionsNotes: Optional[bool] = True):
     try:
@@ -206,18 +170,43 @@ def create_company_metric_description(body: CompanyMetricDescriptionApiModelIn):
         manager = SqlAlchemySessionManager()
         with manager.session_scope(db_url=api_config.global_api_config.db_conn_str, template_name='default_session') as session:
             new_desc = CompanyMetricDescription(code=body.code, display_name=body.display_name, metric_data_type=body.metric_data_type, metric_duration=body.metric_duration, 
-                                                metric_duration_type=body.metric_duration_type, look_back=body.look_back)
-            session.add(new_desc)                     
+                                                metric_duration_type=body.metric_duration_type, look_back=body.look_back, quarter_recorded=body.quarter_recorded, year_recorded=body.year_recorded)
+            
+            if new_desc.year_recorded == None:
+                new_desc.year_recorded = -1
+
+            if new_desc.quarter_recorded == None:
+                new_desc.quarter_recorded = -1
+
+            if new_desc.metric_duration == None:
+                new_desc.metric_duration = -1
+
+            if new_desc.metric_fixed_quarter == None:
+                new_desc.metric_fixed_quarter = -1
+
+            if new_desc.metric_fixed_year == None:
+                new_desc.metric_fixed_year = -1
+
+            session.add(new_desc)
             session.flush()
+
+            group_ids = []
 
             if body.group_ids is not None:
                 for gid in body.group_ids:
-                    session.add(CompanyMetricRelation(company_metric_description_id=new_desc.id, company_group_id=gid))
+                    rel = CompanyMetricRelation(company_metric_description_id=new_desc.id, company_group_id=gid)          
+                    session.add(rel)
+                    session.flush()
+                    group_ids.append(gid)
+            else:
+                rel = CompanyMetricRelation(company_metric_description_id=new_desc.id, company_group_id=None)          
+                session.add(rel)
+                session.flush()
             
             return CompanyMetricDescriptionApiModelOut(id=new_desc.id, code=new_desc.code, display_name=new_desc.display_name, metric_data_type=new_desc.metric_data_type,
                                                        metric_duration=new_desc.metric_duration, metric_duration_type=new_desc.metric_duration_type, look_back=new_desc.look_back,
                                                        year_recorded=new_desc.year_recorded, quarter_recorded=new_desc.quarter_recorded, metric_fixed_year=new_desc.metric_fixed_year,
-                                                       metric_fixed_quarter=new_desc.metric_fixed_quarter)
+                                                       metric_fixed_quarter=new_desc.metric_fixed_quarter, group_ids=group_ids)
     
     except ValidationError as val_err:
         raise HTTPException(status_code=500, detail=str(val_err))
@@ -375,15 +364,35 @@ def delete_company_metric_description_note(note_id):
         raise HTTPException(status_code=500, detail=str(gen_ex))
 
 
-@router.post("/{company_id}/{bop_id}/{description_id}", status_code=status.HTTP_201_CREATED)
-def save_company_metric(company_id, bop_id, description_id, body: CompanyMetricApiModelIn):
+@router.post("/{grp_id}/{bop_id}/{description_id}", status_code=status.HTTP_201_CREATED)
+def save_company_metric(grp_id, bop_id, description_id, body: CompanyMetricApiModelIn):
     try:
         manager = SqlAlchemySessionManager()
         with manager.session_scope(db_url=api_config.global_api_config.db_conn_str, template_name='default_session') as session:
-            new_metric = CompanyMetric(date_recorded=body.date_recorded, data=body.data, look_back=body.look_back, company_metric_description_id=description_id, company_business_or_product_id=bop_id)          
+            metric_rels = session.query(CompanyMetricRelation).filter(and_(CompanyMetricRelation.company_metric_description_id == description_id, \
+                                                                         or_(CompanyMetricRelation.company_group_id == grp_id, CompanyMetricRelation.company_group_id == None))).all()
+
+
+            if len(metric_rels) == 0:
+                raise HTTPException(status_code=500, detail="No metric relation exists for these parameters.")
+
+            metric_rel = None
+            for rel in metric_rels:
+                if metric_rel == None:
+                    metric_rel = rel
+                elif rel.company_group_id is not None:
+                    metric_rel = rel
+
+            grp_relation = session.query(CompanyGroupRelation).filter(and_(CompanyGroupRelation.group_id == grp_id, CompanyGroupRelation.company_business_or_product_id == bop_id)).first()
+            if grp_relation is None:
+                raise HTTPException(status_code=500, detail="No group relation exists for these parameters.")
+            
+
+            new_metric = CompanyMetric(data=body.data, company_business_or_product_id=bop_id, company_metric_relation_id=metric_rel.id)          
             session.add(new_metric)
             session.flush()
-            return CompanyMetricApiModelOut(id=new_metric.id, data=new_metric.data, look_back=new_metric.look_back, date_recorded=new_metric.date_recorded)
+
+            return CompanyMetricSaveApiModelOut(id=new_metric.id)
     
     except ValidationError as val_err:
         raise HTTPException(status_code=500, detail=str(val_err))

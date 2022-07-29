@@ -6,6 +6,7 @@ from api.config import init_config
 
 import api.routers.company_api as company_api
 import api.routers.company_metric_api as company_metric_api
+import api.routers.company_metrics_api as company_metrics_api
 import api.routers.company_financials_api as company_financials_api
 import api.routers.industry_api as industry_api
 import api.routers.industries_api as industries_api
@@ -16,6 +17,7 @@ import api.routers.sectors_api as sectors_api
 app = FastAPI()
 
 app.include_router(company_metric_api.router)
+app.include_router(company_metrics_api.router)
 app.include_router(company_financials_api.router)
 app.include_router(company_api.router)
 app.include_router(industry_api.router)
