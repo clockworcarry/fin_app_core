@@ -255,7 +255,7 @@ def get_company_by_ticker(ticker):
             if default_bop is None:
                 raise HTTPException(status_code=500, detail="No default business or product for: " + ticker + " exists.")
             
-            company_grps = get_company_groups_session(default_bop.id, session)
+            company_grps = get_company_groups_session(default_bop.id, session, True)
 
             grps_out = []
             for grp in company_grps:
@@ -474,7 +474,7 @@ def add_business_or_product_to_company(company_body: CompanyApiModelIn):
     except Exception as gen_ex:
         raise HTTPException(status_code=500, detail=str(gen_ex))'''
 
-@router.get("/businessOrProduct/{company_id}", status_code=status.HTTP_200_OK, response_model=List[CompanyBusinessOrProductOut])
+@router.get("/businessSegment/{company_id}", status_code=status.HTTP_200_OK, response_model=List[CompanyBusinessOrProductOut])
 def get_company_businesses_and_products(company_id):
     try:
         manager = SqlAlchemySessionManager()

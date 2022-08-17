@@ -26,8 +26,8 @@ router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
-@router.get("/{bop_id}")
-def get_company_metrics(bop_id, loadDescriptions: Optional[bool] = True, loadDescriptionsNotes: Optional[bool] = False, response_model=List[metric_api.CompanyMetricApiModelOut]):
+@router.get("/{bop_id}", response_model=List[metric_api.CompanyMetricApiModelOut])
+def get_company_metrics(bop_id, loadDescriptions: Optional[bool] = True, loadDescriptionsNotes: Optional[bool] = False):
     try:
         manager = SqlAlchemySessionManager()
         with manager.session_scope(db_url=api_config.global_api_config.db_conn_str, template_name='default_session') as session:
@@ -62,8 +62,8 @@ def get_company_metrics(bop_id, loadDescriptions: Optional[bool] = True, loadDes
     except Exception as gen_ex:
         raise HTTPException(status_code=500, detail=str(gen_ex))
 
-@router.get("/group/{grp_id}")
-def get_company_metrics(grp_id, loadDescriptions: Optional[bool] = True, loadDescriptionsNotes: Optional[bool] = False, response_model=List[metric_api.CompanyMetricApiModelOut]):
+@router.get("/group/{grp_id}", response_model=List[metric_api.CompanyMetricApiModelOut])
+def get_company_metrics(grp_id, loadDescriptions: Optional[bool] = True, loadDescriptionsNotes: Optional[bool] = False):
     try:
         manager = SqlAlchemySessionManager()
         with manager.session_scope(db_url=api_config.global_api_config.db_conn_str, template_name='default_session') as session:

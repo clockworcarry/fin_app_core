@@ -50,6 +50,16 @@ questrade_brokerage_id = 1
 
 from db.base_models import Base, meta
 
+class Account(Base):
+    __tablename__ = 'account'
+
+    id = Column(BigInteger, primary_key=True)
+    userName = Column(String(30), unique=True)
+    password = Column(String(30), unique=True)
+    email = Column(String(60), unique=True)
+    phone = Column(String(16), unique=True)
+
+
 class CompanyExchangeRelation(Base):
     __tablename__ = 'company_exchange_relation'
 
@@ -57,12 +67,14 @@ class CompanyExchangeRelation(Base):
     exchange_id = Column(ForeignKey('exchange.id', ondelete='CASCADE', onupdate='CASCADE'), primary_key=True, nullable=False)
     update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue())
 
+
 class CompanySectorRelation(Base):
     __tablename__ = "company_sector_relation"
 
     group_id = Column(ForeignKey('company_group.id', ondelete='CASCADE', onupdate='CASCADE'), primary_key=True, nullable=False)
     sector_id = Column(ForeignKey('sector.id', ondelete='CASCADE', onupdate='CASCADE'), primary_key=True, nullable=False)
     update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue())
+
 
 class Company(Base):
     __tablename__ = 'company'
@@ -80,12 +92,14 @@ class Company(Base):
     #income_statement_data = relationship('IncomeStatementData')
     #cash_flow_statement_data = relationship('CashFlowStatementData')
 
+
 class CompanyGroupRelation(Base):
     __tablename__ = 'company_group_relation'
 
     company_business_or_product_id = Column(ForeignKey('company_business_or_product.id', ondelete='CASCADE', onupdate='CASCADE'), primary_key=True, nullable=False)
     group_id = Column(ForeignKey('company_group.id', ondelete='CASCADE', onupdate='CASCADE'), primary_key=True, nullable=False)
     update_stamp = Column(DateTime(timezone=True),  nullable=False, server_default=FetchedValue())
+
 
 class CompanyGroup(Base): #can be seen as a sub sector.. used when stocks within a sector are very closely related.. ex: twtr, fb, pins, snap
     __tablename__ = 'company_group'
@@ -155,6 +169,7 @@ class EquityBarData(Base):
     bar_size = Column(String(12), nullable=False)
     locked = Column(Boolean, nullable=False, server_default=text("false"))
 
+
 class CurrencyBarData(Base):
     __tablename__ = 'currency_bar_data'
 
@@ -172,6 +187,7 @@ class CurrencyBarData(Base):
 
     #__table_args__ = (UniqueConstraint('company_id', 'bar_type', 'bar_size', 'bar_date'), )
 
+
 class CompanyMetric(Base): #Very low write, every column can be indexed
     __tablename__ = 'company_metric'
 
@@ -179,6 +195,35 @@ class CompanyMetric(Base): #Very low write, every column can be indexed
     company_metric_relation_id = Column(ForeignKey('company_metric_relation.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False, index=True)
     company_business_or_product_id = Column(ForeignKey('company_business_or_product.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False, index=True) 
     data = Column(Numeric, nullable=False)
+
+
+class CompanyMetricsPreset(Base):
+    __tablename__ = 'company_metrics_preset'
+
+    id = Column(BigInteger, primary_key=True)
+    display_name = Column(String(120), nullable=False)
+    account_id = Column(ForeignKey('account.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=True)
+
+
+class CompanyMetricsPresetRelation(Base):
+    __tablename__ = 'company_metrics_preset_relation'
+
+    id = Column(BigInteger, primary_key=True)
+    company_metric_description_id = Column(ForeignKey('company_metric_description.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False) 
+    company_metric_preset_id = Column(ForeignKey('company_metrics_preset.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False)
+    data_numeric = Column(Numeric, nullable=True)
+    data_str = Column(String(120), nullable=True)
+    
+    __table_args__ = (UniqueConstraint('company_metric_description_id', 'company_metric_preset_id'), )
+
+
+class CompanyMetricClassification(Base):
+    __tablename__ = 'company_metric_classification'
+
+    id = Column(Integer, primary_key=True)
+    category_name = Column(String(120), nullable=False)
+    parent_category_id = Column(Integer, nullable=True)
+
 
 #low write index everything
 class CompanyMetricDescription(Base):
@@ -200,8 +245,12 @@ class CompanyMetricDescription(Base):
     metric_fixed_quarter = Column(SmallInteger, nullable=False, index=True)
 
     update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue(), index=True)
+    
 
     __table_args__ = (UniqueConstraint('code', 'metric_data_type', 'metric_duration', 'metric_duration_type', 'look_back', 'metric_fixed_year', 'metric_fixed_quarter'), )
+
+class CompanyMetricDescriptionAccountRelation(Base):
+    __tablename__ = 'company_metric_description'
 
 class CompanyMetricDescriptionNote(Base):
     __tablename__ = 'company_metric_description_note'
