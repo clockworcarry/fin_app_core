@@ -464,7 +464,7 @@ class TestCompanyMetricApi:
             #resp_data = base64.b64decode(response['data'])
             #assert resp_data == data
             assert response['note_type'] == update_note_query_res[0].note_type
-            assert len(response['company_ids']) == 3
+            assert len(response['company_ids']) == from api.routers.company_metric_api import *3
 
 
 

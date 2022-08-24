@@ -224,12 +224,21 @@ class CompanyMetricClassification(Base):
     category_name = Column(String(120), nullable=False)
     parent_category_id = Column(Integer, nullable=True)
 
+class CompanyMetricClassificationAccountRelation(Base):
+    __tablename__ = 'company_metric_classification_account_relation'
+
+    id = Column(BigInteger, primary_key=True)
+    company_metric_classification_id = Column(ForeignKey('company_metric_classification.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False)
+    account_id = Column(ForeignKey('account.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=True)
+
+    __table_args__ = (UniqueConstraint('company_metric_classification_id', 'account_id'), )
+
 
 #low write index everything
 class CompanyMetricDescription(Base):
     __tablename__ = 'company_metric_description'
 
-    id = Column(Integer, primary_key=True)
+    id = Column(BigInteger, primary_key=True)
     code = Column(String(60), nullable=False, index=True)
     display_name = Column(String(120), nullable=False)
     
@@ -246,11 +255,18 @@ class CompanyMetricDescription(Base):
 
     update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue(), index=True)
     
+    company_metric_classification_id = Column(ForeignKey('company_metric_classification.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False)
 
     __table_args__ = (UniqueConstraint('code', 'metric_data_type', 'metric_duration', 'metric_duration_type', 'look_back', 'metric_fixed_year', 'metric_fixed_quarter'), )
 
 class CompanyMetricDescriptionAccountRelation(Base):
-    __tablename__ = 'company_metric_description'
+    __tablename__ = 'company_metric_description_account_relation'
+
+    id = Column(BigInteger, primary_key=True)
+    company_metric_description_id = Column(ForeignKey('company_metric_description.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False)
+    account_id = Column(ForeignKey('account.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=True)
+
+    __table_args__ = (UniqueConstraint('company_metric_description_id', 'account_id'), )
 
 class CompanyMetricDescriptionNote(Base):
     __tablename__ = 'company_metric_description_note'
@@ -267,7 +283,6 @@ class CompanyMetricRelation(Base):
     id = Column(Integer, primary_key=True)
     company_metric_description_id = Column(ForeignKey('company_metric_description.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False)
     company_group_id = Column(ForeignKey('company_group.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=True)
-    update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue(), index=True)
     
     __table_args__ = (UniqueConstraint('company_metric_description_id', 'company_group_id'), )
 

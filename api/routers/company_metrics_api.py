@@ -26,6 +26,20 @@ router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
+class ClassificationModelIn(BaseModel):
+    category_name: str
+    parent_id: int = None
+
+class CreateClassificationsModelIn(BaseModel):
+    classifications = List[ClassificationModelIn]
+    account_id: int = None
+
+class MetricsClassificationFine(BaseModel):
+    category_name: str
+    account_id: int
+    classifications: List['MetricsClassificationFine']
+
+
 @router.get("/{bop_id}", response_model=List[metric_api.CompanyMetricApiModelOut])
 def get_company_metrics(bop_id, loadDescriptions: Optional[bool] = True, loadDescriptionsNotes: Optional[bool] = False):
     try:

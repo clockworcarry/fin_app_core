@@ -427,3 +427,5 @@ def delete_company_metric(metric_id):
             session.query(CompanyMetric).filter(CompanyMetric.id == metric_id).delete()
     except Exception as gen_ex:
         raise HTTPException(status_code=500, detail=str(gen_ex))
+
+        

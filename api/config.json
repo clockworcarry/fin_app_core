@@ -1,4 +1,5 @@
 {
     "logFilePath": "/home/ghelie/fin_app/dev_logs/logs.log",
-    "dbConnString": "postgresql://postgres:navo1234@localhost:5432/fin_app_core_db"
+    "*dbConnString": "postgresql://postgres:navo1234@localhost:5432/fin_app_core_db",
+    "dbConnString": "postgresql://postgres:navo1234@localhost:5432/fin_app_core_db_dev"
 }
