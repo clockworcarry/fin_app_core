@@ -39,6 +39,8 @@ class CompanyMetricDescriptionApiModelIn(BaseModel):
     quarter_recorded: int = None
     metric_fixed_year: int = None
     metric_fixed_quarter: int = None
+    classification_id: int
+    account_id: int = None
 
     group_ids: List[int] = None
     
@@ -170,7 +172,8 @@ def create_company_metric_description(body: CompanyMetricDescriptionApiModelIn):
         manager = SqlAlchemySessionManager()
         with manager.session_scope(db_url=api_config.global_api_config.db_conn_str, template_name='default_session') as session:
             new_desc = CompanyMetricDescription(code=body.code, display_name=body.display_name, metric_data_type=body.metric_data_type, metric_duration=body.metric_duration, 
-                                                metric_duration_type=body.metric_duration_type, look_back=body.look_back, quarter_recorded=body.quarter_recorded, year_recorded=body.year_recorded)
+                                                metric_duration_type=body.metric_duration_type, look_back=body.look_back, quarter_recorded=body.quarter_recorded, year_recorded=body.year_recorded,
+                                                company_metric_classification_id = body.classification_id)
             
             if new_desc.year_recorded == None:
                 new_desc.year_recorded = -1
@@ -202,6 +205,8 @@ def create_company_metric_description(body: CompanyMetricDescriptionApiModelIn):
                 rel = CompanyMetricRelation(company_metric_description_id=new_desc.id, company_group_id=None)          
                 session.add(rel)
                 session.flush()
+            
+            #acc_rel = CompanyMetricDescriptionAccountRelation(company_metric_description_id=new_desc.id, account_id)
             
             return CompanyMetricDescriptionApiModelOut(id=new_desc.id, code=new_desc.code, display_name=new_desc.display_name, metric_data_type=new_desc.metric_data_type,
                                                        metric_duration=new_desc.metric_duration, metric_duration_type=new_desc.metric_duration_type, look_back=new_desc.look_back,

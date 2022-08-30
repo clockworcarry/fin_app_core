@@ -55,10 +55,15 @@ class Account(Base):
 
     id = Column(BigInteger, primary_key=True)
     userName = Column(String(30), unique=True)
-    password = Column(String(30), unique=True)
+    password = Column(String(30), unique=False)
     email = Column(String(60), unique=True)
     phone = Column(String(16), unique=True)
+    disabled = Column(Boolean, nullable=False, server_default=text("false"))
 
+''' 
+class Subscription:
+    pass
+'''
 
 class CompanyExchangeRelation(Base):
     __tablename__ = 'company_exchange_relation'
@@ -223,6 +228,7 @@ class CompanyMetricClassification(Base):
     id = Column(Integer, primary_key=True)
     category_name = Column(String(120), nullable=False)
     parent_category_id = Column(Integer, nullable=True)
+    creator_id = Column(ForeignKey('account.id', ondelete='SET NULL'), nullable=True)
 
 class CompanyMetricClassificationAccountRelation(Base):
     __tablename__ = 'company_metric_classification_account_relation'
@@ -256,6 +262,7 @@ class CompanyMetricDescription(Base):
     update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue(), index=True)
     
     company_metric_classification_id = Column(ForeignKey('company_metric_classification.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False)
+    creator_id = Column(ForeignKey('account.id', ondelete='SET NULL'), nullable=True)
 
     __table_args__ = (UniqueConstraint('code', 'metric_data_type', 'metric_duration', 'metric_duration_type', 'look_back', 'metric_fixed_year', 'metric_fixed_quarter'), )
 

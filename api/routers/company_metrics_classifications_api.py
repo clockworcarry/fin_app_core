@@ -34,10 +34,9 @@ class ClassificationModelIn(BaseModel):
 
 class CreateClassificationsModelIn(BaseModel):
     classifications: List[ClassificationModelIn]
-    account_id: int = None
+    creator_id: int = None
 
 class OutputClassificationsModelOut(BaseModel):
-    account_id: int = None
     classifications: List['MetricsClassificationFineOut'] = []
 
 class MetricsClassificationFineOut(BaseModel):
@@ -78,12 +77,11 @@ def get_metrics_classifications_no_id():
     except Exception as gen_ex:
         raise HTTPException(status_code=500, detail=str(gen_ex))
 
-@router.get("/{account_id}", status_code=status.HTTP_200_OK, response_model=OutputClassificationsModelOut)
-def get_metrics_classifications(account_id):
+@router.get("/{search_id}", status_code=status.HTTP_200_OK, response_model=OutputClassificationsModelOut)
+def get_metrics_classifications(search_id, byCreatorId: Optional[bool] = False):
     try:
-        grouped_classifications = metrics_classifications_core.get_metrics_classifications(account_id)
+        grouped_classifications = metrics_classifications_core.get_metrics_classifications_by_account(search_id)
         ret = OutputClassificationsModelOut()
-        ret.account_id = None
         ret.classifications = metrics_classifications_to_pydantic_model(grouped_classifications)
         
         return ret
