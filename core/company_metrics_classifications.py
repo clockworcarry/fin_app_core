@@ -53,29 +53,21 @@ def transform_rough_classifications_to_fine(classifications_account_relation_tup
     
     return ret
 
-def get_metrics_classifications_by_account(account_id):
-    manager = SqlAlchemySessionManager()
-    with manager.session_scope(db_url=api_config.global_api_config.db_conn_str, template_name='default_session') as session:
-        db_classifications_account_relation_tuple = session.query(CompanyMetricClassificationAccountRelation, CompanyMetricClassification) \
+def get_metrics_classifications_by_account(account_id, session):
+    db_classifications_account_relation_tuple = session.query(CompanyMetricClassificationAccountRelation, CompanyMetricClassification) \
                                                         .join(CompanyMetricClassification, CompanyMetricClassification.id == CompanyMetricClassificationAccountRelation.company_metric_classification_id) \
                                                         .filter(or_(CompanyMetricClassificationAccountRelation.account_id == account_id, CompanyMetricClassificationAccountRelation.account_id == None)).all()
 
-        ret = transform_rough_classifications_to_fine(db_classifications_account_relation_tuple)
-        ret = group_fine_classifications(ret, None)
+    ret = transform_rough_classifications_to_fine(db_classifications_account_relation_tuple)
+    ret = group_fine_classifications(ret, None)
 
-        return ret
+    return ret
 
-def get_metrics_classifications_by_creator(creator_id):
-    manager = SqlAlchemySessionManager()
-    with manager.session_scope(db_url=api_config.global_api_config.db_conn_str, template_name='default_session') as session:
-        """db_classifications_account_relation_tuple = session.query(CompanyMetricClassificationAccountRelation, CompanyMetricClassification) \
-                                                        .join(CompanyMetricClassification, CompanyMetricClassification.id == CompanyMetricClassificationAccountRelation.company_metric_classification_id) \
-                                                        .filter(or_(CompanyMetricClassificationAccountRelation.account_id == account_id, CompanyMetricClassificationAccountRelation.account_id == None)).all()
-        
-        db_classifications = session.query(CompanyMetricClassification).filter(CompanyMetricClassification.creator_id == creator_id).all()
+def get_metrics_classifications_by_creator(creator_id, session):
+    db_classifications = session.query(CompanyMetricClassification).filter(CompanyMetricClassification.creator_id == creator_id).all()
 
-        ret = transform_rough_classifications_to_fine(db_classifications_account_relation_tuple)
-        ret = group_fine_classifications(ret, None)
+    ret = []
+    for cls in db_classifications:
+        ret.append(MetricsClassificationFine(id=cls.id, category_name=cls.category_name, account_id=creator_id, parent_id=cls.parent_category_id, classifications=[]))
 
-        return ret"""
-        return []
+    ret = group_fine_classifications(ret, None)

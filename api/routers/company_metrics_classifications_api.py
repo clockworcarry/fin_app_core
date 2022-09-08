@@ -1,6 +1,7 @@
 from unicodedata import category
 from xmlrpc.client import boolean
-from fastapi import APIRouter, status, HTTPException, Response
+from fastapi import APIRouter, status, HTTPException, Response, Header, Depends, Request
+from fastapi.security import OAuth2PasswordBearer
 from typing import Optional, List
 from pydantic import BaseModel, ValidationError, validator
 
@@ -12,14 +13,19 @@ from psycopg2 import *
 from sqlalchemy import create_engine, select, insert, exists
 from sqlalchemy.orm import sessionmaker
 
+import api.security.security as app_security
+
 import api.routers.company_metric_api as metric_api
 import core.company_metrics_classifications as metrics_classifications_core
 
 import datetime, base64
 
+from typing import Union
+
 import simplejson as json
 
 import api.config as api_config
+import api.utils.utils as api_utils
 
 router = APIRouter(
     prefix="/metricsClassifications",
@@ -47,6 +53,8 @@ class MetricsClassificationFineOut(BaseModel):
 
 MetricsClassificationFineOut.update_forward_refs()
 
+manager = SqlAlchemySessionManager()
+
 def metrics_classification_to_pydantic_model(cls):
     elem = MetricsClassificationFineOut(id=cls.id, category_name=cls.category_name, parent_id=cls.parent_id)
     for c in cls.classifications:
@@ -62,15 +70,17 @@ def metrics_classifications_to_pydantic_model(grouped_classifications):
     
     return ret
 
-
+#session = Depends(api_utils.get_db_session), current_user: Account = Depends(app_security.get_current_user
 @router.get("/", status_code=status.HTTP_200_OK)
-def get_metrics_classifications_no_id():
+def get_metrics_classifications_no_id(request: Request):
     try:
-        grouped_classifications = metrics_classifications_core.get_metrics_classifications(None)
-        ret = OutputClassificationsModelOut(account_id=None)
-        ret.classifications = metrics_classifications_to_pydantic_model(grouped_classifications)
-        
-        return ret
+        with manager.session_scope(db_url=api_config.global_api_config.db_conn_str, template_name='default_session') as session:
+            rctx = app_security.authenticate_request(request, session)
+            grouped_classifications = metrics_classifications_core.get_metrics_classifications_by_account(rctx.user_id, session)
+            ret = OutputClassificationsModelOut(account_id=None)
+            ret.classifications = metrics_classifications_to_pydantic_model(grouped_classifications)
+            
+            return ret
 
     except ValidationError as val_err:
         raise HTTPException(status_code=500, detail=str(val_err))
@@ -78,13 +88,15 @@ def get_metrics_classifications_no_id():
         raise HTTPException(status_code=500, detail=str(gen_ex))
 
 @router.get("/{search_id}", status_code=status.HTTP_200_OK, response_model=OutputClassificationsModelOut)
-def get_metrics_classifications(search_id, byCreatorId: Optional[bool] = False):
+def get_metrics_classifications(search_id, request: Request):
     try:
-        grouped_classifications = metrics_classifications_core.get_metrics_classifications_by_account(search_id)
-        ret = OutputClassificationsModelOut()
-        ret.classifications = metrics_classifications_to_pydantic_model(grouped_classifications)
+        with manager.session_scope(db_url=api_config.global_api_config.db_conn_str, template_name='default_session') as session:
+            app_security.authenticate_request(request, session)
+            grouped_classifications = metrics_classifications_core.get_metrics_classifications_by_creator(search_id, session)
+            ret = OutputClassificationsModelOut()
+            ret.classifications = metrics_classifications_to_pydantic_model(grouped_classifications)
         
-        return ret
+            return ret
 
 
     except ValidationError as val_err:

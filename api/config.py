@@ -10,6 +10,8 @@ class FinAppApiConfig:
             self.verbose = False
         self.log_file_path = config['logFilePath']
         self.db_conn_str = config['dbConnString']
+        self.privKeyFilePath = config['privKeyFilePath']
+        self.pubKeyFilePath = config['pubKeyFilePath']
         
 
 def init_config(config):

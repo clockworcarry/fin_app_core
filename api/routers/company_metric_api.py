@@ -1,11 +1,12 @@
 from xmlrpc.client import boolean
-from fastapi import APIRouter, status, HTTPException
+from fastapi import APIRouter, status, HTTPException, Request, Header
 from typing import Optional, List
 from pydantic import BaseModel, ValidationError, validator
 
 from py_common_utils_gh.os_common_utils import setup_logger, default_log_formatter
 from py_common_utils_gh.db_utils.db_utils import SqlAlchemySessionManager
 from db.models import *
+import api.security.security as app_security
 import numpy as np
 from psycopg2 import *
 from sqlalchemy import create_engine, select, insert, exists
@@ -40,7 +41,6 @@ class CompanyMetricDescriptionApiModelIn(BaseModel):
     metric_fixed_year: int = None
     metric_fixed_quarter: int = None
     classification_id: int
-    account_id: int = None
 
     group_ids: List[int] = None
     
@@ -167,10 +167,12 @@ def get_company_metric_descriptions(group_id, loadDescriptionsNotes: Optional[bo
         raise HTTPException(status_code=500, detail=str(gen_ex))
 
 @router.post("/description", status_code=status.HTTP_201_CREATED, response_model=CompanyMetricDescriptionApiModelOut)
-def create_company_metric_description(body: CompanyMetricDescriptionApiModelIn):
+def create_company_metric_description(body: CompanyMetricDescriptionApiModelIn, request: Request):
     try:
+
         manager = SqlAlchemySessionManager()
         with manager.session_scope(db_url=api_config.global_api_config.db_conn_str, template_name='default_session') as session:
+            app_security.authenticate_request(request, session)
             new_desc = CompanyMetricDescription(code=body.code, display_name=body.display_name, metric_data_type=body.metric_data_type, metric_duration=body.metric_duration, 
                                                 metric_duration_type=body.metric_duration_type, look_back=body.look_back, quarter_recorded=body.quarter_recorded, year_recorded=body.year_recorded,
                                                 company_metric_classification_id = body.classification_id)
