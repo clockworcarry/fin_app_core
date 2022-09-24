@@ -60,10 +60,12 @@ class Account(Base):
     phone = Column(String(16), unique=True)
     disabled = Column(Boolean, nullable=False, server_default=text("false"))
 
+
 ''' 
 class Subscription:
     pass
 '''
+
 
 class CountryInfo(Base):
     __tablename__ = 'country_info'
@@ -72,38 +74,35 @@ class CountryInfo(Base):
     name = Column(String(60), nullable=False, unique=True)
     name_code = Column(String(10), nullable=False, unique=True)
     currency = Column(String(10), nullable=False)
-    update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue())
 
 
 class Sector(Base):
     __tablename__ = 'sector'
 
-    id = Column(SmallInteger, primary_key=True)
+    id = Column(Integer, primary_key=True)
     name_code = Column(String(50), nullable=False, unique=True)
     name = Column(String(60), nullable=False, unique=True)
     locked = Column(Boolean, nullable=False, server_default=text("false"))
-    update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue())
 
 
 class Exchange(Base):
     __tablename__ = 'exchange'
 
-    id = Column(SmallInteger, primary_key=True)
+    id = Column(Integer, primary_key=True)
     country_info_id = Column(ForeignKey('country_info.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False, index=True)
     name_code = Column(String(10), nullable=False, unique=True)
     name = Column(String(60), unique=True)
-    update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue())
 
 
 class Industry(Base):
     __tablename__ = 'industry'
 
-    id = Column(SmallInteger, primary_key=True)
+    id = Column(Integer, primary_key=True)
     sector_id = Column(ForeignKey('sector.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False, index=True)
     name = Column(String(60), nullable=False, unique=True)
     name_code = Column(String(60), nullable=False, unique=True)
     locked = Column(Boolean, nullable=False, server_default=text("false"))
-    update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue())
+
 
 class Company(Base):
     __tablename__ = 'company'
@@ -113,7 +112,6 @@ class Company(Base):
     name = Column(String(200), unique=True)
     locked = Column(Boolean, nullable=False, server_default=text("false"))
     delisted = Column(Boolean, nullable=False, index=True, server_default=text("false"))
-    update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue())
     
     #exchanges = relationship("Exchange", secondary=t_company_exchange_relation, backref='companies')
     #sectors = relationship("Sector", secondary=t_company_sector_relation)
@@ -121,20 +119,31 @@ class Company(Base):
     #income_statement_data = relationship('IncomeStatementData')
     #cash_flow_statement_data = relationship('CashFlowStatementData')
 
-class CompanyExchangeRelation(Base):
-    __tablename__ = 'company_exchange_relation'
 
+class CompanyExchangeRelation(Base):
+    __tablename__ = 'company_exchange'
+
+    #id = Column(Integer, primary_key=True)
     company_id = Column(ForeignKey('company.id', ondelete='CASCADE', onupdate='CASCADE'), primary_key=True, nullable=False)
     exchange_id = Column(ForeignKey('exchange.id', ondelete='CASCADE', onupdate='CASCADE'), primary_key=True, nullable=False)
-    update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue())
 
 
+#many to many relationship between sectors and business segments
 class CompanySectorRelation(Base):
     __tablename__ = "company_sector_relation"
 
-    group_id = Column(ForeignKey('company_group.id', ondelete='CASCADE', onupdate='CASCADE'), primary_key=True, nullable=False)
+    #id = Column(Integer, primary_key=True)
+    company_business_segment_id = Column(ForeignKey('company_business_segment.id', ondelete='CASCADE', onupdate='CASCADE'), primary_key=True, nullable=False)
     sector_id = Column(ForeignKey('sector.id', ondelete='CASCADE', onupdate='CASCADE'), primary_key=True, nullable=False)
-    update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue())
+
+#many to many relationship between industries and business segments
+class CompanyIndustryRelation(Base):
+    __tablename__ = "company_industry_relation"
+
+    #id = Column(Integer, primary_key=True)
+    company_business_segment_id = Column(ForeignKey('company_business_segment.id', ondelete='CASCADE', onupdate='CASCADE'), primary_key=True, nullable=False)
+    industry_id = Column(ForeignKey('industry.id', ondelete='CASCADE', onupdate='CASCADE'), primary_key=True, nullable=False)
+
 
 class CompanyBusinessSegment(Base):
     __tablename__ = 'company_business_segment'
@@ -145,6 +154,7 @@ class CompanyBusinessSegment(Base):
     display_name = Column(String(120), nullable=False)
 
 
+#a group of company for comparisons
 class CompanyGroup(Base): #can be seen as a sub sector.. used when stocks within a sector are very closely related.. ex: twtr, fb, pins, snap
     __tablename__ = 'company_group'
 
@@ -152,17 +162,31 @@ class CompanyGroup(Base): #can be seen as a sub sector.. used when stocks within
     name_code = Column(String(50), nullable=False)
     name = Column(String(60), nullable=False)
     description = Column(Text, nullable=True)
-    industry_id = Column(ForeignKey('industry.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=True, index=True)
+    #industry_id = Column(ForeignKey('industry.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=True, index=True)
     creator_id = Column(ForeignKey('account.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False)
-    update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue())
 
     __table_args__ = (UniqueConstraint('name_code', 'name', 'creator_id'), )
 
-class CompanyGroups(Base):
-    __tablename__ = 'company_groups'
 
-    company_business_segment = Column(ForeignKey('company_business_segment.id', ondelete='CASCADE', onupdate='CASCADE'), primary_key=True, nullable=False)
+#all the company groups/business segments in the db
+class CompanyInGroup(Base):
+    __tablename__ = 'company_in_group'
+
+    company_business_segment_id = Column(ForeignKey('company_business_segment.id', ondelete='CASCADE', onupdate='CASCADE'), primary_key=True, nullable=False)
     group_id = Column(ForeignKey('company_group.id', ondelete='CASCADE', onupdate='CASCADE'), primary_key=True, nullable=False)
+
+    #__table_args__ = (UniqueConstraint('company_business_segment_id', 'group_id'), )
+
+
+#all the company groups that the user has access to (shared with him or he chose to add them to his list of "favorites")
+class UserCompanyGroup(Base):
+    __tablename__ = 'user_company_group'
+
+    account_id = Column(ForeignKey('account.id', ondelete='CASCADE', onupdate='CASCADE'), primary_key=True, nullable=False)
+    group_id = Column(ForeignKey('company_group.id', ondelete='CASCADE', onupdate='CASCADE'), primary_key=True, nullable=False)
+
+    #__table_args__ = (UniqueConstraint('account_id', 'group_id'), )
+
 
 #low write index everything
 # a metric description can be shared. Multiple groups/companies can use the same description, only the underlying value/data associated to the
@@ -187,22 +211,44 @@ class MetricDescription(Base):
     
     metric_fixed_year = Column(SmallInteger, nullable=False, index=True)
     metric_fixed_quarter = Column(SmallInteger, nullable=False, index=True)
-
-    update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue(), index=True)
     
-    metric_classification_id = Column(ForeignKey('metric_classification.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False)
-    creator_id = Column(ForeignKey('account.id', ondelete='SET NULL'), nullable=True)
+    metric_classification_id = Column(ForeignKey('metric_classification.id', ondelete='SET NULL'), nullable=True)
+    creator_id = Column(ForeignKey('account.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=True)
 
     __table_args__ = (UniqueConstraint('code', 'metric_data_type', 'metric_duration', 'metric_duration_type', 'look_back', 'metric_fixed_year', 'metric_fixed_quarter'), )
 
+#all the metric descriptions that the user can use. Every user will have all the metric descriptions created by the system user by default
+#and will also have metric descriptions that they chose to add to their universe
+class UserMetricDescription(Base):
+    __tablename__ = 'user_metric_description'
+
+    metric_description_id = Column(ForeignKey('metric_description.id', ondelete='CASCADE', onupdate='CASCADE'), primary_key=True, nullable=False)
+    account_id = Column(ForeignKey('account.id', ondelete='CASCADE', onupdate='CASCADE'), primary_key=True, nullable=False)
+
+
+#all the metric descriptions in the group
 class CompanyGroupMetricDescription(Base):
     __tablename__ = 'company_group_metric_description'
 
-    id = Column(BigInteger, primary_key=True)
-    metric_description_id = Column(ForeignKey('metric_description.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False)
-    company_group_id = Column(ForeignKey('company_group.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=True) #if this is null, it is a preset
+    metric_description_id = Column(ForeignKey('metric_description.id', ondelete='CASCADE', onupdate='CASCADE'), primary_key=True, nullable=False)
+    company_group_id = Column(ForeignKey('company_group.id', ondelete='CASCADE', onupdate='CASCADE'), primary_key=True, nullable=False)
     
-    __table_args__ = (UniqueConstraint('metric_description', 'company_group_id'), )
+    #__table_args__ = (UniqueConstraint('metric_description_id', 'company_group_id'), )
+
+
+""" a note associated to a metric description. Binary format so it allows the user to go into
+    details when explaining what the metric is in its current context
+    certain metrics could mean different things depending on the company
+    however, a metric description in a group will have the same meaning for all companies/business segments in the group.
+
+class MetricDescriptionNote(Base):
+    __tablename__ = 'metric_description_note'
+    
+    id = Column(Integer, primary_key=True)
+    note_data = Column(LargeBinary, nullable=False)
+    note_type = Column(SmallInteger, nullable=False)
+    company_metric_relation_id = Column(ForeignKey('company_group_metric_description.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False, index=True)"""
+
 
 #a metric description will have multiple MetricData records associated to it
 #because the metric description is unique and is shared. "revenue" is a metric that is used by every company,
@@ -215,6 +261,76 @@ class MetricData(Base):
     #if company_business_segment_id is NULL, it means it does not belong to any companies/it is a generic metric
     company_business_segment_id = Column(ForeignKey('company_business_segment.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False, index=True) 
     data = Column(Numeric, nullable=False)
+
+
+class ScreenerPreset(Base):
+    __tablename__ = 'screener_preset'
+
+    id = Column(BigInteger, primary_key=True)
+    name_code = Column(String(30), nullable=False)
+    display_name = Column(String(120), nullable=False)
+    creator_id = Column(ForeignKey('account.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False)
+
+
+#all the screener presets that a user has access to
+class UserScreenerPreset(Base):
+    __tablename__ = 'user_screener_preset'
+
+    screener_preset_id = Column(ForeignKey('screener_preset.id', ondelete='CASCADE', onupdate='CASCADE'), primary_key=True, nullable=False)
+    account_id = Column(ForeignKey('account.id', ondelete='CASCADE', onupdate='CASCADE'), primary_key=True, nullable=False)
+
+    #__table_args__ = (UniqueConstraint('metrics_preset_id', 'account_id'), )
+
+
+#search params for a screen that were saved by a user or provided by default by the app
+class ScreenerPresetData(Base):
+    __tablename__ = 'screener_preset_data'
+
+    id = Column(BigInteger, primary_key=True)
+    metric_description_id = Column(ForeignKey('metric_description.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False) 
+    screener_preset_id = Column(ForeignKey('screener_preset.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False)
+    data_numeric = Column(Numeric, nullable=True)
+    data_str = Column(String(120), nullable=True)
+    
+    __table_args__ = (UniqueConstraint('metric_description_id', 'screener_preset_id'), )
+
+
+class MetricClassification(Base):
+    __tablename__ = 'metric_classification'
+
+    id = Column(Integer, primary_key=True)
+    category_name = Column(String(120), nullable=False)
+    parent_category_id = Column(Integer, nullable=True)
+    creator_id = Column(ForeignKey('account.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False)
+
+
+#all the classifications that the user can use.. these are not rights, but what the user wants to use
+class UserMetricClassification(Base):
+    __tablename__ = 'user_metric_classification'
+
+    metric_classification_id = Column(ForeignKey('metric_classification.id', ondelete='CASCADE', onupdate='CASCADE'), primary_key=True, nullable=False)
+    account_id = Column(ForeignKey('account.id', ondelete='CASCADE', onupdate='CASCADE'), primary_key=True, nullable=True)
+
+    #__table_args__ = (UniqueConstraint('metric_classification_id', 'account_id'), )
+
+class CompanyDevelopment(Base):
+    __tablename__ = 'company_development'
+
+    id = Column(BigInteger, primary_key=True)
+    company_business_segment_id = Column(ForeignKey('company_business_segment.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False, index=True)
+    code = Column(String(60), nullable=False) #ex: aapl_dev_2020_01_01
+    display_name = Column(String(120), nullable=False) #ex: aapl_dev_2020_01_01
+    dev_type = Column(SmallInteger, nullable=False, index=True) #conference, devcon, news release, interview, etc.
+    data_type = Column(SmallInteger, nullable=False, index=True) #png, link, text, etc.
+    data = Column(LargeBinary)
+    date_recorded = Column(Date, nullable=False, index=True)
+
+class CompanySummary(Base):
+    __tablename__ = 'company_summary'
+
+    id = Column(Integer, primary_key=True)
+    company_id = Column(ForeignKey('company.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False, index=True)
+    data = Column(LargeBinary)# rich text (google doc, word, etc.)
 
 
 class EquityBarData(Base):
@@ -251,89 +367,6 @@ class CurrencyBarData(Base):
 
     #__table_args__ = (UniqueConstraint('company_id', 'bar_type', 'bar_size', 'bar_date'), )
 
-
-class CompanyScreenerPreset(Base):
-    __tablename__ = 'company_screener_preset'
-
-    id = Column(BigInteger, primary_key=True)
-    display_name = Column(String(120), nullable=False)
-    creator_id = Column(ForeignKey('account.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False)
-
-class UserScreenerPreset(Base):
-    __tablename__ = 'user_metrics_preset'
-
-    metrics_preset_id = Column(ForeignKey('company_metrics_preset.id', ondelete='CASCADE', onupdate='CASCADE'), primary_key=True, nullable=False)
-    account_id = Column(ForeignKey('account.id', ondelete='CASCADE', onupdate='CASCADE'), primary_key=True, nullable=False)
-
-
-class CompanyScreenerPresetData(Base):
-    __tablename__ = 'company_metrics_preset_data'
-
-    id = Column(BigInteger, primary_key=True)
-    company_metric_description_id = Column(ForeignKey('company_metric_description.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False) 
-    company_metric_preset_id = Column(ForeignKey('company_metrics_preset.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False)
-    data_numeric = Column(Numeric, nullable=True)
-    data_str = Column(String(120), nullable=True)
-    
-    __table_args__ = (UniqueConstraint('company_metric_description_id', 'company_metric_preset_id'), )
-
-
-class CompanyMetricClassification(Base):
-    __tablename__ = 'company_metric_classification'
-
-    id = Column(Integer, primary_key=True)
-    category_name = Column(String(120), nullable=False)
-    parent_category_id = Column(Integer, nullable=True)
-    creator_id = Column(ForeignKey('account.id', ondelete='SET NULL'), nullable=True)
-
-class CompanyMetricClassificationAccountRelation(Base):
-    __tablename__ = 'company_metric_classification_account_relation'
-
-    id = Column(BigInteger, primary_key=True)
-    company_metric_classification_id = Column(ForeignKey('company_metric_classification.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False)
-    account_id = Column(ForeignKey('account.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=True)
-
-    __table_args__ = (UniqueConstraint('company_metric_classification_id', 'account_id'), )
-
-
-class CompanyMetricDescriptionAccountRelation(Base):
-    __tablename__ = 'company_metric_description_account_relation'
-
-    id = Column(BigInteger, primary_key=True)
-    company_metric_description_id = Column(ForeignKey('company_metric_description.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False)
-    account_id = Column(ForeignKey('account.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=True)
-
-    __table_args__ = (UniqueConstraint('company_metric_description_id', 'account_id'), )
-
-class CompanyMetricDescriptionNote(Base):
-    __tablename__ = 'company_metric_description_note'
-    
-    id = Column(Integer, primary_key=True)
-    note_data = Column(LargeBinary, nullable=False)
-    note_type = Column(SmallInteger, nullable=False)
-    company_metric_relation_id = Column(ForeignKey('company_metric_relation.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False, index=True)
-    update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue(), index=True)
-
-class CompanyDevelopment(Base):
-    __tablename__ = 'company_development'
-
-    id = Column(BigInteger, primary_key=True)
-    company_business_or_product = Column(ForeignKey('company_business_or_product.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False, index=True)
-    code = Column(String(60), nullable=False) #ex: aapl_dev_2020_01_01
-    display_name = Column(String(120), nullable=False) #ex: aapl_dev_2020_01_01
-    dev_type = Column(SmallInteger, nullable=False, index=True) #conference, devcon, news release, interview, etc.
-    data_type = Column(SmallInteger, nullable=False, index=True) #png, link, text, etc.
-    data = Column(LargeBinary)
-    date_recorded = Column(Date, nullable=False, index=True)
-
-class CompanySummary(Base):
-    __tablename__ = 'company_summary'
-
-    id = Column(Integer, primary_key=True)
-    company_id = Column(ForeignKey('company.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False, index=True)
-    data = Column(LargeBinary)# rich text (google doc, word, etc.)
-    update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue(), index=True)
-
 class Log(Base):
     __tablename__ = 'log'
 
@@ -341,7 +374,6 @@ class Log(Base):
     log_type = Column(String(20), nullable=False, index=True)
     message = Column(String(200))
     data = Column(LargeBinary)
-    update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue())
 
 
 class CronJobRun(Base):
