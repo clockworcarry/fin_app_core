@@ -44,7 +44,3 @@ GET /equities/company/businessSegment/metrics/{bs_id}
 /equities/screener
 
 /equities/user/groups
-
-/equities/groups
-/equities/group/{grp_id}
-/equities/group/metrics/{grp_id}

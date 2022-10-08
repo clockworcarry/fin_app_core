@@ -3,7 +3,8 @@ import numpy as np
 from psycopg2 import *
 
 from xmlrpc.client import boolean
-from fastapi import APIRouter, status, HTTPException, Request
+from fastapi import APIRouter, status, HTTPException, Request, Response
+from starlette.status import HTTP_204_NO_CONTENT
 from typing import Optional, List
 from pydantic import BaseModel, ValidationError, validator
 
@@ -37,6 +38,101 @@ router = APIRouter(
     dependencies=[],
     responses={404: {"description": "Not found"}},
 )
+
+@router.put("/metricDescription/{grp_id}/{desc_id}", status_code=HTTP_204_NO_CONTENT)
+def add_metric_description_to_group(grp_id, desc_id, request: Request):
+    try:
+        manager = SqlAlchemySessionManager()
+        with manager.session_scope(db_url=api_config.global_api_config.db_conn_str, template_name='default_session') as session:
+            db_grp = session.query(CompanyGroup).filter(CompanyGroup.id == grp_id).first()
+            if db_grp is None:
+                raise HTTPException(status_code=500, detail="No group with id: " + str(grp_id) + " exists.")
+            
+            db_metric_desc = session.query(MetricDescription).filter(MetricDescription.id == desc_id).first()
+            if db_metric_desc is None:
+                raise HTTPException(status_code=500, detail="No metric description with id: " + str(desc_id) + " exists.")
+            
+            session.add(CompanyGroupMetricDescription(metric_description_id=desc_id, company_group_id=grp_id))
+
+            return Response(status_code=HTTP_204_NO_CONTENT)
+
+    except ValidationError as val_err:
+        raise HTTPException(status_code=500, detail=str(val_err))
+    except Exception as gen_ex:
+        raise HTTPException(status_code=500, detail=str(gen_ex))
+
+@router.put("/businessSegment/{grp_id}/{bs_id}", status_code=HTTP_204_NO_CONTENT)
+def add_business_segment_to_group(grp_id, bs_id, request: Request):
+    try:
+        manager = SqlAlchemySessionManager()
+        with manager.session_scope(db_url=api_config.global_api_config.db_conn_str, template_name='default_session') as session:
+            db_grp = session.query(CompanyGroup).filter(CompanyGroup.id == grp_id).first()
+            if db_grp is None:
+                raise HTTPException(status_code=500, detail="No group with id: " + str(grp_id) + " exists.")
+            
+            db_bs = session.query(CompanyBusinessSegment).filter(CompanyBusinessSegment.id == bs_id).first()
+            if db_bs is None:
+                raise HTTPException(status_code=500, detail="No business segment with id: " + str(bs_id) + " exists.")
+            
+            session.add(CompanyInGroup(company_business_segment_id=bs_id, group_id=grp_id))
+
+            return Response(status_code=HTTP_204_NO_CONTENT)
+
+    except ValidationError as val_err:
+        raise HTTPException(status_code=500, detail=str(val_err))
+    except Exception as gen_ex:
+        raise HTTPException(status_code=500, detail=str(gen_ex))
+
+@router.delete("/metricDescription/{grp_id}/{desc_id}", status_code=HTTP_204_NO_CONTENT)
+def remove_metric_description_from_group(grp_id, desc_id, request: Request):
+    try:
+        manager = SqlAlchemySessionManager()
+        with manager.session_scope(db_url=api_config.global_api_config.db_conn_str, template_name='default_session') as session:
+            group_metrics = session.query(CompanyGroupMetricDescription).filter(CompanyGroupMetricDescription.company_group_id == grp_id).all()
+            
+            deleted = False
+            for gm in group_metrics:
+                if gm.metric_description_id == int(desc_id):
+                    session.delete(gm)
+                    deleted = True
+                    break
+            
+            if not deleted:
+                raise Exception("Could not find metric description with id: " + str(desc_id) + " in group with id: " + str(grp_id))
+
+            return Response(status_code=HTTP_204_NO_CONTENT)
+
+    except ValidationError as val_err:
+        raise HTTPException(status_code=500, detail=str(val_err))
+
+    except Exception as gen_ex:
+        raise HTTPException(status_code=500, detail=str(gen_ex))
+
+@router.delete("/businessSegment/{grp_id}/{bs_id}", status_code=HTTP_204_NO_CONTENT)
+def remove_business_segment_from_group(grp_id, bs_id, request: Request):
+    try:
+        manager = SqlAlchemySessionManager()
+        with manager.session_scope(db_url=api_config.global_api_config.db_conn_str, template_name='default_session') as session:
+            companies_in_group = session.query(CompanyInGroup).filter(CompanyInGroup.group_id == grp_id).all()
+            
+            deleted = False
+            for cig in companies_in_group:
+                if cig.company_business_segment_id == int(bs_id):
+                    session.delete(cig)
+                    deleted = True
+                    break
+            
+            if not deleted:
+                raise Exception("Could not find business segment with id: " + str(bs_id) + " in group with id: " + str(grp_id))
+
+            return Response(status_code=HTTP_204_NO_CONTENT)
+
+    except ValidationError as val_err:
+        raise HTTPException(status_code=500, detail=str(val_err))
+
+    except Exception as gen_ex:
+        raise HTTPException(status_code=500, detail=str(gen_ex))
+
 
 """Get all the metric data for a group
    /equities/group/metrics/{grp_id}
