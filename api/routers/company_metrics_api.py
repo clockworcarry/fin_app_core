@@ -45,8 +45,6 @@ class MetricsClassificationFine(BaseModel):
     account_id: int
     classifications: List['MetricsClassificationFine']
 
-class GetGroupMetricsOut(BaseModel):
-    group_info: shared_models.CompanyGroupMetricsModelShortOut
 
 # get a group with eveyrthing related to it
 # get all metrics for a user
@@ -54,8 +52,8 @@ class GetGroupMetricsOut(BaseModel):
 
 
 
-@router.get("/{bop_id}", response_model=List[metric_api.CompanyMetricApiModelOut])
-def get_company_metrics(bop_id, loadDescriptions: Optional[bool] = True, loadDescriptionsNotes: Optional[bool] = False):
+@router.get("/businessSegment/{bop_id}", response_model=List[metric_api.CompanyMetricApiModelOut])
+def get_business_segment_metrics(bop_id, loadDescriptions: Optional[bool] = True, loadDescriptionsNotes: Optional[bool] = False):
     try:
         manager = SqlAlchemySessionManager()
         with manager.session_scope(db_url=api_config.global_api_config.db_conn_str, template_name='default_session') as session:
@@ -101,7 +99,7 @@ def get_company_metrics(bop_id, loadDescriptions: Optional[bool] = True, loadDes
     Returns:
         List[shared_models.CompanyGroupModelShortOut]: list of all the groups the user has access to
     """
-@router.get("/user/groups", response_model=List[shared_models.CompanyGroupModelShortOut])
+"""@router.get("/user/groups", response_model=List[shared_models.CompanyGroupModelShortOut])
 def get_group_metrics(grp_id, request: Request):
     try:
         manager = SqlAlchemySessionManager()
@@ -119,59 +117,5 @@ def get_group_metrics(grp_id, request: Request):
     except ValidationError as val_err:
         raise HTTPException(status_code=500, detail=str(val_err))
     except Exception as gen_ex:
-        raise HTTPException(status_code=500, detail=str(gen_ex))
+        raise HTTPException(status_code=500, detail=str(gen_ex))"""
 
-
-
-    """Get all the metric data for a group
-
-    Raises:
-        HTTPException: _description_
-        HTTPException: _description_
-        HTTPException: _description_
-
-    Returns:
-        the metric data for the group
-    """
-@router.get("/group/{grp_id}", response_model=shared_models.CompanyGroupMetricsModelOut])
-def get_group_metrics(grp_id, request: Request):
-    try:
-        manager = SqlAlchemySessionManager()
-        with manager.session_scope(db_url=api_config.global_api_config.db_conn_str, template_name='default_session') as session:
-            rctx = app_security.authenticate_request(request, session)
-            db_rows = session.query(CompanyGroup, CompanyInGroup, CompanyBusinessSegment, CompanyGroupMetricDescription, MetricDescription, MetricData).join(CompanyInGroup, CompanyInGroup.group_id == CompanyGroup.id) \
-                                                                                                .join(CompanyGroupMetricDescription, CompanyGroupMetricDescription.company_group_id == CompanyGroup.id) \
-                                                                                                .join(MetricDescription, MetricDescription.id == CompanyGroupMetricDescription.metric_description_id) \
-                                                                                                .join(MetricData, and_(MetricData.metric_description_id == MetricDescription.id, MetricData.company_business_segment_id == CompanyInGroup.company_business_segment_id)) \
-                                                                                                .filter(CompanyGroup.id == grp_id).all()
-
-            ret = shared_models.CompanyGroupMetricsModelOut()
-            if len(db_rows) > 0:
-                cgms = shared_models.CompanyGroupModelShortOut(id=db_rows[0][0].id, name_code=db_rows[0].name_code, name=db_rows[0].name)
-                ret = shared_models.CompanyGroupMetricsModelOut(group_info=cgms)
-                for dr in db_rows:
-                    ebs = None
-                    for bs in ret.business_segments:
-                        if bs.id == dr[2].id:
-                            ebs = bs
-                            break
-                    
-                    if ebs is None:
-                        ret.business_segments.append(shared_models.BusinessSegmentModelOut(id=dr[2].id, company_id=dr[2].company_id, code=dr[2].code, display_name=dr[2].display_name))
-                        ebs = ret.business_segments[-1]
-                    
-                    mdmo = shared_models.MetricDataModelOut(data=dr[5].data)
-                    mdmo.description = shared_models.MetricDescriptionModelOut(id=dr[4].id, code=dr[4].code, display_name=dr[4].display_name, metric_data_type=dr[4].metric_data_type, \
-                                                                                metric_duration=dr[4].metric_duration, metric_duration_type=dr[4].metric_duration_type, look_back=dr[4].look_back, \
-                                                                                year_recorded=dr[4].year_recorded, quarter_recorded=dr[4].quarter_recorded, metric_fixed_year=dr[4].metric_fixed_year, \
-                                                                                metric_fixed_quarter = dr[4].metric_fixed_quarter)
-                    ebs.metrics.append(mdmo)
-
-            return ret                                             
-
-
-
-    except ValidationError as val_err:
-        raise HTTPException(status_code=500, detail=str(val_err))
-    except Exception as gen_ex:
-        raise HTTPException(status_code=500, detail=str(gen_ex))

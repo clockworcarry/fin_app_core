@@ -12,9 +12,9 @@ import api.routers.industry_api as industry_api
 import api.routers.industries_api as industries_api
 import api.routers.sector_api as sector_api
 import api.routers.sectors_api as sectors_api
-import api.routers.company_metrics_classifications_api as company_metrics_classifications_api
+import api.routers.metrics_classifications_api as metrics_classifications_api
 import api.routers.account_api as account_api
-
+import api.routers.equities_group_api as equities_group_api
 
 app = FastAPI()
 
@@ -26,8 +26,9 @@ app.include_router(industry_api.router)
 app.include_router(industries_api.router)
 app.include_router(sector_api.router)
 app.include_router(sectors_api.router)
-app.include_router(company_metrics_classifications_api.router)
+app.include_router(metrics_classifications_api.router)
 app.include_router(account_api.router)
+app.include_router(equities_group_api.router)
 
 
 

@@ -1,0 +1,50 @@
+prefix for all
+/{appName}/{version}
+
+
+/account
+POST /account
+POST /account/token
+
+
+/classification
+POST /metricClassification -> create new metric classification
+PUT /metricClassification{cls_id} -> update metric classification
+
+/classifications
+GET /metricClassifications -> gets all classifications for a user
+
+/metric
+POST /metric/description -> create new metric desc
+POST /metric/data/{metric_desc_id} -> associate data to a metric desc
+
+GET /equities/sectors
+
+GET /equities/industries
+
+
+POST /equities/company -> create company
+PUT /equities/company{cpny_id} -> update company
+POST /equities/company/businessSegment/{cpny_id} -> create business segment
+PUT /equities/company/{bs_id} -> update business_segment
+
+GET /equities/companies -> retrieve all companies
+GET /equities/companies/{sector_id} -> retrieve all companies for specific sector
+GET /equities/companies/{industry_id} -> retrieve all companies for specific sector
+GET /equities/companies/{watchlist_id} -> retrieve all companies for specific sector
+
+GET /equities/companies/ -> retrieve all companies
+
+GET /equities/company/{cpny_id}
+GET /equities/company/businessSegment/{bs_id}
+GET /equities/company/businessSegment/metrics/{bs_id}
+
+/equities/options
+
+/equities/screener
+
+/equities/user/groups
+
+/equities/groups
+/equities/group/{grp_id}
+/equities/group/metrics/{grp_id}

@@ -2,7 +2,7 @@ from typing import Optional, List
 from pydantic import BaseModel, ValidationError, validator
 
 
-class MetricDescriptionModelOut(BaseModel):
+"""class MetricDescriptionModelOut(BaseModel):
     id: int
     code: str
     display_name: str
@@ -21,12 +21,21 @@ class MetricDataModelOut(BaseModel):
     data: float
     description: MetricDescriptionModelOut
 
+class MetricCategoryModelOut(BaseModel):
+    id: int
+    category_name: str
+    parent_id: int = None
+    metrics: List[MetricDataModelOut] = []
+    classifications: List['MetricCategoryModelOut'] = []
+
 class BusinessSegmentModelOut(BaseModel):
     id: int
-    company_id: int
     code: str
     display_name: str
-    metrics: List[MetricDataModelOut]
+    company_id: int
+    company_name: str
+    company_ticker: str
+    metric_categories: List[MetricCategoryModelOut] = []
 
 #only important fields
 class CompanyGroupModelShortOut(BaseModel):
@@ -37,4 +46,4 @@ class CompanyGroupModelShortOut(BaseModel):
 #only important fields
 class CompanyGroupMetricsModelOut(BaseModel):
     group_info: CompanyGroupModelShortOut
-    business_segments: List[BusinessSegmentModelOut]
+    business_segments: List[BusinessSegmentModelOut]"""

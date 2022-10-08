@@ -121,7 +121,7 @@ class Company(Base):
 
 
 class CompanyExchangeRelation(Base):
-    __tablename__ = 'company_exchange'
+    __tablename__ = 'company_exchange_relation'
 
     #id = Column(Integer, primary_key=True)
     company_id = Column(ForeignKey('company.id', ondelete='CASCADE', onupdate='CASCADE'), primary_key=True, nullable=False)

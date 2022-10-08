@@ -16,7 +16,7 @@ from sqlalchemy.orm import sessionmaker
 import api.security.security as app_security
 
 import api.routers.company_metric_api as metric_api
-import core.company_metrics_classifications as metrics_classifications_core
+import core.metrics_classifications as metrics_classifications_core
 
 import datetime, base64
 
@@ -109,18 +109,18 @@ def create_metrics_classifications(body: CreateClassificationsModelIn):
     try:
         manager = SqlAlchemySessionManager()
         with manager.session_scope(db_url=api_config.global_api_config.db_conn_str, template_name='default_session') as session:
-            db_classifications = session.query(CompanyMetricClassificationAccountRelation, CompanyMetricClassification) \
-                                .join(CompanyMetricClassification, CompanyMetricClassification.id == CompanyMetricClassificationAccountRelation.company_metric_classification_id) \
-                                .filter(or_(CompanyMetricClassificationAccountRelation.account_id == body.account_id, CompanyMetricClassificationAccountRelation.account_id == None)).all()
+            db_classifications = session.query(UserMetricClassification, MetricClassification) \
+                                .join(MetricClassification, MetricClassification.id == UserMetricClassification.company_metric_classification_id) \
+                                .filter(or_(UserMetricClassification.account_id == body.account_id, UserMetricClassification.account_id == None)).all()
             for c in body.classifications:
                 for db_c in db_classifications:
                     if c.category_name == db_c[1].category_name:
                         raise Exception("A classification with name: " + c.category_name + " already exists for this user.")
                 
-                new_class = CompanyMetricClassification(category_name=c.category_name, parent_category_id=c.parent_id)
+                new_class = MetricClassification(category_name=c.category_name, parent_category_id=c.parent_id)
                 session.add(new_class)
                 session.flush()
-                session.add(CompanyMetricClassificationAccountRelation(company_metric_classification_id=new_class.id, account_id=body.account_id))         
+                session.add(UserMetricClassification(company_metric_classification_id=new_class.id, account_id=body.account_id))         
 
     except ValidationError as val_err:
         raise HTTPException(status_code=500, detail=str(val_err))
@@ -132,7 +132,7 @@ def update_metrics_classification(classification_id, body: ClassificationModelIn
     try:
         manager = SqlAlchemySessionManager()
         with manager.session_scope(db_url=api_config.global_api_config.db_conn_str, template_name='default_session') as session:
-            db_classification = session.query(CompanyMetricClassification).filter(CompanyMetricClassification.id == classification_id).first()
+            db_classification = session.query(MetricClassification).filter(MetricClassification.id == classification_id).first()
             if db_classification is None:
                 raise Exception("No classification with id: " + str(classification_id) + " exists.")
             db_classification.category_name = body.category_name
@@ -150,7 +150,7 @@ def delete_metrics_classification(classification_id):
     try:
         manager = SqlAlchemySessionManager()
         with manager.session_scope(db_url=api_config.global_api_config.db_conn_str, template_name='default_session') as session:
-            db_classification = session.query(CompanyMetricClassification).filter(CompanyMetricClassification.id == classification_id).first()
+            db_classification = session.query(MetricClassification).filter(MetricClassification.id == classification_id).first()
             if db_classification is None:
                 raise Exception("No classification with id: " + str(classification_id) + " exists.")
             session.delete(db_classification)

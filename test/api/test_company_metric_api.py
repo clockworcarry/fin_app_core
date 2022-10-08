@@ -6,11 +6,13 @@ from api.config import init_config
 
 import sys, os, json, pytest
 
-from  test.test_utils import cleanup_db_from_db_str
+from test.test_utils import cleanup_db_from_db_str
 
 from py_common_utils_gh.db_utils.db_utils import SqlAlchemySessionManager
 
 from api.routers.company_metric_api import *
+
+import api.constants as api_constants
 
 client = TestClient(app)
 

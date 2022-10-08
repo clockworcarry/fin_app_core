@@ -15,7 +15,7 @@ from sqlalchemy import create_engine, select, insert, exists
 from sqlalchemy.orm import sessionmaker
 
 import api.routers.company_metric_api as metric_api
-import core.company_metrics_classifications as metrics_classifications_core
+import api.constants as api_constants
 
 import simplejson as json
 
@@ -24,7 +24,7 @@ import jwt as jwt
 import api.config as api_config
 
 router = APIRouter(
-    prefix="/account",
+    prefix="/" + api_constants.app_name + "/" + api_constants.version + "/account",
     tags=["account"],
     dependencies=[],
     responses={404: {"description": "Not found"}}, 

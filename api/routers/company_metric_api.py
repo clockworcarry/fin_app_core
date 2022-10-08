@@ -172,10 +172,10 @@ def create_company_metric_description(body: CompanyMetricDescriptionApiModelIn, 
 
         manager = SqlAlchemySessionManager()
         with manager.session_scope(db_url=api_config.global_api_config.db_conn_str, template_name='default_session') as session:
-            app_security.authenticate_request(request, session)
+            rctx = app_security.authenticate_request(request, session)
             new_desc = CompanyMetricDescription(code=body.code, display_name=body.display_name, metric_data_type=body.metric_data_type, metric_duration=body.metric_duration, 
                                                 metric_duration_type=body.metric_duration_type, look_back=body.look_back, quarter_recorded=body.quarter_recorded, year_recorded=body.year_recorded,
-                                                company_metric_classification_id = body.classification_id)
+                                                company_metric_classification_id = body.classification_id, creator_id=rctx.user_id)
             
             if new_desc.year_recorded == None:
                 new_desc.year_recorded = -1
