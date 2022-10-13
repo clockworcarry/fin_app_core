@@ -82,7 +82,6 @@ class Sector(Base):
     id = Column(Integer, primary_key=True)
     name_code = Column(String(50), nullable=False, unique=True)
     name = Column(String(60), nullable=False, unique=True)
-    locked = Column(Boolean, nullable=False, server_default=text("false"))
 
 
 class Exchange(Base):
@@ -101,7 +100,6 @@ class Industry(Base):
     sector_id = Column(ForeignKey('sector.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False, index=True)
     name = Column(String(60), nullable=False, unique=True)
     name_code = Column(String(60), nullable=False, unique=True)
-    locked = Column(Boolean, nullable=False, server_default=text("false"))
 
 
 class Company(Base):
@@ -110,7 +108,6 @@ class Company(Base):
     id = Column(Integer, primary_key=True)
     ticker = Column(String(10), nullable=False, unique=True)
     name = Column(String(200), unique=True)
-    locked = Column(Boolean, nullable=False, server_default=text("false"))
     delisted = Column(Boolean, nullable=False, index=True, server_default=text("false"))
     
     #exchanges = relationship("Exchange", secondary=t_company_exchange_relation, backref='companies')
@@ -258,9 +255,11 @@ class MetricData(Base):
 
     id = Column(BigInteger, primary_key=True)
     metric_description_id = Column(ForeignKey('metric_description.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False, index=True)
-    #if company_business_segment_id is NULL, it means it does not belong to any companies/it is a generic metric
-    company_business_segment_id = Column(ForeignKey('company_business_segment.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False, index=True) 
+    company_business_segment_id = Column(ForeignKey('company_business_segment.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False, index=True)
     data = Column(Numeric, nullable=False)
+    user_id = Column(ForeignKey('account.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False, index=True) #if this isn't system, then it is a user-specific override
+
+    __table_args__ = (UniqueConstraint('metric_description_id', 'company_business_segment_id', 'user_id'), )
 
 
 class ScreenerPreset(Base):
@@ -309,7 +308,7 @@ class UserMetricClassification(Base):
     __tablename__ = 'user_metric_classification'
 
     metric_classification_id = Column(ForeignKey('metric_classification.id', ondelete='CASCADE', onupdate='CASCADE'), primary_key=True, nullable=False)
-    account_id = Column(ForeignKey('account.id', ondelete='CASCADE', onupdate='CASCADE'), primary_key=True, nullable=True)
+    account_id = Column(ForeignKey('account.id', ondelete='CASCADE', onupdate='CASCADE'), primary_key=True, nullable=False)
 
     #__table_args__ = (UniqueConstraint('metric_classification_id', 'account_id'), )
 
@@ -347,7 +346,6 @@ class EquityBarData(Base):
     bar_volume = Column(BigInteger)
     bar_date = Column(DateTime(timezone=True), nullable=False, index=True)
     bar_size = Column(String(12), nullable=False)
-    locked = Column(Boolean, nullable=False, server_default=text("false"))
 
 
 class CurrencyBarData(Base):
@@ -363,7 +361,6 @@ class CurrencyBarData(Base):
     bar_volume = Column(BigInteger)
     bar_date = Column(DateTime(timezone=True), nullable=False, index=True)
     bar_size = Column(String(12), nullable=False)
-    locked = Column(Boolean, nullable=False, server_default=text("false"))
 
     #__table_args__ = (UniqueConstraint('company_id', 'bar_type', 'bar_size', 'bar_date'), )
 

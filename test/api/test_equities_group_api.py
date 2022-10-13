@@ -124,39 +124,46 @@ class TestEquitiesGroupApi:
                 session.add(CompanyGroupMetricDescription(metric_description_id=metric_desc_ebitda_ttm.id, company_group_id=group_defaults.id))
                 session.add(CompanyGroupMetricDescription(metric_description_id=metric_desc_nb_enterprise_customers.id, company_group_id=group_cloud.id))
 
+                #create second non-system user
+                hashed_pwd = pwd_context.hash('ghelie123')
+                ghelie_user = Account(id=2, userName='ghelie', password=hashed_pwd, email='ghelie@gmail.com', phone='514-214-6004', disabled=False)
+                session.add(ghelie_user)
+                session.flush()
+
                 #associate metric data to descriptions
 
                 #AMD
-                session.add(MetricData(id=1, metric_description_id=metric_desc_rev_2021.id, company_business_segment_id=default_bus_segment_amd.id, data=200000))
-                session.add(MetricData(id=2, metric_description_id=metric_desc_revenue_ttm.id, company_business_segment_id=default_bus_segment_amd.id, data=220000))
-                session.add(MetricData(id=3, metric_description_id=metric_desc_ebitda_2021.id, company_business_segment_id=default_bus_segment_amd.id, data=30000))
-                session.add(MetricData(id=4, metric_description_id=metric_desc_ebitda_ttm.id, company_business_segment_id=default_bus_segment_amd.id, data=31000))
+                session.add(MetricData(id=1, metric_description_id=metric_desc_rev_2021.id, company_business_segment_id=default_bus_segment_amd.id, data=200000, user_id=1))
+                session.add(MetricData(id=50, metric_description_id=metric_desc_rev_2021.id, company_business_segment_id=default_bus_segment_amd.id, data=4000, user_id=2))
+                session.add(MetricData(id=2, metric_description_id=metric_desc_revenue_ttm.id, company_business_segment_id=default_bus_segment_amd.id, data=220000, user_id=1))
+                session.add(MetricData(id=3, metric_description_id=metric_desc_ebitda_2021.id, company_business_segment_id=default_bus_segment_amd.id, data=30000, user_id=1))
+                session.add(MetricData(id=4, metric_description_id=metric_desc_ebitda_ttm.id, company_business_segment_id=default_bus_segment_amd.id, data=31000, user_id=1))
 
                 #ZM
-                session.add(MetricData(id=5, metric_description_id=metric_desc_rev_2021.id, company_business_segment_id=default_bus_segment_zm.id, data=40000))
-                session.add(MetricData(id=6, metric_description_id=metric_desc_revenue_ttm.id, company_business_segment_id=default_bus_segment_zm.id, data=40500))
-                session.add(MetricData(id=7, metric_description_id=metric_desc_ebitda_2021.id, company_business_segment_id=default_bus_segment_zm.id, data=10000))
-                session.add(MetricData(id=8, metric_description_id=metric_desc_ebitda_ttm.id, company_business_segment_id=default_bus_segment_zm.id, data=11000))
+                session.add(MetricData(id=5, metric_description_id=metric_desc_rev_2021.id, company_business_segment_id=default_bus_segment_zm.id, data=40000, user_id=1))
+                session.add(MetricData(id=6, metric_description_id=metric_desc_revenue_ttm.id, company_business_segment_id=default_bus_segment_zm.id, data=40500, user_id=1))
+                session.add(MetricData(id=7, metric_description_id=metric_desc_ebitda_2021.id, company_business_segment_id=default_bus_segment_zm.id, data=10000, user_id=1))
+                session.add(MetricData(id=8, metric_description_id=metric_desc_ebitda_ttm.id, company_business_segment_id=default_bus_segment_zm.id, data=11000, user_id=1))
 
                 #MSFT
-                session.add(MetricData(id=9, metric_description_id=metric_desc_rev_2021.id, company_business_segment_id=default_bus_segment_msft.id, data=10000000))
-                session.add(MetricData(id=10, metric_description_id=metric_desc_revenue_ttm.id, company_business_segment_id=default_bus_segment_msft.id, data=12000000))
-                session.add(MetricData(id=11, metric_description_id=metric_desc_ebitda_2021.id, company_business_segment_id=default_bus_segment_msft.id, data=100000))
-                session.add(MetricData(id=12, metric_description_id=metric_desc_ebitda_ttm.id, company_business_segment_id=default_bus_segment_msft.id, data=110000))
-                session.add(MetricData(id=13, metric_description_id=metric_desc_nb_enterprise_customers.id, company_business_segment_id=cloud_bus_segment_msft.id, data=7000))
+                session.add(MetricData(id=9, metric_description_id=metric_desc_rev_2021.id, company_business_segment_id=default_bus_segment_msft.id, data=10000000, user_id=1))
+                session.add(MetricData(id=10, metric_description_id=metric_desc_revenue_ttm.id, company_business_segment_id=default_bus_segment_msft.id, data=12000000, user_id=1))
+                session.add(MetricData(id=11, metric_description_id=metric_desc_ebitda_2021.id, company_business_segment_id=default_bus_segment_msft.id, data=100000, user_id=1))
+                session.add(MetricData(id=12, metric_description_id=metric_desc_ebitda_ttm.id, company_business_segment_id=default_bus_segment_msft.id, data=110000, user_id=1))
+                session.add(MetricData(id=13, metric_description_id=metric_desc_nb_enterprise_customers.id, company_business_segment_id=cloud_bus_segment_msft.id, data=7000, user_id=1))
 
                 #AAPL
-                session.add(MetricData(id=14, metric_description_id=metric_desc_rev_2021.id, company_business_segment_id=default_bus_segment_aapl.id, data=50000))
-                session.add(MetricData(id=15, metric_description_id=metric_desc_revenue_ttm.id, company_business_segment_id=default_bus_segment_aapl.id, data=40500))
-                session.add(MetricData(id=16, metric_description_id=metric_desc_ebitda_2021.id, company_business_segment_id=default_bus_segment_aapl.id, data=13000))
-                session.add(MetricData(id=17, metric_description_id=metric_desc_ebitda_ttm.id, company_business_segment_id=default_bus_segment_aapl.id, data=14000))
+                session.add(MetricData(id=14, metric_description_id=metric_desc_rev_2021.id, company_business_segment_id=default_bus_segment_aapl.id, data=50000, user_id=1))
+                session.add(MetricData(id=15, metric_description_id=metric_desc_revenue_ttm.id, company_business_segment_id=default_bus_segment_aapl.id, data=40500, user_id=1))
+                session.add(MetricData(id=16, metric_description_id=metric_desc_ebitda_2021.id, company_business_segment_id=default_bus_segment_aapl.id, data=13000, user_id=1))
+                session.add(MetricData(id=17, metric_description_id=metric_desc_ebitda_ttm.id, company_business_segment_id=default_bus_segment_aapl.id, data=14000, user_id=1))
 
                 #BABA
-                session.add(MetricData(id=18, metric_description_id=metric_desc_rev_2021.id, company_business_segment_id=default_bus_segment_baba.id, data=300))
-                session.add(MetricData(id=19, metric_description_id=metric_desc_revenue_ttm.id, company_business_segment_id=default_bus_segment_baba.id, data=310))
-                session.add(MetricData(id=20, metric_description_id=metric_desc_ebitda_2021.id, company_business_segment_id=default_bus_segment_baba.id, data=200))
-                session.add(MetricData(id=21, metric_description_id=metric_desc_ebitda_ttm.id, company_business_segment_id=default_bus_segment_baba.id, data=210))
-                session.add(MetricData(id=22, metric_description_id=metric_desc_nb_enterprise_customers.id, company_business_segment_id=cloud_bus_segment_baba.id, data=500))
+                session.add(MetricData(id=18, metric_description_id=metric_desc_rev_2021.id, company_business_segment_id=default_bus_segment_baba.id, data=300, user_id=1))
+                session.add(MetricData(id=19, metric_description_id=metric_desc_revenue_ttm.id, company_business_segment_id=default_bus_segment_baba.id, data=310, user_id=1))
+                session.add(MetricData(id=20, metric_description_id=metric_desc_ebitda_2021.id, company_business_segment_id=default_bus_segment_baba.id, data=200, user_id=1))
+                session.add(MetricData(id=21, metric_description_id=metric_desc_ebitda_ttm.id, company_business_segment_id=default_bus_segment_baba.id, data=210, user_id=1))
+                session.add(MetricData(id=22, metric_description_id=metric_desc_nb_enterprise_customers.id, company_business_segment_id=cloud_bus_segment_baba.id, data=500, user_id=1))
             
             login_url = TestEquitiesGroupApi.base_url + "/account/token"
             input = {'username': 'system', 'password': 'system'}
@@ -164,6 +171,12 @@ class TestEquitiesGroupApi:
             assert response.status_code == 200
             response = response.json()
             TestEquitiesGroupApi.access_token = response['access_token']
+
+            input = {'username': 'ghelie', 'password': 'ghelie123'}
+            response = client.post(login_url, headers = {'Content-Type': 'application/x-www-form-urlencoded'}, data=input)
+            assert response.status_code == 200
+            response = response.json()
+            TestEquitiesGroupApi.ghelie_access_token = response['access_token']
         
         except Exception as gen_ex:
             print(str(gen_ex))
@@ -173,7 +186,7 @@ class TestEquitiesGroupApi:
         base_url = TestEquitiesGroupApi.base_url + "/equities/group/metrics/"
         
         url = base_url + str(TestEquitiesGroupApi.group_defaults_id)
-        response = client.get(url, headers={"Authorization": "Bearer " + TestEquitiesGroupApi.access_token})             
+        response = client.get(url, headers={"Authorization": "Bearer " + TestEquitiesGroupApi.ghelie_access_token})             
         assert response.status_code == 200
         response = response.json()
         
@@ -202,7 +215,7 @@ class TestEquitiesGroupApi:
         assert len(category['metrics']) == 2
         assert len(category['categories']) == 0
         category_metrics = category['metrics']
-        assert category_metrics[0]['data'] == 200000
+        assert category_metrics[0]['data'] == 4000
         assert category_metrics[0]['description']['id'] == 1
         assert category_metrics[0]['description']['code'] == 'rev_2021'
         assert category_metrics[0]['description']['display_name'] == '2021 Revenue'

@@ -1,6 +1,7 @@
 from urllib.request import Request
 from fastapi import Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer
+from itsdangerous import SignatureExpired
 import jwt as jwt
 import api.config as api_config
 from py_common_utils_gh.db_utils.db_utils import SqlAlchemySessionManager
@@ -17,7 +18,7 @@ class RequestContext:
 def authenticate_request(request: Request, session):
     auth_header = request.headers.get('Authorization')
     if auth_header is None:
-        raise Exception("Missing Authorization header.")
+        raise SignatureExpired("Missing Authorization header.")
 
     scheme, _, token = auth_header.partition(" ")
     

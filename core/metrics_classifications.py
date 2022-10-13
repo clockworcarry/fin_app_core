@@ -5,6 +5,8 @@ from db.models import *
 from core.shared_models import *
 import json
 
+import core.constants as core_global_constants
+
 class MetricsClassificationFine:
     def __init__(self, id, category_name, account_id, parent_id, classifications):
         self.id = id
@@ -86,7 +88,7 @@ def transform_metric_classifications_to_categories_model(metric_classifications_
 def get_user_metric_categories(account_id, session) -> List[MetricCategoryModel]:
     db_classifications_account_relation_tuple = session.query(MetricClassification) \
                                                         .join(UserMetricClassification, MetricClassification.id == UserMetricClassification.metric_classification_id) \
-                                                        .filter(or_(UserMetricClassification.account_id == account_id, UserMetricClassification.account_id == None)).all()
+                                                        .filter(or_(UserMetricClassification.account_id == account_id, UserMetricClassification.account_id == core_global_constants.system_user_id)).all()
 
     ret = transform_metric_classifications_to_categories_model(db_classifications_account_relation_tuple, account_id)
     return ret

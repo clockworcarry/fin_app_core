@@ -3,6 +3,7 @@ from unicodedata import category
 from xmlrpc.client import boolean
 from fastapi import APIRouter, status, HTTPException, Response, Depends
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from starlette.status import HTTP_204_NO_CONTENT
 from passlib.context import CryptContext
 from typing import Optional, List
 from pydantic import BaseModel, ValidationError, validator
@@ -36,6 +37,9 @@ class LoginModelIn(BaseModel):
 
 class LoginModelOut(BaseModel):
     access_token: str
+
+class AccountDeletingConfirmationModelOut(BaseModel):
+    confirmation_token: str
 
 class CreateAccountModelIn(BaseModel):
     userName: str
@@ -80,6 +84,10 @@ def create_account(body: CreateAccountModelIn):
     except Exception as gen_ex:
         raise HTTPException(status_code=500, detail=str(gen_ex))
 
+@router.put("/{account_id}", status_code=status.HTTP_204_NO_CONTENT)
+def update_account(body: CreateAccountModelIn):
+    return Response(content="Not implemented", status_code=HTTP_204_NO_CONTENT)
+
 @router.post("/token", status_code=status.HTTP_200_OK, response_model=LoginModelOut)
 def login(form_data: OAuth2PasswordRequestForm = Depends()):
     try:
@@ -104,3 +112,15 @@ def login(form_data: OAuth2PasswordRequestForm = Depends()):
         raise HTTPException(status_code=500, detail=str(val_err))
     except Exception as gen_ex:
         raise HTTPException(status_code=500, detail=str(gen_ex))
+
+@router.put("/{}", status_code=status.HTTP_200_OK, )
+def account_deletion_confirmation(body: CreateAccountModelIn):
+    return Response(content="Not implemented", status_code=HTTP_204_NO_CONTENT)
+
+@router.put("/confirmation/{account_id}", status_code=HTTP_204_NO_CONTENT)
+def delete_account():
+    return Response(content="Not implemented", status_code=HTTP_204_NO_CONTENT)
+
+@router.delete("/", status_code=HTTP_204_NO_CONTENT)
+def delete_account():
+    return Response(content="Not implemented", status_code=HTTP_204_NO_CONTENT)

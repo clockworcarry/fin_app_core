@@ -1,18 +1,11 @@
-import datetime, base64
-import numpy as np
-from psycopg2 import *
-
 from xmlrpc.client import boolean
-from fastapi import APIRouter, status, HTTPException, Request, Response
+from fastapi import APIRouter, status, HTTPException, Request, Response, Depends
 from starlette.status import HTTP_204_NO_CONTENT
 from typing import Optional, List
 from pydantic import BaseModel, ValidationError, validator
 
 from py_common_utils_gh.os_common_utils import setup_logger, default_log_formatter
 from py_common_utils_gh.db_utils.db_utils import SqlAlchemySessionManager
-
-from sqlalchemy import create_engine, select, insert, exists
-from sqlalchemy.orm import sessionmaker
 
 from db.models import *
 
@@ -21,14 +14,14 @@ import api.routers.shared_models as shared_models
 import core.shared_models as shared_models_core
 import core.metrics_classifications as metrics_classifications_core
 
-import api.constants as api_constants
-
 import api.security.security as app_security
 
 
 import simplejson as json
 
 import api.config as api_config
+import api.constants as api_constants
+import core.constants as core_global_constants
 
 import copy
 
@@ -146,28 +139,37 @@ Returns:
     the metric data for the group
 """
 @router.get("/metrics/{grp_id}", response_model=shared_models_core.CompanyGroupMetricsModel)
-def get_group_metrics(grp_id, request: Request):
+def get_group_metrics(grp_id, request: Request, force_system_data : bool = False):
     try:
         manager = SqlAlchemySessionManager()
         with manager.session_scope(db_url=api_config.global_api_config.db_conn_str, template_name='default_session') as session:
-            rctx = app_security.authenticate_request(request, session)
+            #rctx = app_security.authenticate_request(request, session)
+            rctx = request.state.rctx
             
             metric_categories = metrics_classifications_core.get_user_metric_categories(rctx.user_id, session)
 
-            db_rows = session.query(CompanyGroup, CompanyInGroup, CompanyGroupMetricDescription, MetricDescription, MetricData, CompanyBusinessSegment, Company) \
+            query = session.query(CompanyGroup, CompanyInGroup, CompanyGroupMetricDescription, MetricDescription, MetricData, CompanyBusinessSegment, Company) \
                                                                                                 .join(CompanyInGroup, CompanyInGroup.group_id == CompanyGroup.id) \
                                                                                                 .join(CompanyGroupMetricDescription, CompanyGroupMetricDescription.company_group_id == CompanyGroup.id) \
                                                                                                 .join(MetricDescription, MetricDescription.id == CompanyGroupMetricDescription.metric_description_id) \
                                                                                                 .join(MetricData, and_(MetricData.metric_description_id == MetricDescription.id, MetricData.company_business_segment_id == CompanyInGroup.company_business_segment_id)) \
                                                                                                 .join(CompanyBusinessSegment, CompanyBusinessSegment.id == MetricData.company_business_segment_id) \
                                                                                                 .join(Company, Company.id == CompanyBusinessSegment.company_id) \
-                                                                                                .filter(CompanyGroup.id == grp_id).all()
+                                                                                                .filter(CompanyGroup.id == grp_id)
+
+            if force_system_data:
+                query = query.filter(MetricData.user_id == core_global_constants.system_user_id)
+            else:
+                query = query.filter(or_(MetricData.user_id == core_global_constants.system_user_id, MetricData.user_id == rctx.user_id))
             
+            db_rows = query.all()
 
             if len(db_rows) == 0:
                 raise Exception("No data found for group_id: " + str(grp_id))
 
             business_segments = []
+
+            #time.sleep(5) # Sleep for 3 seconds
 
             #initialize business segments
             for row in db_rows:
@@ -202,7 +204,17 @@ def get_group_metrics(grp_id, request: Request):
                 if ebs is not None:
                     for cat in ebs.metric_categories:
                         if cat.id == row_metric_description.metric_classification_id:
-                            cat.metrics.append(metric_data)
+                            duplicate_metric = None
+                            for idx, metric in enumerate(cat.metrics):
+                                if metric.description.id == metric_data.description.id:
+                                    duplicate_metric = metric
+                                    break
+                            
+                            if duplicate_metric is None:
+                                cat.metrics.append(metric_data)
+                            elif row_metric_data.user_id != core_global_constants.system_user_id:
+                                cat.metrics.append(metric_data) #override existing system metric with user's one
+                                del cat.metrics[idx]
                             break
             
             #group categories in business segment (tree hierarchy, categories can be nested recursively)
@@ -214,8 +226,6 @@ def get_group_metrics(grp_id, request: Request):
             group_info = shared_models_core.CompanyGroupInfoShortModel(id=db_rows[0][0].id, name_code=db_rows[0][0].name_code, name=db_rows[0][0].name)
 
             ret = shared_models_core.CompanyGroupMetricsModel(group_info=group_info, business_segments=business_segments)
-
-            print(shared_models_core.CompanyGroupMetricsModel.parse_obj(ret).json()) 
 
             return ret                                      
 

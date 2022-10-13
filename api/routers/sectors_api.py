@@ -5,41 +5,34 @@ from pydantic import BaseModel, ValidationError, validator
 from py_common_utils_gh.os_common_utils import setup_logger, default_log_formatter
 from py_common_utils_gh.db_utils.db_utils import SqlAlchemySessionManager
 from db.models import *
-import numpy as np
-from psycopg2 import *
-from sqlalchemy import create_engine, select, insert, exists
-from sqlalchemy.orm import sessionmaker
-
-import datetime, base64
-
-import simplejson as json
 
 import api.config as api_config
+import api.constants as api_constants
+import core.constants as core_constants
 
 router = APIRouter(
-    prefix="/sectors",
+    prefix="/" + api_constants.app_name + "/" + api_constants.version + "/sectors",
     tags=["sectors"],
     dependencies=[],
     responses={404: {"description": "Not found"}},
 )
 
-class SectorsApiModelOut(BaseModel):
+class SectorModelOut(BaseModel):
     id: int
     name: str
     name_code: str
-    locked: bool
 
-@router.get("", response_model=List[SectorsApiModelOut])
+@router.get("/", response_model=List[SectorModelOut])
 def get_all_sectors():
     try:
         manager = SqlAlchemySessionManager()
         with manager.session_scope(db_url=api_config.global_api_config.db_conn_str, template_name='default_session') as session:
-            query_res = session.query(Sector).all()
+            sectors = session.query(Sector).all()
             
             resp = []
             
-            for res in query_res:
-                resp.append(SectorsApiModelOut(id=res.id, name=res.name, name_code=res.name_code, locked=res.locked))
+            for res in sectors:
+                resp.append(SectorModelOut(id=res.id, name=res.name, name_code=res.name_code))
             
             return resp
 
