@@ -3,7 +3,7 @@ from unicodedata import category
 from xmlrpc.client import boolean
 from fastapi import APIRouter, status, HTTPException, Response, Depends
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from starlette.status import HTTP_204_NO_CONTENT
+from starlette.status import HTTP_204_NO_CONTENT, HTTP_501_NOT_IMPLEMENTED
 from passlib.context import CryptContext
 from typing import Optional, List
 from pydantic import BaseModel, ValidationError, validator
@@ -115,12 +115,12 @@ def login(form_data: OAuth2PasswordRequestForm = Depends()):
 
 @router.put("/{}", status_code=status.HTTP_200_OK, )
 def account_deletion_confirmation(body: CreateAccountModelIn):
-    return Response(content="Not implemented", status_code=HTTP_204_NO_CONTENT)
+    return Response(content="Not implemented", status_code=HTTP_501_NOT_IMPLEMENTED)
 
 @router.put("/confirmation/{account_id}", status_code=HTTP_204_NO_CONTENT)
 def delete_account():
-    return Response(content="Not implemented", status_code=HTTP_204_NO_CONTENT)
+    return Response(content="Not implemented", status_code=HTTP_501_NOT_IMPLEMENTED)
 
 @router.delete("/", status_code=HTTP_204_NO_CONTENT)
 def delete_account():
-    return Response(content="Not implemented", status_code=HTTP_204_NO_CONTENT)
+    return Response(content="Not implemented", status_code=HTTP_501_NOT_IMPLEMENTED)

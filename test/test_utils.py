@@ -1,6 +1,7 @@
 from db.models import *
 from db.company_financials import *
 from py_common_utils_gh.db_utils.db_utils import SqlAlchemySessionManager
+from passlib.context import CryptContext
 
 def cleanup_db_conn_from_conn_obj(conn):
     try:
@@ -142,3 +143,36 @@ def cleanup_db_from_db_str(db_conn_str):
 
     except Exception as gen_ex:
         print(str(gen_ex))
+
+def create_system_user(session):
+    try:
+        pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+        hashed_pwd = pwd_context.hash('system')
+        account_system = Account(id=1, userName='system', password=hashed_pwd, email='email@gmail.com', phone='514-222-2222', disabled=False)
+        session.add(account_system)
+
+    except Exception as gen_ex:
+        print(str(gen_ex))
+
+def create_default_companies(session):
+    amd_company = Company(id=1, ticker='AMD', name='Advanced Micro Devices Inc.', delisted=False)
+    zm_company = Company(id=2, ticker='ZM', name='Zoom Video Communications Inc.', delisted=False)
+    msft_company = Company(id=3, ticker='MSFT', name='Microsoft Corp.', delisted=False)
+    aapl_company = Company(id=4, ticker='AAPL', name='Apple Inc.', delisted=False)
+    baba_company = Company(id=5, ticker='BABA', name='Alibaba Group Holdings Ltd.', delisted=False)
+    session.add_all([amd_company, zm_company, msft_company, aapl_company, baba_company])
+
+def create_default_business_segments(session):
+    default_bus_segment_amd = CompanyBusinessSegment(id=1, company_id=1, code='AMD.default', display_name='AMD default business')
+    default_bus_segment_zm = CompanyBusinessSegment(id=2, company_id=2, code='ZM.default', display_name='ZM default business')
+    default_bus_segment_msft = CompanyBusinessSegment(id=3, company_id=3, code='MSFT.default', display_name='MSFT default business')
+    cloud_bus_segment_msft = CompanyBusinessSegment(id=4, company_id=3, code='MSFT.cloud', display_name='MSFT cloud business')
+    default_bus_segment_aapl = CompanyBusinessSegment(id=5, company_id=4, code='AAPL.default', display_name='AAPL default business')
+    default_bus_segment_baba = CompanyBusinessSegment(id=6, company_id=5, code='BABA.default', display_name='BABA default business')
+    cloud_bus_segment_baba = CompanyBusinessSegment(id=7, company_id=5, code='BABA.cloud', display_name='BABA cloud business')
+    session.add_all([default_bus_segment_amd, default_bus_segment_zm, default_bus_segment_msft, cloud_bus_segment_msft, default_bus_segment_aapl, default_bus_segment_baba, cloud_bus_segment_baba])
+
+def create_default_groups(session):
+    group_defaults = CompanyGroup(id=1, name_code='defaults_grp', name='Group Of All Defaults', creator_id=1)
+    group_cloud = CompanyGroup(id=2, name_code='cloud_grp', name='Group Of Cloud Businesses', creator_id=1)
+    session.add_all([group_defaults, group_cloud])

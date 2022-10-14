@@ -109,6 +109,7 @@ class Company(Base):
     ticker = Column(String(10), nullable=False, unique=True)
     name = Column(String(200), unique=True)
     delisted = Column(Boolean, nullable=False, index=True, server_default=text("false"))
+    creator_id = Column(ForeignKey('account.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False)
     
     #exchanges = relationship("Exchange", secondary=t_company_exchange_relation, backref='companies')
     #sectors = relationship("Sector", secondary=t_company_sector_relation)

@@ -34,27 +34,27 @@ INDUSTRIES API -> DONE, NOT TESTED
 GET /industries
 GET /industries/{sector_id}
 
-EQUITIES COMPANY API
-GET /equities/company/{cpny_id}
-POST /equities/company
-PUT /equities/company/{cpny_id}
-DELETE /equities/company/{cpny_id}
+COMPANY API -> DONE NOT TESTED
+GET /company/{cpny_id}
+POST /company
+PUT /company/{cpny_id}
+DELETE /company/{cpny_id}
 
 EQUITIES COMPANIES API
-GET /equities/companies
-GET /equities/companies/{industry_id}
-GET /equities/companies/{sector_id}
-GET /equities/companies/{watchlist_id}
+GET /companies
+GET /companies/{industry_id}
+GET /companies/{sector_id}
+GET /companies/{watchlist_id}
 
 EQUITIES COMPANY BUSINESS SEGMENT API
-GET /equities/company/businessSegment/{bs_id}
-GET /equities/company/businessSegment/metrics/{bs_id}
-POST /equities/company/businessSegment
-PUT /equities/company/businessSegment/{bs_id}
-DELETE /equities/company/businessSegment/{bs_id}
+GET /company/businessSegment/{bs_id}
+GET /company/businessSegment/metrics/{bs_id}
+POST /company/businessSegment/{cpny_id}
+PUT /company/businessSegment/{bs_id}
+DELETE /company/businessSegment/{bs_id}
 
 EQUITIES COMPANY BUSINESS SEGMENTS API
-GET /equities/company/businessSegments/{cpny_id}
+GET /company/businessSegments/{cpny_id}
 
 EQUITIES GROUP API -> DONE AND TESTED
 GET /equities/group/{grp_id} -> get categorized metrics for business in group DONE
@@ -80,7 +80,7 @@ POST /metricClassification -> create new metric classification for this user
 PUT /metricClassification/{cls_id} -> update metric classification
 DELETE /metricClassification/{cls_id} -> update metric classification
 
-EQUITIES GROUPS API
+EQUITIES GROUPS API -> DONE AND TESTED
 GET /equities/groups -> gets all groups for specified users
 
 METRIC DATA API

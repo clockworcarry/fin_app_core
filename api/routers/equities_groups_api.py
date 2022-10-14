@@ -1,6 +1,6 @@
 from xmlrpc.client import boolean
 from fastapi import APIRouter, status, HTTPException, Request, Response, Depends
-from starlette.status import HTTP_204_NO_CONTENT
+from starlette.status import HTTP_204_NO_CONTENT, HTTP_200_OK
 from typing import Optional, List
 from pydantic import BaseModel, ValidationError, validator
 
@@ -25,12 +25,12 @@ router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
-@router.get("/{user_id}", response_model=List[shared_models_core.CompanyGroupInfoShortModel])
+@router.get("/{user_id}", status_code=HTTP_200_OK, response_model=List[shared_models_core.CompanyGroupInfoShortModel])
 def get_user_groups(user_id, request: Request):
     try:
         manager = SqlAlchemySessionManager()
         with manager.session_scope(db_url=api_config.global_api_config.db_conn_str, template_name='default_session') as session:
-            groups = session.query(CompanyGroup).join(UserCompanyGroup, UserCompanyGroup.group_id == CompanyGroup.id).filter(UserCompanyGroup.user_id == user_id).all()
+            groups = session.query(CompanyGroup).join(UserCompanyGroup, UserCompanyGroup.group_id == CompanyGroup.id).filter(UserCompanyGroup.account_id == user_id).all()
             
             resp = []
             for res in groups:

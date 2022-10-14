@@ -72,3 +72,8 @@ class CompanyGroupMetricsModel(BaseModel):
     group_info: CompanyGroupInfoShortModel
     business_segments: List[BusinessSegmentModel]
 
+class CompanyModel(BaseModel):
+    ticker: str
+    name: str
+    delisted: bool
+    creator_id: int
