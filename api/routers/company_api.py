@@ -51,6 +51,7 @@ def create_company(company_body: shared_models_core.CompanyModel):
         with manager.session_scope(db_url=api_config.global_api_config.db_conn_str, template_name='default_session') as session:
             company = Company(ticker=company_body.ticker, name=company_body.name, delisted=company_body.delisted, creator_id=company_body.creator_id)
             session.add(company)
+            #todo: create default bus segment
         
         return Response(status_code=HTTP_201_CREATED)
 

@@ -3,6 +3,7 @@ from fastapi import APIRouter, status, HTTPException, Response, Request
 from typing import Optional, List
 from pydantic import BaseModel, ValidationError, validator
 from starlette.status import HTTP_204_NO_CONTENT, HTTP_201_CREATED, HTTP_401_UNAUTHORIZED
+from fastapi.responses import JSONResponse
 
 from py_common_utils_gh.os_common_utils import setup_logger, default_log_formatter
 from py_common_utils_gh.db_utils.db_utils import SqlAlchemySessionManager
@@ -32,11 +33,11 @@ class SectorSaveModelIn(BaseModel):
     name_code: str
 
 
-@router.post("/", status_code=status.HTTP_201_CREATED)
+@router.post("", status_code=status.HTTP_201_CREATED)
 def create_sector(body: SectorSaveModelIn, request: Request):
     try:
         if request.state.rctx.user_id != core_constants.system_user_id:
-            raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="Only system user can create a new sector. Other users should create company groups.")
+            return JSONResponse(status_code=HTTP_401_UNAUTHORIZED, content={'details': "Only system user can create a sector. Other users should create company groups."})
         
         manager = SqlAlchemySessionManager()
         with manager.session_scope(db_url=api_config.global_api_config.db_conn_str, template_name='default_session') as session:
@@ -54,13 +55,15 @@ def create_sector(body: SectorSaveModelIn, request: Request):
 def update_sector(sector_id, body: SectorSaveModelIn, request: Request):
     try:
         if request.state.rctx.user_id != core_constants.system_user_id:
-            raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="Only system user can update a sector. Other users should create company groups.")
+            return JSONResponse(status_code=HTTP_401_UNAUTHORIZED, content={'details': "Only system user can update a sector. Other users should create company groups."})
         
         manager = SqlAlchemySessionManager()
         with manager.session_scope(db_url=api_config.global_api_config.db_conn_str, template_name='default_session') as session:
             db_sector = session.query(Sector).filter(Sector.id == sector_id).first()
             if db_sector is None:
                 raise Exception("Could not load sector with id: " + str(sector_id))
+            db_sector.name = body.name
+            db_sector.name_code = body.name_code
             
         return Response(status_code=HTTP_204_NO_CONTENT)
     

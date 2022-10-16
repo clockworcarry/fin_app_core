@@ -196,6 +196,9 @@ class TestEquitiesGroupApi:
         assert category['id'] == 3
         assert category['category_name'] == "Revenue"
         assert len(category['metrics']) == 2
+
+        category['metrics'].sort(key=lambda x: x['description']['id'], reverse=False)
+
         assert len(category['categories']) == 0
         category_metrics = category['metrics']
         assert category_metrics[0]['data'] == 4000
@@ -226,6 +229,9 @@ class TestEquitiesGroupApi:
         assert category['id'] == 4
         assert category['category_name'] == "EBITDA"
         assert len(category['metrics']) == 2
+
+        category['metrics'].sort(key=lambda x: x['description']['id'], reverse=False)
+
         assert len(category['categories']) == 0
         category_metrics = category['metrics']
         assert category_metrics[0]['data'] == 30000
@@ -271,6 +277,9 @@ class TestEquitiesGroupApi:
         assert category['id'] == 3
         assert category['category_name'] == "Revenue"
         assert len(category['metrics']) == 2
+
+        category['metrics'].sort(key=lambda x: x['description']['id'], reverse=False)
+
         assert len(category['categories']) == 0
         category_metrics = category['metrics']
         assert category_metrics[0]['data'] == 40000
@@ -301,6 +310,10 @@ class TestEquitiesGroupApi:
         assert category['id'] == 4
         assert category['category_name'] == "EBITDA"
         assert len(category['metrics']) == 2
+
+        category['metrics'].sort(key=lambda x: x['description']['id'], reverse=False)
+
+
         assert len(category['categories']) == 0
         category_metrics = category['metrics']
         assert category_metrics[0]['data'] == 10000
@@ -346,6 +359,9 @@ class TestEquitiesGroupApi:
         assert category['id'] == 3
         assert category['category_name'] == "Revenue"
         assert len(category['metrics']) == 2
+
+        category['metrics'].sort(key=lambda x: x['description']['id'], reverse=False)
+
         assert len(category['categories']) == 0
         category_metrics = category['metrics']
         assert category_metrics[0]['data'] == 10000000
@@ -376,6 +392,9 @@ class TestEquitiesGroupApi:
         assert category['id'] == 4
         assert category['category_name'] == "EBITDA"
         assert len(category['metrics']) == 2
+
+        category['metrics'].sort(key=lambda x: x['description']['id'], reverse=False)
+
         assert len(category['categories']) == 0
         category_metrics = category['metrics']
         assert category_metrics[0]['data'] == 100000
@@ -421,6 +440,9 @@ class TestEquitiesGroupApi:
         assert category['id'] == 3
         assert category['category_name'] == "Revenue"
         assert len(category['metrics']) == 2
+
+        category['metrics'].sort(key=lambda x: x['description']['id'], reverse=False)
+
         assert len(category['categories']) == 0
         category_metrics = category['metrics']
         assert category_metrics[0]['data'] == 50000
@@ -451,6 +473,9 @@ class TestEquitiesGroupApi:
         assert category['id'] == 4
         assert category['category_name'] == "EBITDA"
         assert len(category['metrics']) == 2
+
+        category['metrics'].sort(key=lambda x: x['description']['id'], reverse=False)
+
         assert len(category['categories']) == 0
         category_metrics = category['metrics']
         assert category_metrics[0]['data'] == 13000
@@ -496,6 +521,9 @@ class TestEquitiesGroupApi:
         assert category['id'] == 3
         assert category['category_name'] == "Revenue"
         assert len(category['metrics']) == 2
+
+        category['metrics'].sort(key=lambda x: x['description']['id'], reverse=False)
+
         assert len(category['categories']) == 0
         category_metrics = category['metrics']
         assert category_metrics[0]['data'] == 300
@@ -526,6 +554,9 @@ class TestEquitiesGroupApi:
         assert category['id'] == 4
         assert category['category_name'] == "EBITDA"
         assert len(category['metrics']) == 2
+
+        category['metrics'].sort(key=lambda x: x['description']['id'], reverse=False)
+
         assert len(category['categories']) == 0
         category_metrics = category['metrics']
         assert category_metrics[0]['data'] == 200

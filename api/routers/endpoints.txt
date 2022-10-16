@@ -10,6 +10,23 @@ ROADMAP
 /equities/screener
 
 
+EQUITIES GROUPS API -> DONE AND TESTED
+GET /equities/groups -> gets all groups for specified users
+
+EQUITIES GROUP API -> DONE AND TESTED
+GET /equities/group/{grp_id} -> get categorized metrics for business in group DONE
+PUT /equities/group/metricDescription/{grp_id}/{desc_id} -> add existing metric desc to group DONE
+PUT /equities/group/businessSegment/{grp_id}/{bs_id} -> add existing business segment to group DONE
+DELETE /equities/group/metricDescription/{grp_id}/{desc_id} -> remove metric desc from group DONE
+DELETE /equities/group/businessSegment/{grp_id}/{bs_id} -> remove bs from group DONE
+
+SECTORS API -> DONE AND TESTED
+GET /sectors
+
+COMPANIES API -> DONE AND TESTED
+GET /companies
+GET /companies/watchlist/{watchlist_id}
+
 ACCOUNT API
 POST /account
 PUT /account/{account_id}
@@ -17,34 +34,27 @@ PUT /account/confirmation/{account_id}
 DELETE /account/{account_id}
 POST /account/token
 
-SECTOR API -> DONE, NOT TESTED
+SECTOR API -> DONE AND TESTED
 POST /sector
 PUT /sector/{sector_id}
 DELETE /sector/{sector_id}
 
-SECTORS API -> DONE, NOT TESTED
-GET /sectors
-
-INDUSTRY API -> DONE, NOT TESTED
+INDUSTRY API -> DONE AND TESTED
 POST /industry
 PUT /industry/{industry_id}
 DELETE /industry/{industry_id}
 
-INDUSTRIES API -> DONE, NOT TESTED
+INDUSTRIES API -> DONE AND TESTED
 GET /industries
 GET /industries/{sector_id}
 
+
+
 COMPANY API -> DONE NOT TESTED
 GET /company/{cpny_id}
-POST /company
+POST /company -> create default business segment 
 PUT /company/{cpny_id}
 DELETE /company/{cpny_id}
-
-EQUITIES COMPANIES API
-GET /companies
-GET /companies/{industry_id}
-GET /companies/{sector_id}
-GET /companies/{watchlist_id}
 
 EQUITIES COMPANY BUSINESS SEGMENT API
 GET /company/businessSegment/{bs_id}
@@ -55,13 +65,6 @@ DELETE /company/businessSegment/{bs_id}
 
 EQUITIES COMPANY BUSINESS SEGMENTS API
 GET /company/businessSegments/{cpny_id}
-
-EQUITIES GROUP API -> DONE AND TESTED
-GET /equities/group/{grp_id} -> get categorized metrics for business in group DONE
-PUT /equities/group/metricDescription/{grp_id}/{desc_id} -> add existing metric desc to group DONE
-PUT /equities/group/businessSegment/{grp_id}/{bs_id} -> add existing business segment to group DONE
-DELETE /equities/group/metricDescription/{grp_id}/{desc_id} -> remove metric desc from group DONE
-DELETE /equities/group/businessSegment/{grp_id}/{bs_id} -> remove bs from group DONE
 
 METRIC DESCRIPTIONS API
 GET /metricDescriptions -> get all metric descriptions from specified users
@@ -79,9 +82,6 @@ METRIC CLASSIFICATION API
 POST /metricClassification -> create new metric classification for this user
 PUT /metricClassification/{cls_id} -> update metric classification
 DELETE /metricClassification/{cls_id} -> update metric classification
-
-EQUITIES GROUPS API -> DONE AND TESTED
-GET /equities/groups -> gets all groups for specified users
 
 METRIC DATA API
 GET /metricData -> get user's version of the data for a metric desc

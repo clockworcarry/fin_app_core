@@ -1,5 +1,5 @@
 from pydantic import BaseModel, ValidationError, validator
-from typing import Optional, List
+from typing import Optional, List, Union
 
 class MetricsClassificationFine:   
     def __init__(self, id, category_name, account_id, parent_id, classifications):
@@ -43,6 +43,7 @@ class MetricDataModel(BaseModel):
     data: float
     description: MetricDescriptionModel
 
+
 class MetricCategoryModel(BaseModel):
     id: int
     category_name: str
@@ -51,6 +52,7 @@ class MetricCategoryModel(BaseModel):
     categories: List['MetricCategoryModel'] = []
 
 MetricCategoryModel.update_forward_refs()
+
 
 class BusinessSegmentModel(BaseModel):
     id: int
@@ -61,11 +63,25 @@ class BusinessSegmentModel(BaseModel):
     company_ticker: str
     metric_categories: List[MetricCategoryModel] = []
 
+
+class BusinessSegmentModelShort(BaseModel):
+    id: int
+    code: str
+    display_name: str
+    company_id: int
+    #company_name: str
+    #company_ticker: str
+
+    class Config:
+        orm_mode = True
+        underscore_attrs_are_private = True
+
 #only important fields
 class CompanyGroupInfoShortModel(BaseModel):
     id: int
     name_code: str
     name: str
+
 
 #only important fields
 class CompanyGroupMetricsModel(BaseModel):
@@ -73,7 +89,12 @@ class CompanyGroupMetricsModel(BaseModel):
     business_segments: List[BusinessSegmentModel]
 
 class CompanyModel(BaseModel):
+    id: int
     ticker: str
     name: str
     delisted: bool
     creator_id: int
+
+class CompanyBusinessSegmentsModel(BaseModel):
+    company_info: CompanyModel
+    business_segments: List[BusinessSegmentModelShort] = []

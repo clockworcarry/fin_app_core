@@ -21,6 +21,7 @@ import api.routers.metrics_classifications_api as metrics_classifications_api
 import api.routers.account_api as account_api
 import api.routers.equities_group_api as equities_group_api
 import api.routers.equities_groups_api as equities_groups_api
+import api.routers.companies_api as companies_api
 
 import api.security.security as app_security
 
@@ -45,6 +46,7 @@ app.include_router(metrics_classifications_api.router)
 app.include_router(account_api.router)
 app.include_router(equities_group_api.router)
 app.include_router(equities_groups_api.router)
+app.include_router(companies_api.router)
 
 
 

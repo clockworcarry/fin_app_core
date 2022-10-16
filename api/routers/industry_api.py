@@ -3,6 +3,7 @@ from fastapi import APIRouter, status, HTTPException, Response, Request
 from typing import Optional, List
 from pydantic import BaseModel, ValidationError, validator
 from starlette.status import HTTP_204_NO_CONTENT, HTTP_201_CREATED, HTTP_401_UNAUTHORIZED
+from fastapi.responses import JSONResponse
 
 from py_common_utils_gh.os_common_utils import setup_logger, default_log_formatter
 from py_common_utils_gh.db_utils.db_utils import SqlAlchemySessionManager
@@ -32,11 +33,11 @@ class IndustrySaveModelIn(BaseModel):
     name: str
     name_code: str
 
-@router.post("/", status_code=status.HTTP_201_CREATED)
+@router.post("", status_code=status.HTTP_201_CREATED)
 def create_industry(body: IndustrySaveModelIn, request: Request):
     try:
         if request.state.rctx.user_id != core_constants.system_user_id:
-            raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="Only system user can create a new industry. Other users should create company groups.")
+            return JSONResponse(status_code=HTTP_401_UNAUTHORIZED, content={'details': "Only system user can create an industry. Other users should create company groups."})
 
         manager = SqlAlchemySessionManager()
         with manager.session_scope(db_url=api_config.global_api_config.db_conn_str, template_name='default_session') as session:
@@ -50,17 +51,20 @@ def create_industry(body: IndustrySaveModelIn, request: Request):
     except Exception as gen_ex:
         raise HTTPException(status_code=500, detail=str(gen_ex))
 
-@router.put("/{industry_id}", status_code=status.HTTP_200_OK)
+@router.put("/{industry_id}", status_code=status.HTTP_204_NO_CONTENT)
 def update_industry(industry_id, body: IndustrySaveModelIn, request: Request):
     try:
         if request.state.rctx.user_id != core_constants.system_user_id:
-            raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="Only system user can update an industry. Other users should create company groups.")
+            return JSONResponse(status_code=HTTP_401_UNAUTHORIZED, content={'details': "Only system user can update an industry. Other users should create company groups."})
 
         manager = SqlAlchemySessionManager()
         with manager.session_scope(db_url=api_config.global_api_config.db_conn_str, template_name='default_session') as session:
             db_industry = session.query(Industry).filter(Industry.id == industry_id).first()
             if db_industry is None:
                 raise Exception("Could not load industry with id: " + str(industry_id))
+            db_industry.sector_id = body.sector_id
+            db_industry.name = body.name
+            db_industry.name_code = body.name_code
             
         return Response(status_code=HTTP_204_NO_CONTENT)
     
