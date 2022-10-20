@@ -9,10 +9,10 @@ from py_common_utils_gh.db_utils.db_utils import SqlAlchemySessionManager
 
 from db.models import *
 
-import api.routers.company_metric_api as metric_api
 import api.routers.shared_models as shared_models
 import core.shared_models as shared_models_core
 import core.metrics_classifications as metrics_classifications_core
+import core.metrics as core_metrics
 
 import api.security.security as app_security
 
@@ -138,8 +138,8 @@ Raises:
 Returns:
     the metric data for the group
 """
-@router.get("/metrics/{grp_id}", response_model=shared_models_core.CompanyGroupMetricsModel)
-def get_group_metrics(grp_id, request: Request, force_system_data : bool = False):
+@router.get("/{grp_id}", response_model=shared_models_core.CompanyGroupMetricsModel)
+def get_group(grp_id, request: Request, force_system_data : bool = False):
     try:
         manager = SqlAlchemySessionManager()
         with manager.session_scope(db_url=api_config.global_api_config.db_conn_str, template_name='default_session') as session:
@@ -193,15 +193,19 @@ def get_group_metrics(grp_id, request: Request, force_system_data : bool = False
                 row_metric_data = row[4]
                 row_business_segment = row[5]
                 metric_desc_model = shared_models_core.MetricDescriptionModel.from_orm(row_metric_description)
+                metric_desc_model.metric_classification_id = row_metric_description.metric_classification_id
                 metric_data = shared_models_core.MetricDataModel(data=row_metric_data.data, description=metric_desc_model)
+                metric_data._user_id = row_metric_data.user_id
                 
                 ebs = None
                 for bs in business_segments:
                     if bs.id == row_business_segment.id:
                         ebs = bs
                         break
-                
                 if ebs is not None:
+                    core_metrics.add_metric_to_business_segment(ebs, metric_desc_model, metric_data)
+                
+                """if ebs is not None:
                     for cat in ebs.metric_categories:
                         if cat.id == row_metric_description.metric_classification_id:
                             duplicate_metric = None
@@ -215,7 +219,7 @@ def get_group_metrics(grp_id, request: Request, force_system_data : bool = False
                             elif row_metric_data.user_id != core_global_constants.system_user_id:
                                 cat.metrics.append(metric_data) #override existing system metric with user's one
                                 del cat.metrics[idx]
-                            break
+                            break"""
             
             #group categories in business segment (tree hierarchy, categories can be nested recursively)
             for bs in business_segments:

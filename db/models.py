@@ -150,6 +150,7 @@ class CompanyBusinessSegment(Base):
     company_id = Column(ForeignKey('company.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False, index=True)
     code = Column(String(60), nullable=False)
     display_name = Column(String(120), nullable=False)
+    creator_id = Column(ForeignKey('account.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False)
 
 
 #a group of company for comparisons

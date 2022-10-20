@@ -10,7 +10,7 @@ from  test.test_utils import cleanup_db_from_db_str, create_default_groups
 
 from py_common_utils_gh.db_utils.db_utils import SqlAlchemySessionManager
 
-from api.routers.company_metrics_api import *
+from db.models import *
 
 from  test.test_utils import cleanup_db_from_db_str, create_default_business_segments, create_default_companies, create_system_user
 
@@ -77,10 +77,9 @@ class TestEquitiesGroupsApi:
 
     
     def test_get_user_groups(self):
-        base_url = TestEquitiesGroupsApi.base_url + "/equities/groups/"
+        base_url = TestEquitiesGroupsApi.base_url + "/equities/groups"
         
-        url = base_url + "1"
-        response = client.get(url, headers={"Authorization": "Bearer " + TestEquitiesGroupsApi.access_token})             
+        response = client.get(base_url, headers={"Authorization": "Bearer " + TestEquitiesGroupsApi.access_token})             
         assert response.status_code == 200
         response = response.json()
         assert len(response) == 2
@@ -92,8 +91,7 @@ class TestEquitiesGroupsApi:
         assert response[1]['name'] == "Group Of Cloud Businesses"
         assert response[1]['name_code'] == "cloud_grp"
 
-        url = base_url + "2"
-        response = client.get(url, headers={"Authorization": "Bearer " + TestEquitiesGroupsApi.ghelie_access_token})             
+        response = client.get(base_url, headers={"Authorization": "Bearer " + TestEquitiesGroupsApi.ghelie_access_token})             
         assert response.status_code == 200
         response = response.json()
         assert len(response) == 3

@@ -10,8 +10,6 @@ from pydantic import BaseModel, ValidationError, validator
 from api.config import init_config
 
 import api.routers.company_api as company_api
-import api.routers.company_metric_api as company_metric_api
-import api.routers.company_metrics_api as company_metrics_api
 import api.routers.company_financials_api as company_financials_api
 import api.routers.industry_api as industry_api
 import api.routers.industries_api as industries_api
@@ -22,6 +20,7 @@ import api.routers.account_api as account_api
 import api.routers.equities_group_api as equities_group_api
 import api.routers.equities_groups_api as equities_groups_api
 import api.routers.companies_api as companies_api
+import api.routers.company_business_segment_api as company_business_segment_api
 
 import api.security.security as app_security
 
@@ -34,8 +33,6 @@ import api.config as api_config
 
 app = FastAPI()
 
-app.include_router(company_metric_api.router)
-app.include_router(company_metrics_api.router)
 app.include_router(company_financials_api.router)
 app.include_router(company_api.router)
 app.include_router(industry_api.router)
@@ -47,11 +44,12 @@ app.include_router(account_api.router)
 app.include_router(equities_group_api.router)
 app.include_router(equities_groups_api.router)
 app.include_router(companies_api.router)
+app.include_router(company_business_segment_api.router)
 
 
 
 @app.get("/version")
-def root():
+def version():
     return {"version": "0.0.1"}
 
 @app.middleware("http")

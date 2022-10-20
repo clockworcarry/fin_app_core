@@ -15,7 +15,6 @@ from sqlalchemy.orm import sessionmaker
 
 import api.security.security as app_security
 
-import api.routers.company_metric_api as metric_api
 import core.metrics_classifications as metrics_classifications_core
 
 import datetime, base64

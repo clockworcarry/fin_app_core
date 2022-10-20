@@ -22,7 +22,7 @@ class MetricsClassificationFine:
 
 
 class MetricDescriptionModel(BaseModel):
-    id: int
+    id: int = 0
     code: str
     display_name: str
     metric_data_type: int
@@ -33,7 +33,7 @@ class MetricDescriptionModel(BaseModel):
     quarter_recorded: int = None
     metric_fixed_year: int = None
     metric_fixed_quarter: int = None
-    _metric_classification_id: int = None
+    metric_classification_id: int = None
 
     class Config:
         orm_mode = True
@@ -42,6 +42,11 @@ class MetricDescriptionModel(BaseModel):
 class MetricDataModel(BaseModel):
     data: float
     description: MetricDescriptionModel
+    _user_id: int = None
+
+    class Config:
+        orm_mode = True
+        underscore_attrs_are_private = True
 
 
 class MetricCategoryModel(BaseModel):
@@ -55,17 +60,21 @@ MetricCategoryModel.update_forward_refs()
 
 
 class BusinessSegmentModel(BaseModel):
-    id: int
+    id: int = 0
     code: str
     display_name: str
     company_id: int
-    company_name: str
-    company_ticker: str
+    company_name: str = None
+    company_ticker: str = None
     metric_categories: List[MetricCategoryModel] = []
+
+    class Config:
+        orm_mode = True
+        underscore_attrs_are_private = True
 
 
 class BusinessSegmentModelShort(BaseModel):
-    id: int
+    id: int = 0
     code: str
     display_name: str
     company_id: int
@@ -89,12 +98,20 @@ class CompanyGroupMetricsModel(BaseModel):
     business_segments: List[BusinessSegmentModel]
 
 class CompanyModel(BaseModel):
-    id: int
+    id: int = 0
     ticker: str
     name: str
     delisted: bool
     creator_id: int
 
-class CompanyBusinessSegmentsModel(BaseModel):
+    class Config:
+        orm_mode = True
+        underscore_attrs_are_private = True
+
+class CompanyBusinessSegmentsShortModel(BaseModel):
     company_info: CompanyModel
     business_segments: List[BusinessSegmentModelShort] = []
+
+class CompanyBusinessSegmentsModel(BaseModel):
+    company_info: CompanyModel
+    business_segments: List[BusinessSegmentModel] = []

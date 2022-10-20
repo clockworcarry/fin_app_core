@@ -10,7 +10,7 @@ from  test.test_utils import cleanup_db_from_db_str, create_default_groups, crea
 
 from py_common_utils_gh.db_utils.db_utils import SqlAlchemySessionManager
 
-from api.routers.company_metrics_api import *
+from db.models import *
 
 from  test.test_utils import cleanup_db_from_db_str, create_default_business_segments, create_default_companies, create_system_user
 

@@ -8,6 +8,7 @@ Later on, the user will have the ability to retrieve data from other users he is
 ROADMAP
 /equities/options
 /equities/screener
+/company/financials -> financial statements as is
 
 
 EQUITIES GROUPS API -> DONE AND TESTED
@@ -48,23 +49,18 @@ INDUSTRIES API -> DONE AND TESTED
 GET /industries
 GET /industries/{sector_id}
 
-
-
-COMPANY API -> DONE NOT TESTED
+COMPANY API -> DONE AND TESTED
 GET /company/{cpny_id}
 POST /company -> create default business segment 
 PUT /company/{cpny_id}
 DELETE /company/{cpny_id}
 
-EQUITIES COMPANY BUSINESS SEGMENT API
+EQUITIES COMPANY BUSINESS SEGMENT API -> DONE AND TESTED
 GET /company/businessSegment/{bs_id}
 GET /company/businessSegment/metrics/{bs_id}
 POST /company/businessSegment/{cpny_id}
 PUT /company/businessSegment/{bs_id}
 DELETE /company/businessSegment/{bs_id}
-
-EQUITIES COMPANY BUSINESS SEGMENTS API
-GET /company/businessSegments/{cpny_id}
 
 METRIC DESCRIPTIONS API
 GET /metricDescriptions -> get all metric descriptions from specified users

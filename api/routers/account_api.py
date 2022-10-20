@@ -15,7 +15,6 @@ from psycopg2 import *
 from sqlalchemy import create_engine, select, insert, exists
 from sqlalchemy.orm import sessionmaker
 
-import api.routers.company_metric_api as metric_api
 import api.constants as api_constants
 
 import simplejson as json

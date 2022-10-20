@@ -9,7 +9,6 @@ from py_common_utils_gh.db_utils.db_utils import SqlAlchemySessionManager
 
 from db.models import *
 
-import api.routers.company_metric_api as metric_api
 import api.routers.shared_models as shared_models
 import core.shared_models as shared_models_core
 import core.metrics_classifications as metrics_classifications_core
@@ -25,12 +24,12 @@ router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
-@router.get("/{user_id}", status_code=HTTP_200_OK, response_model=List[shared_models_core.CompanyGroupInfoShortModel])
-def get_user_groups(user_id, request: Request):
+@router.get("", status_code=HTTP_200_OK, response_model=List[shared_models_core.CompanyGroupInfoShortModel])
+def get_user_groups(request: Request):
     try:
         manager = SqlAlchemySessionManager()
         with manager.session_scope(db_url=api_config.global_api_config.db_conn_str, template_name='default_session') as session:
-            groups = session.query(CompanyGroup).join(UserCompanyGroup, UserCompanyGroup.group_id == CompanyGroup.id).filter(UserCompanyGroup.account_id == user_id).all()
+            groups = session.query(CompanyGroup).join(UserCompanyGroup, UserCompanyGroup.group_id == CompanyGroup.id).filter(UserCompanyGroup.account_id == request.state.rctx.user_id).all()
             
             resp = []
             for res in groups:

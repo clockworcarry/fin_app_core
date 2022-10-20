@@ -105,11 +105,12 @@ def cleanup_db_conn_from_conn_obj(conn):
     except Exception as gen_ex:
         print(str(gen_ex))
 
-def cleanup_db_from_db_str(db_conn_str):
+def cleanup_db_from_db_str(db_conn_str, keep_users = False):
     try:
         manager = SqlAlchemySessionManager()
         with manager.session_scope(db_url=db_conn_str, template_name='default_session') as session:
-            session.query(Account).delete()
+            if not keep_users:
+                session.query(Account).delete()
             session.query(AccountTrade).delete()
             session.query(Company).delete()
             session.query(CompanyBusinessSegment).delete()
@@ -172,15 +173,15 @@ def create_default_companies(session):
     session.flush()
 
 def create_default_business_segments(session):
-    default_bus_segment_amd = CompanyBusinessSegment(id=1, company_id=1, code='AMD.default', display_name='AMD default business')
-    default_bus_segment_zm = CompanyBusinessSegment(id=2, company_id=2, code='ZM.default', display_name='ZM default business')
-    default_bus_segment_msft = CompanyBusinessSegment(id=3, company_id=3, code='MSFT.default', display_name='MSFT default business')
-    cloud_bus_segment_msft = CompanyBusinessSegment(id=4, company_id=3, code='MSFT.cloud', display_name='MSFT cloud business')
-    default_bus_segment_aapl = CompanyBusinessSegment(id=5, company_id=4, code='AAPL.default', display_name='AAPL default business')
-    default_bus_segment_baba = CompanyBusinessSegment(id=6, company_id=5, code='BABA.default', display_name='BABA default business')
-    cloud_bus_segment_baba = CompanyBusinessSegment(id=7, company_id=5, code='BABA.cloud', display_name='BABA cloud business')
-    default_bus_segment_bac = CompanyBusinessSegment(id=8, company_id=6, code='BAC.default', display_name='BAC default business')
-    default_bus_segment_jpm = CompanyBusinessSegment(id=9, company_id=7, code='JPM.default', display_name='JPM default business')
+    default_bus_segment_amd = CompanyBusinessSegment(id=1, company_id=1, code='AMD.default', display_name='AMD default business', creator_id=1)
+    default_bus_segment_zm = CompanyBusinessSegment(id=2, company_id=2, code='ZM.default', display_name='ZM default business', creator_id=1)
+    default_bus_segment_msft = CompanyBusinessSegment(id=3, company_id=3, code='MSFT.default', display_name='MSFT default business', creator_id=1)
+    cloud_bus_segment_msft = CompanyBusinessSegment(id=4, company_id=3, code='MSFT.cloud', display_name='MSFT cloud business', creator_id=1)
+    default_bus_segment_aapl = CompanyBusinessSegment(id=5, company_id=4, code='AAPL.default', display_name='AAPL default business', creator_id=1)
+    default_bus_segment_baba = CompanyBusinessSegment(id=6, company_id=5, code='BABA.default', display_name='BABA default business', creator_id=1)
+    cloud_bus_segment_baba = CompanyBusinessSegment(id=7, company_id=5, code='BABA.cloud', display_name='BABA cloud business', creator_id=1)
+    default_bus_segment_bac = CompanyBusinessSegment(id=8, company_id=6, code='BAC.default', display_name='BAC default business', creator_id=1)
+    default_bus_segment_jpm = CompanyBusinessSegment(id=9, company_id=7, code='JPM.default', display_name='JPM default business', creator_id=1)
     session.add_all([default_bus_segment_amd, default_bus_segment_zm, default_bus_segment_msft, cloud_bus_segment_msft, 
                      default_bus_segment_aapl, default_bus_segment_baba, cloud_bus_segment_baba, default_bus_segment_bac, default_bus_segment_jpm])
     session.flush()
@@ -230,6 +231,82 @@ def create_default_industries(session):
     industry_big_tech = Industry(id=4, sector_id=1, name='Big Tech', name_code='big_tech')
     industry_cloud = Industry(id=5, sector_id=1, name='Cloud Services', name_code='cloud')
     session.add_all([industry_semis, industry_banking, industry_communications, industry_big_tech, industry_cloud])
+    session.flush()
+
+def create_default_metric_classifications(session):
+    metric_cls_income_statement = MetricClassification(id=1, category_name='Income Statement', parent_category_id=None, creator_id=1)
+    metric_cls_cloud_metrics = MetricClassification(id=2, category_name='Cloud Metrics', parent_category_id=None, creator_id=1)
+    session.add_all([metric_cls_income_statement, metric_cls_cloud_metrics])
+    session.flush()
+    metric_cls_revenue = MetricClassification(id=3, category_name='Revenue', parent_category_id=metric_cls_income_statement.id, creator_id=1)
+    metric_cls_ebitda = MetricClassification(id=4, category_name='EBITDA', parent_category_id=metric_cls_income_statement.id, creator_id=1)
+    session.add_all([metric_cls_revenue, metric_cls_ebitda])
+    session.flush()
+
+def create_default_user_metric_classifications(session):
+    session.add(UserMetricClassification(metric_classification_id=1, account_id=1))
+    session.add(UserMetricClassification(metric_classification_id=2, account_id=1))
+    session.add(UserMetricClassification(metric_classification_id=3, account_id=1))
+    session.add(UserMetricClassification(metric_classification_id=4, account_id=1))
+    session.flush()
+
+def create_default_metric_descriptions(session):
+    metric_desc_rev_2021 = MetricDescription(id=1, code='rev_2021', display_name='2021 Revenue', metric_data_type=METRIC_TYPE_NUMBER, metric_duration_type=-1, \
+                                                        year_recorded=-1, quarter_recorded=-1, metric_duration=-1, look_back=True, metric_fixed_year=2021, metric_fixed_quarter=-1, \
+                                                        metric_classification_id=3, creator_id=1)
+                
+    metric_desc_revenue_ttm = MetricDescription(id=2, code='rev_ttm', display_name='Trailing 12 Months Revenue', metric_data_type=METRIC_TYPE_NUMBER, metric_duration_type=METRIC_DURATION_QUARTER, \
+                                                year_recorded=2022, quarter_recorded=3, metric_duration=4, look_back=True, metric_fixed_year=-1, metric_fixed_quarter=-1, \
+                                                metric_classification_id=3, creator_id=1)
+    
+    metric_desc_ebitda_2021 = MetricDescription(id=3, code='ebitda_2021', display_name='2021 EBITDA', metric_data_type=METRIC_TYPE_NUMBER, metric_duration_type=-1, \
+                                                year_recorded=-1, quarter_recorded=-1, metric_duration=-1, look_back=True, metric_fixed_year=2021, metric_fixed_quarter=-1, \
+                                                metric_classification_id=4, creator_id=1)
+    
+    metric_desc_ebitda_ttm = MetricDescription(id=4, code='ebitda_ttm', display_name='Trailing 12 Months EBITDA', metric_data_type=METRIC_TYPE_NUMBER, metric_duration_type=METRIC_DURATION_QUARTER, \
+                                                year_recorded=2022, quarter_recorded=3, metric_duration=4, look_back=True, metric_fixed_year=-1, metric_fixed_quarter=-1, \
+                                                metric_classification_id=4, creator_id=1)
+
+    metric_desc_nb_enterprise_customers = MetricDescription(id=5, code='nb_cloud_customers_2021', display_name='2021 Number of Cloud Customers', metric_data_type=METRIC_TYPE_NUMBER, metric_duration_type=-1, \
+                                                year_recorded=-1, quarter_recorded=-1, metric_duration=-1, look_back=True, metric_fixed_year=2021, metric_fixed_quarter=-1, \
+                                                metric_classification_id=2, creator_id=1)
+
+    session.add_all([metric_desc_rev_2021, metric_desc_revenue_ttm, metric_desc_ebitda_2021, metric_desc_ebitda_ttm, metric_desc_nb_enterprise_customers])
+    session.flush()
+
+def create_default_metric_data(session):
+    #AMD
+    session.add(MetricData(id=1, metric_description_id=1, company_business_segment_id=1, data=200000, user_id=1))
+    session.add(MetricData(id=50, metric_description_id=1, company_business_segment_id=1, data=4000, user_id=2))
+    session.add(MetricData(id=2, metric_description_id=2, company_business_segment_id=1, data=220000, user_id=1))
+    session.add(MetricData(id=3, metric_description_id=3, company_business_segment_id=1, data=30000, user_id=1))
+    session.add(MetricData(id=4, metric_description_id=4, company_business_segment_id=1, data=31000, user_id=1))
+
+    #ZM
+    session.add(MetricData(id=5, metric_description_id=1, company_business_segment_id=2, data=40000, user_id=1))
+    session.add(MetricData(id=6, metric_description_id=2, company_business_segment_id=2, data=40500, user_id=1))
+    session.add(MetricData(id=7, metric_description_id=3, company_business_segment_id=2, data=10000, user_id=1))
+    session.add(MetricData(id=8, metric_description_id=4, company_business_segment_id=2, data=11000, user_id=1))
+
+    #MSFT
+    session.add(MetricData(id=9, metric_description_id=1, company_business_segment_id=3, data=10000000, user_id=1))
+    session.add(MetricData(id=10, metric_description_id=2, company_business_segment_id=3, data=12000000, user_id=1))
+    session.add(MetricData(id=11, metric_description_id=3, company_business_segment_id=3, data=100000, user_id=1))
+    session.add(MetricData(id=12, metric_description_id=4, company_business_segment_id=3, data=110000, user_id=1))
+    session.add(MetricData(id=13, metric_description_id=5, company_business_segment_id=4, data=7000, user_id=1))
+
+    #AAPL
+    session.add(MetricData(id=14, metric_description_id=1, company_business_segment_id=5, data=50000, user_id=1))
+    session.add(MetricData(id=15, metric_description_id=2, company_business_segment_id=5, data=40500, user_id=1))
+    session.add(MetricData(id=16, metric_description_id=3, company_business_segment_id=5, data=13000, user_id=1))
+    session.add(MetricData(id=17, metric_description_id=4, company_business_segment_id=5, data=14000, user_id=1))
+
+    #BABA
+    session.add(MetricData(id=18, metric_description_id=1, company_business_segment_id=6, data=300, user_id=1))
+    session.add(MetricData(id=19, metric_description_id=2, company_business_segment_id=6, data=310, user_id=1))
+    session.add(MetricData(id=20, metric_description_id=3, company_business_segment_id=6, data=200, user_id=1))
+    session.add(MetricData(id=21, metric_description_id=4, company_business_segment_id=6, data=210, user_id=1))
+    session.add(MetricData(id=22, metric_description_id=5, company_business_segment_id=7, data=500, user_id=1))
     session.flush()
 
 def get_access_token(client, base_url, username, password):

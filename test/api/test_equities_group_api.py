@@ -10,10 +10,10 @@ from  test.test_utils import cleanup_db_from_db_str, create_default_business_seg
 
 from py_common_utils_gh.db_utils.db_utils import SqlAlchemySessionManager
 
-from api.routers.company_metrics_api import *
-
 import api.constants as api_constants
 from passlib.context import CryptContext
+
+from db.models import *
 
 client = TestClient(app)
 
@@ -166,7 +166,7 @@ class TestEquitiesGroupApi:
 
     
     def test_get_group_metrics(self):
-        base_url = TestEquitiesGroupApi.base_url + "/equities/group/metrics/"
+        base_url = TestEquitiesGroupApi.base_url + "/equities/group/"
         
         url = base_url + str(TestEquitiesGroupApi.group_defaults_id)
         response = client.get(url, headers={"Authorization": "Bearer " + TestEquitiesGroupApi.ghelie_access_token})             
@@ -697,7 +697,7 @@ class TestEquitiesGroupApi:
     def test_add_business_segment_to_group(self):
         manager = SqlAlchemySessionManager()
         with manager.session_scope(db_url=TestEquitiesGroupApi.db_conn_str, template_name='default_session') as session:
-            bs_test = CompanyBusinessSegment(id=1000, company_id=1, code='AMD.cloud', display_name='AMD cloud business')
+            bs_test = CompanyBusinessSegment(id=1000, company_id=1, code='AMD.cloud', display_name='AMD cloud business', creator_id=1)
             session.add(bs_test)
         
         base_url = TestEquitiesGroupApi.base_url + "/equities/group/businessSegment/"
@@ -815,4 +815,13 @@ class TestEquitiesGroupApi:
                     assert cig.group_id == 2
             
             assert bs_to_delete is None
+
+    def test_create_group(self):
+        assert (1 == 2)
+    
+    def test_update_group(self):
+        assert (1 == 2)
+
+    def test_delete_group(self):
+        assert (1 == 2)
             
