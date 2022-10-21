@@ -87,9 +87,10 @@ class BusinessSegmentModelShort(BaseModel):
 
 #only important fields
 class CompanyGroupInfoShortModel(BaseModel):
-    id: int
+    id: int = 0
     name_code: str
     name: str
+    description: str = None
 
 
 #only important fields

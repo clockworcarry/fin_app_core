@@ -817,11 +817,105 @@ class TestEquitiesGroupApi:
             assert bs_to_delete is None
 
     def test_create_group(self):
-        assert (1 == 2)
+        base_url = TestEquitiesGroupApi.base_url + "/equities/group"
+        body = {'name_code': "grp1", 'name': 'group one', 'description': 'First group created', 'creator_id': 2}
+        response = client.post(base_url, headers={"Authorization": "Bearer " + TestEquitiesGroupApi.ghelie_access_token}, json=body)             
+        assert response.status_code == 201
+
+        manager = SqlAlchemySessionManager()
+        with manager.session_scope(db_url=TestEquitiesGroupApi.db_conn_str, template_name='default_session') as session:
+            db_grps = session.query(CompanyGroup).filter(CompanyGroup.name_code == 'grp1').all()
+            
+            assert len(db_grps) == 1
+            assert db_grps[0].name_code == "grp1"
+            assert db_grps[0].name == "group one"
+            assert db_grps[0].description == "First group created"
+            assert db_grps[0].creator_id == 2
     
     def test_update_group(self):
-        assert (1 == 2)
+        manager = SqlAlchemySessionManager()
+        with manager.session_scope(db_url=TestEquitiesGroupApi.db_conn_str, template_name='default_session') as session:
+            session.add(CompanyGroup(id=1001, name_code='grp2', name='group two', description='Second group created', creator_id=2))
+
+        base_url = TestEquitiesGroupApi.base_url + "/equities/group"
+        url = base_url + "/" + str(1001)
+        body = {'name_code': "grp2_mod", 'name': 'group two modified', 'description': 'desc2', 'creator_id': 10}
+        response = client.put(url, headers={"Authorization": "Bearer " + TestEquitiesGroupApi.access_token}, json=body)             
+        assert response.status_code == 204
+
+        manager = SqlAlchemySessionManager()
+        with manager.session_scope(db_url=TestEquitiesGroupApi.db_conn_str, template_name='default_session') as session:
+            db_grps = session.query(CompanyGroup).filter(CompanyGroup.name_code == 'grp2').all()
+            assert len(db_grps) == 0
+
+            db_grps = session.query(CompanyGroup).filter(CompanyGroup.name_code == 'grp2_mod').all()
+
+            assert len(db_grps) == 1
+            assert db_grps[0].name_code == "grp2_mod"
+            assert db_grps[0].name == "group two modified"
+            assert db_grps[0].description == "desc2"
+            assert db_grps[0].creator_id == 2
 
     def test_delete_group(self):
-        assert (1 == 2)
+        manager = SqlAlchemySessionManager()
+        with manager.session_scope(db_url=TestEquitiesGroupApi.db_conn_str, template_name='default_session') as session:
+            session.query(CompanyGroup).delete()
+            session.add(CompanyGroup(id=1002, name_code='grp2', name='group two', description='Second group created', creator_id=2))
+        
+        base_url = TestEquitiesGroupApi.base_url + "/equities/group"
+        url = base_url + "/1002"
+        response = client.delete(url, headers={"Authorization": "Bearer " + TestEquitiesGroupApi.ghelie_access_token})             
+        assert response.status_code == 204
+
+        manager = SqlAlchemySessionManager()
+        with manager.session_scope(db_url=TestEquitiesGroupApi.db_conn_str, template_name='default_session') as session:
+            db_grps = session.query(CompanyGroup).filter(CompanyGroup.name_code == 'grp2').all()
+            assert len(db_grps) == 0
+
+    def test_add_group_to_user_groups(self):
+        manager = SqlAlchemySessionManager()
+        with manager.session_scope(db_url=TestEquitiesGroupApi.db_conn_str, template_name='default_session') as session:
+            session.query(CompanyGroup).delete()
+            session.add(CompanyGroup(id=1002, name_code='grp2', name='group two', description='Second group created', creator_id=2))
+
+        manager = SqlAlchemySessionManager()
+        with manager.session_scope(db_url=TestEquitiesGroupApi.db_conn_str, template_name='default_session') as session:
+            db_rows = session.query(UserCompanyGroup).filter(UserCompanyGroup.account_id == 1).all()
+            assert len(db_rows) == 0
+        
+        base_url = TestEquitiesGroupApi.base_url + "/equities/group/user"
+        url = base_url + "/1002"
+        response = client.put(url, headers={"Authorization": "Bearer " + TestEquitiesGroupApi.access_token})             
+        assert response.status_code == 204
+
+        manager = SqlAlchemySessionManager()
+        with manager.session_scope(db_url=TestEquitiesGroupApi.db_conn_str, template_name='default_session') as session:
+            db_rows = session.query(UserCompanyGroup).filter(UserCompanyGroup.account_id == 1).all()
+       
+            assert len(db_rows) == 1
+            assert db_rows[0].account_id == 1
+            assert db_rows[0].group_id == 1002
+    
+    def test_remove_group_from_user_groups(self):
+        manager = SqlAlchemySessionManager()
+        with manager.session_scope(db_url=TestEquitiesGroupApi.db_conn_str, template_name='default_session') as session:
+            session.query(CompanyGroup).delete()
+            session.add(CompanyGroup(id=1002, name_code='grp2', name='group two', description='Second group created', creator_id=2))
+            session.flush()
+            session.add(UserCompanyGroup(group_id=1002, account_id=1))
+
+        manager = SqlAlchemySessionManager()
+        with manager.session_scope(db_url=TestEquitiesGroupApi.db_conn_str, template_name='default_session') as session:
+            db_rows = session.query(UserCompanyGroup).filter(UserCompanyGroup.account_id == 1).all()
+            assert len(db_rows) == 1
+        
+        base_url = TestEquitiesGroupApi.base_url + "/equities/group/user"
+        url = base_url + "/1002"
+        response = client.delete(url, headers={"Authorization": "Bearer " + TestEquitiesGroupApi.access_token})             
+        assert response.status_code == 204
+
+        manager = SqlAlchemySessionManager()
+        with manager.session_scope(db_url=TestEquitiesGroupApi.db_conn_str, template_name='default_session') as session:
+            db_rows = session.query(UserCompanyGroup).filter(UserCompanyGroup.account_id == 1).all()
+            assert len(db_rows) == 0
             

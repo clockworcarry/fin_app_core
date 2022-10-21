@@ -1,6 +1,6 @@
 from xmlrpc.client import boolean
 from fastapi import APIRouter, status, HTTPException, Request, Response, Depends
-from starlette.status import HTTP_204_NO_CONTENT
+from starlette.status import HTTP_204_NO_CONTENT, HTTP_201_CREATED
 from typing import Optional, List
 from pydantic import BaseModel, ValidationError, validator
 
@@ -31,6 +31,105 @@ router = APIRouter(
     dependencies=[],
     responses={404: {"description": "Not found"}},
 )
+
+@router.post("", status_code=status.HTTP_204_NO_CONTENT)
+def create_company_group(request: Request, body: shared_models_core.CompanyGroupInfoShortModel):
+    try:
+        manager = SqlAlchemySessionManager()
+        with manager.session_scope(db_url=api_config.global_api_config.db_conn_str, template_name='default_session') as session:
+            db_grp = session.query(CompanyGroup).filter(CompanyGroup.name_code == body.name_code).first()
+            if db_grp is not None:
+                raise Exception("A company group with name code: " + body.name_code + " already exists.")
+            
+            new_grp = CompanyGroup(name_code=body.name_code, name=body.name, description=body.description, creator_id=request.state.rctx.user_id)
+            session.add(new_grp)
+            session.flush()
+            session.add(UserCompanyGroup(group_id=new_grp.id, account_id=request.state.rctx.user_id))
+
+            return Response(status_code=HTTP_201_CREATED)
+
+    except ValidationError as val_err:
+        raise HTTPException(status_code=500, detail=str(val_err))
+    except Exception as gen_ex:
+        raise HTTPException(status_code=500, detail=str(gen_ex))
+
+@router.put("/{grp_id}", status_code=status.HTTP_204_NO_CONTENT)
+def update_company_group(grp_id, request: Request, body: shared_models_core.CompanyGroupInfoShortModel):
+    try:
+        manager = SqlAlchemySessionManager()
+        with manager.session_scope(db_url=api_config.global_api_config.db_conn_str, template_name='default_session') as session:
+            db_grp = session.query(CompanyGroup).filter(CompanyGroup.id == grp_id).first()
+            if db_grp is None:
+                raise HTTPException(status_code=500, detail="No company group with id: " + grp_id + " exists.")
+            
+            db_grp.name_code = body.name_code
+            db_grp.name = body.name
+            db_grp.description = body.description
+
+        return Response(status_code=HTTP_204_NO_CONTENT)
+
+    except ValidationError as val_err:
+        raise HTTPException(status_code=500, detail=str(val_err))
+    except Exception as gen_ex:
+        raise HTTPException(status_code=500, detail=str(gen_ex))
+
+@router.delete("/{grp_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_company_group(grp_id, request: Request):
+    try:
+        manager = SqlAlchemySessionManager()
+        with manager.session_scope(db_url=api_config.global_api_config.db_conn_str, template_name='default_session') as session:
+            db_grp = session.query(CompanyGroup).filter(CompanyGroup.id == grp_id).first()
+            if db_grp is None:
+                raise HTTPException(status_code=500, detail="No company group with id: " + grp_id + " exists.")
+            
+            session.delete(db_grp)
+
+        return Response(status_code=HTTP_204_NO_CONTENT)
+
+    except ValidationError as val_err:
+        raise HTTPException(status_code=500, detail=str(val_err))
+    except Exception as gen_ex:
+        raise HTTPException(status_code=500, detail=str(gen_ex))
+
+@router.put("/user/{grp_id}", status_code=HTTP_204_NO_CONTENT)
+def add_group_to_user_groups(grp_id, request: Request):
+    try:
+        manager = SqlAlchemySessionManager()
+        with manager.session_scope(db_url=api_config.global_api_config.db_conn_str, template_name='default_session') as session:
+            db_row = session.query(CompanyGroup, UserCompanyGroup).join(UserCompanyGroup, UserCompanyGroup.group_id == CompanyGroup.id) \
+                             .filter(and_(UserCompanyGroup.account_id == request.state.rctx.user_id, UserCompanyGroup.group_id == grp_id)).first()
+            
+            if db_row is None:
+                session.add(UserCompanyGroup(group_id=grp_id, account_id=request.state.rctx.user_id))
+            else:
+                raise HTTPException(status_code=500, detail="User with id: " + str(request.state.rctx.user_id) + " is already in group with id: " + grp_id)
+
+            return Response(status_code=HTTP_204_NO_CONTENT)
+
+    except ValidationError as val_err:
+        raise HTTPException(status_code=500, detail=str(val_err))
+    except Exception as gen_ex:
+        raise HTTPException(status_code=500, detail=str(gen_ex))
+
+@router.delete("/user/{grp_id}", status_code=HTTP_204_NO_CONTENT)
+def remove_group_from_user_groups(grp_id, request: Request):
+    try:
+        manager = SqlAlchemySessionManager()
+        with manager.session_scope(db_url=api_config.global_api_config.db_conn_str, template_name='default_session') as session:
+            db_row = session.query(CompanyGroup, UserCompanyGroup).join(UserCompanyGroup, UserCompanyGroup.group_id == CompanyGroup.id) \
+                             .filter(and_(UserCompanyGroup.account_id == request.state.rctx.user_id, UserCompanyGroup.group_id == grp_id)).first()
+            
+            if db_row is None:
+                raise Exception("User with id: " + str(request.state.rctx.user_id) + " is not in group with id: " + grp_id)
+            else:
+                session.delete(db_row[1])
+
+            return Response(status_code=HTTP_204_NO_CONTENT)
+
+    except ValidationError as val_err:
+        raise HTTPException(status_code=500, detail=str(val_err))
+    except Exception as gen_ex:
+        raise HTTPException(status_code=500, detail=str(gen_ex))
 
 @router.put("/metricDescription/{grp_id}/{desc_id}", status_code=HTTP_204_NO_CONTENT)
 def add_metric_description_to_group(grp_id, desc_id, request: Request):

@@ -36,31 +36,14 @@ DELETE /account/{account_id}
 POST /account/token
 
 SECTOR API -> DONE AND TESTED
-POST /sector
-PUT /sector/{sector_id}
-DELETE /sector/{sector_id}
 
 INDUSTRY API -> DONE AND TESTED
-POST /industry
-PUT /industry/{industry_id}
-DELETE /industry/{industry_id}
 
 INDUSTRIES API -> DONE AND TESTED
-GET /industries
-GET /industries/{sector_id}
 
 COMPANY API -> DONE AND TESTED
-GET /company/{cpny_id}
-POST /company -> create default business segment 
-PUT /company/{cpny_id}
-DELETE /company/{cpny_id}
 
-EQUITIES COMPANY BUSINESS SEGMENT API -> DONE AND TESTED
-GET /company/businessSegment/{bs_id}
-GET /company/businessSegment/metrics/{bs_id}
-POST /company/businessSegment/{cpny_id}
-PUT /company/businessSegment/{bs_id}
-DELETE /company/businessSegment/{bs_id}
+COMPANY BUSINESS SEGMENT API -> DONE AND TESTED
 
 METRIC DESCRIPTIONS API
 GET /metricDescriptions -> get all metric descriptions from specified users
