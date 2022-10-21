@@ -56,24 +56,14 @@ def remove_empty_categories(categories):
                 del categories[i]
 
 
-def categorize_metrics(fine_classifications, metrics):
-    for fc in fine_classifications:
+def categorize_metrics(category_models: List[MetricCategoryModel], metrics: List[MetricDataModel]):
+    for fc in category_models:
         for m in metrics:
-            if m.metric_classification_id == fc.id:
+            if m.description.metric_classification_id == fc.id:
                 fc.metrics.append(m)
-        if len(fc.classifications) > 0:
-            categorize_metrics(fc.classifications, metrics)
+        if len(fc.categories) > 0:
+            categorize_metrics(fc.categories, metrics)
         
-
-"""
-    classifications_account_relation_tuple -> [(CompanyMetricClassificationAccountRelation, CompanyMetricClassification)]
-"""
-"""def transform_rough_classifications_to_fine(classifications_account_relation_tuple):
-    ret = []
-    for cart in classifications_account_relation_tuple:
-        ret.append(MetricsClassificationFine(id=cart[1].id, category_name=cart[1].category_name, account_id=cart[0].account_id, parent_id=cart[1].parent_category_id, classifications=[]))
-    
-    return ret"""
 
 def transform_metric_classifications_to_categories_model(metric_classifications_rough, account_id):
     ret = []
@@ -92,20 +82,3 @@ def get_user_metric_categories(account_id, session) -> List[MetricCategoryModel]
 
     ret = transform_metric_classifications_to_categories_model(db_classifications_account_relation_tuple, account_id)
     return ret
-
-def get_metrics_classifications_by_creator(creator_id, session):
-    db_classifications = session.query(MetricClassification).filter(MetricClassification.creator_id == creator_id).all()
-    
-    ret = transform_metric_classifications_to_categories_model(db_classifications, creator_id)
-    ret = group_fine_classifications(ret, None)
-
-    return ret
-
-
-"""def make_metric_categories(metric_classifications, metric_descriptions, metric_data):
-    classifications = transform_rough_classifications_to_fine(metric_classifications, None)
-    classifications = group_fine_classifications(ret, None)
-    categorize_metrics(classifications, )
-    return ret"""
-
-

@@ -40,14 +40,13 @@ class MetricDescriptionModel(BaseModel):
         underscore_attrs_are_private = True
 
 class MetricDataModel(BaseModel):
-    data: float
+    data: float = None
     description: MetricDescriptionModel
     _user_id: int = None
 
     class Config:
         orm_mode = True
         underscore_attrs_are_private = True
-
 
 class MetricCategoryModel(BaseModel):
     id: int

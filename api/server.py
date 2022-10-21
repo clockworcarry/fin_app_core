@@ -21,6 +21,8 @@ import api.routers.equities_group_api as equities_group_api
 import api.routers.equities_groups_api as equities_groups_api
 import api.routers.companies_api as companies_api
 import api.routers.company_business_segment_api as company_business_segment_api
+import api.routers.metric_description_api as metric_description_api
+import api.routers.metric_descriptions_api as metric_descriptions_api
 
 import api.security.security as app_security
 
@@ -45,6 +47,8 @@ app.include_router(equities_group_api.router)
 app.include_router(equities_groups_api.router)
 app.include_router(companies_api.router)
 app.include_router(company_business_segment_api.router)
+app.include_router(metric_description_api.router)
+app.include_router(metric_descriptions_api.router)
 
 
 

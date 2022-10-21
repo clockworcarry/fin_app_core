@@ -250,6 +250,7 @@ def create_default_user_metric_classifications(session):
     session.add(UserMetricClassification(metric_classification_id=4, account_id=1))
     session.flush()
 
+
 def create_default_metric_descriptions(session):
     metric_desc_rev_2021 = MetricDescription(id=1, code='rev_2021', display_name='2021 Revenue', metric_data_type=METRIC_TYPE_NUMBER, metric_duration_type=-1, \
                                                         year_recorded=-1, quarter_recorded=-1, metric_duration=-1, look_back=True, metric_fixed_year=2021, metric_fixed_quarter=-1, \
@@ -273,6 +274,13 @@ def create_default_metric_descriptions(session):
 
     session.add_all([metric_desc_rev_2021, metric_desc_revenue_ttm, metric_desc_ebitda_2021, metric_desc_ebitda_ttm, metric_desc_nb_enterprise_customers])
     session.flush()
+
+def create_default_user_metric_descriptions(session):
+    session.add(UserMetricDescription(metric_description_id=1, account_id=1))
+    session.add(UserMetricDescription(metric_description_id=2, account_id=1))
+    session.add(UserMetricDescription(metric_description_id=3, account_id=1))
+    session.add(UserMetricDescription(metric_description_id=4, account_id=1))
+    session.add(UserMetricDescription(metric_description_id=5, account_id=1))
 
 def create_default_metric_data(session):
     #AMD
