@@ -77,8 +77,6 @@ class TestMetricDescriptionApi:
             assert db_user_desc[0].metric_description_id == db_descs[0].id
             assert db_user_desc[0].account_id == 2
 
-
-
     def test_update_metric_description(self):
         manager = SqlAlchemySessionManager()
         with manager.session_scope(db_url=TestMetricDescriptionApi.db_conn_str, template_name='default_session') as session:

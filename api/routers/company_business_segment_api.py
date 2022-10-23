@@ -52,7 +52,7 @@ def get_company_business_segment(bs_id, request: Request):
                 metric_data_model = shared_models_core.MetricDataModel(data=mdata.data, description=metric_desc_model)
                 metric_data_model._user_id = mdata.user_id
 
-                core_metrics.add_metric_to_business_segment(ret, metric_desc_model, metric_data_model)
+                core_metrics.add_metric_to_business_segment(ret, metric_desc_model, metric_data_model, request.state.rctx.user_id)
             
             ret.metric_categories = metrics_classifications_core.group_metric_categories_model(ret.metric_categories, None)
             #remove categories with no metrics or sub categories

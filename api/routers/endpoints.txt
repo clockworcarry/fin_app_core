@@ -28,13 +28,6 @@ COMPANIES API -> DONE AND TESTED
 GET /companies
 GET /companies/watchlist/{watchlist_id}
 
-ACCOUNT API
-POST /account
-PUT /account/{account_id}
-PUT /account/confirmation/{account_id}
-DELETE /account/{account_id}
-POST /account/token
-
 SECTOR API -> DONE AND TESTED
 
 INDUSTRY API -> DONE AND TESTED
@@ -45,22 +38,30 @@ COMPANY API -> DONE AND TESTED
 
 COMPANY BUSINESS SEGMENT API -> DONE AND TESTED
 
-METRIC DESCRIPTIONS API
+METRIC DESCRIPTIONS API -> DONE AND TESTED
 GET /metricDescriptions -> get all metric descriptions from specified users
 GET /metricDescriptions/{toolbox_id} -> get all metric descriptions from a user defined toolbox
 
-METRIC DESCRIPTION API
+METRIC DESCRIPTION API -> DONE AND TESTED
 POST /metricDescription -> create new metric desc for this user
 PUT /metricDescription/{desc_id} -> update_metric desc
 DELETE /metricDescription/{desc_id}
 
-METRIC CLASSIFICATIONS API
+METRIC CLASSIFICATIONS API -> DONE AND TESTED
 GET /metricClassifications -> returns metric categories user has access to
 
-METRIC CLASSIFICATION API
+METRIC CLASSIFICATION API -> DONE AND TESTED
 POST /metricClassification -> create new metric classification for this user
 PUT /metricClassification/{cls_id} -> update metric classification
 DELETE /metricClassification/{cls_id} -> update metric classification
+
+
+ACCOUNT API
+POST /account
+PUT /account/{account_id}
+PUT /account/confirmation/{account_id}
+DELETE /account/{account_id}
+POST /account/token
 
 METRIC DATA API
 GET /metricData -> get user's version of the data for a metric desc

@@ -15,6 +15,7 @@ import api.routers.industry_api as industry_api
 import api.routers.industries_api as industries_api
 import api.routers.sector_api as sector_api
 import api.routers.sectors_api as sectors_api
+import api.routers.metrics_classification_api as metrics_classification_api
 import api.routers.metrics_classifications_api as metrics_classifications_api
 import api.routers.account_api as account_api
 import api.routers.equities_group_api as equities_group_api
@@ -23,6 +24,7 @@ import api.routers.companies_api as companies_api
 import api.routers.company_business_segment_api as company_business_segment_api
 import api.routers.metric_description_api as metric_description_api
 import api.routers.metric_descriptions_api as metric_descriptions_api
+import api.routers.metric_data_api as metric_data_api
 
 import api.security.security as app_security
 
@@ -32,15 +34,17 @@ from py_common_utils_gh.db_utils.db_utils import SqlAlchemySessionManager
 from db.models import *
 
 import api.config as api_config
+import api.constants as api_constants
 
 app = FastAPI()
 
-app.include_router(company_financials_api.router)
+#app.include_router(company_financials_api.router)
 app.include_router(company_api.router)
 app.include_router(industry_api.router)
 app.include_router(industries_api.router)
 app.include_router(sector_api.router)
 app.include_router(sectors_api.router)
+app.include_router(metrics_classification_api.router)
 app.include_router(metrics_classifications_api.router)
 app.include_router(account_api.router)
 app.include_router(equities_group_api.router)
@@ -49,12 +53,13 @@ app.include_router(companies_api.router)
 app.include_router(company_business_segment_api.router)
 app.include_router(metric_description_api.router)
 app.include_router(metric_descriptions_api.router)
+app.include_router(metric_data_api.router)
 
 
 
-@app.get("/version")
+@app.get("/" + api_constants.app_name + "/version")
 def version():
-    return {"version": "0.0.1"}
+    return {"version": api_constants.version}
 
 @app.middleware("http")
 async def request_handler_common(request: Request, call_next):
@@ -62,7 +67,7 @@ async def request_handler_common(request: Request, call_next):
         manager = SqlAlchemySessionManager()
         
         no_validation = False
-        if request.method == 'POST' and 'account' in request.url.path:
+        if (request.method == 'POST' and 'account' in request.url.path) or 'openapi.json' in request.url.path:
             no_validation = True
         
         if not no_validation:

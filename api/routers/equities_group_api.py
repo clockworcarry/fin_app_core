@@ -9,7 +9,7 @@ from py_common_utils_gh.db_utils.db_utils import SqlAlchemySessionManager
 
 from db.models import *
 
-import api.routers.shared_models as shared_models
+import api.shared_models as shared_models
 import core.shared_models as shared_models_core
 import core.metrics_classifications as metrics_classifications_core
 import core.metrics as core_metrics
@@ -302,7 +302,7 @@ def get_group(grp_id, request: Request, force_system_data : bool = False):
                         ebs = bs
                         break
                 if ebs is not None:
-                    core_metrics.add_metric_to_business_segment(ebs, metric_desc_model, metric_data)
+                    core_metrics.add_metric_to_business_segment(ebs, metric_desc_model, metric_data, request.state.rctx.user_id)
                 
                 """if ebs is not None:
                     for cat in ebs.metric_categories:

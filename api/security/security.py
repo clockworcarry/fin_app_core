@@ -7,6 +7,10 @@ import api.config as api_config
 from py_common_utils_gh.db_utils.db_utils import SqlAlchemySessionManager
 from db.models import *
 
+import api.routers.account_api as account_api
+
+import core.constants as core_constants
+import core.security as core_security
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
@@ -16,6 +20,14 @@ class RequestContext:
         self.user_id = user_id
 
 def authenticate_request(request: Request, session):
+    if 'userName' in request.query_params and 'password' in request.query_params:
+        db_acc = core_security.authenticate_user(request.query_params['userName'], request.query_params['password'], session)
+        if not db_acc:
+            raise Exception("Invalid credentials.")
+        else:
+           return RequestContext(authenticated=True, user_id=db_acc.id) 
+
+    
     auth_header = request.headers.get('Authorization')
     if auth_header is None:
         raise SignatureExpired("Missing Authorization header.")
@@ -35,35 +47,3 @@ def authenticate_request(request: Request, session):
     #Implement further rights
 
     return RequestContext(authenticated=True, user_id=db_acc.id)
-
-
-
-#this function can throw exceptions
-'''def authenticate_request(token: str = Depends(oauth2_scheme, ), session = None):
-    try:
-        public_key_file = open(api_config.global_api_config.privKeyFilePath + 'publickey.crt')
-        public_key = public_key_file.read()
-        payload = jwt.decode(token, key=public_key, algorithms=["RS256"], audience="fin_app")
-        account_id = payload['sub']
-        manager = SqlAlchemySessionManager()
-        with manager.session_scope(db_url=api_config.global_api_config.db_conn_str, template_name='default_session') as session:
-            db_acc = session.query(Account).filter(Account.id == account_id).first()
-            if db_acc is None:
-                raise Exception("Failed to load account.")
-            return db_acc.id
-    except Exception as gen_ex:
-        raise HTTPException(status_code=500, detail=str(gen_ex))
-
-def get_current_user(session):
-    token = oauth2_scheme()
-
-    public_key_file = open(api_config.global_api_config.privKeyFilePath + 'publickey.crt')
-    public_key = public_key_file.read()
-    payload = jwt.decode(token, key=public_key, algorithms=["RS256"], audience="fin_app")
-    account_id = payload['sub']
-
-    db_acc = session.query(Account).filter(Account.id == account_id).first()
-    if db_acc is None:
-        raise Exception("Failed to load account.")
-    
-    return db_acc.id'''

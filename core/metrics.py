@@ -13,7 +13,7 @@ def associate_metric_data_to_descriptions(metric_descriptions, metric_data, bs_i
                 desc_model = MetricDescriptionModel.from_orm(m_desc)
                 i = 2
 
-def add_metric_to_business_segment(business_segment: BusinessSegmentModel, metric_description: MetricDescriptionModel, metric_data: MetricDataModel):
+def add_metric_to_business_segment(business_segment: BusinessSegmentModel, metric_description: MetricDescriptionModel, metric_data: MetricDataModel, user_id: int):
     for cat in business_segment.metric_categories:
         if cat.id == metric_description.metric_classification_id:
             duplicate_metric = None
@@ -24,8 +24,8 @@ def add_metric_to_business_segment(business_segment: BusinessSegmentModel, metri
             
             if duplicate_metric is None:
                 cat.metrics.append(metric_data)
-            elif metric_data._user_id != core_global_constants.system_user_id:
-                cat.metrics.append(metric_data) #override existing system metric with user's one
+            elif metric_data._user_id == user_id:
+                cat.metrics.append(metric_data) #override existing metric for one with the provided user.
                 del cat.metrics[idx]
             break
 

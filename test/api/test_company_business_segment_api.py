@@ -180,6 +180,177 @@ class TestCompanyBusinessSegmentApi:
         assert category_metrics[1]['description']['metric_fixed_year'] == -1
         assert category_metrics[1]['description']['metric_fixed_quarter'] == -1
 
+        
+        url = base_url + "/1"
+        response = client.get(url, headers={"Authorization": "Bearer " + TestCompanyBusinessSegmentApi.ghelie_access_token})             
+        assert response.status_code == 200
+        response = response.json()
+
+        bs = response
+        assert bs['id'] == 1
+        assert bs['code'] == "AMD.default"
+        assert bs['display_name'] == "AMD default business"
+        assert bs['company_id'] == 1
+        assert bs['company_name'] == "Advanced Micro Devices Inc."
+        assert bs['company_ticker'] == "AMD"
+        assert len(bs['metric_categories']) == 1
+        inc_stmt_category = bs['metric_categories'][0]
+        assert inc_stmt_category['id'] == 1
+        assert inc_stmt_category['category_name'] == "Income Statement"
+        assert len(inc_stmt_category['metrics']) == 0
+        assert len(inc_stmt_category['categories']) == 2
+        category = inc_stmt_category['categories'][0]
+        assert category['id'] == 3
+        assert category['category_name'] == "Revenue"
+        assert len(category['metrics']) == 2
+
+        category['metrics'].sort(key=lambda x: x['description']['id'], reverse=False)
+
+        assert len(category['categories']) == 0
+        category_metrics = category['metrics']
+        assert category_metrics[0]['data'] == 4000
+        assert category_metrics[0]['description']['id'] == 1
+        assert category_metrics[0]['description']['code'] == 'rev_2021'
+        assert category_metrics[0]['description']['display_name'] == '2021 Revenue'
+        assert category_metrics[0]['description']['metric_data_type'] == METRIC_TYPE_NUMBER
+        assert category_metrics[0]['description']['metric_duration_type'] == -1
+        assert category_metrics[0]['description']['year_recorded'] == -1
+        assert category_metrics[0]['description']['quarter_recorded'] == -1
+        assert category_metrics[0]['description']['metric_duration'] == -1
+        assert category_metrics[0]['description']['look_back'] == True
+        assert category_metrics[0]['description']['metric_fixed_year'] == 2021
+        assert category_metrics[0]['description']['metric_fixed_quarter'] == -1
+        assert category_metrics[1]['data'] == 220000
+        assert category_metrics[1]['description']['id'] == 2
+        assert category_metrics[1]['description']['code'] == 'rev_ttm'
+        assert category_metrics[1]['description']['display_name'] == 'Trailing 12 Months Revenue'
+        assert category_metrics[1]['description']['metric_data_type'] == METRIC_TYPE_NUMBER
+        assert category_metrics[1]['description']['metric_duration_type'] == METRIC_DURATION_QUARTER
+        assert category_metrics[1]['description']['year_recorded'] == 2022
+        assert category_metrics[1]['description']['quarter_recorded'] == 3
+        assert category_metrics[1]['description']['metric_duration'] == 4
+        assert category_metrics[1]['description']['look_back'] == True
+        assert category_metrics[1]['description']['metric_fixed_year'] == -1
+        assert category_metrics[1]['description']['metric_fixed_quarter'] == -1
+        category = inc_stmt_category['categories'][1]
+        assert category['id'] == 4
+        assert category['category_name'] == "EBITDA"
+        assert len(category['metrics']) == 2
+
+        category['metrics'].sort(key=lambda x: x['description']['id'], reverse=False)
+
+        assert len(category['categories']) == 0
+        category_metrics = category['metrics']
+        assert category_metrics[0]['data'] == 30000
+        assert category_metrics[0]['description']['id'] == 3
+        assert category_metrics[0]['description']['code'] == 'ebitda_2021'
+        assert category_metrics[0]['description']['display_name'] == '2021 EBITDA'
+        assert category_metrics[0]['description']['metric_data_type'] == METRIC_TYPE_NUMBER
+        assert category_metrics[0]['description']['metric_duration_type'] == -1
+        assert category_metrics[0]['description']['year_recorded'] == -1
+        assert category_metrics[0]['description']['quarter_recorded'] == -1
+        assert category_metrics[0]['description']['metric_duration'] == -1
+        assert category_metrics[0]['description']['look_back'] == True
+        assert category_metrics[0]['description']['metric_fixed_year'] == 2021
+        assert category_metrics[0]['description']['metric_fixed_quarter'] == -1
+        assert category_metrics[1]['data'] == 31000
+        assert category_metrics[1]['description']['id'] == 4
+        assert category_metrics[1]['description']['code'] == 'ebitda_ttm'
+        assert category_metrics[1]['description']['display_name'] == 'Trailing 12 Months EBITDA'
+        assert category_metrics[1]['description']['metric_data_type'] == METRIC_TYPE_NUMBER
+        assert category_metrics[1]['description']['metric_duration_type'] == METRIC_DURATION_QUARTER
+        assert category_metrics[1]['description']['year_recorded'] == 2022
+        assert category_metrics[1]['description']['quarter_recorded'] == 3
+        assert category_metrics[1]['description']['metric_duration'] == 4
+        assert category_metrics[1]['description']['look_back'] == True
+        assert category_metrics[1]['description']['metric_fixed_year'] == -1
+        assert category_metrics[1]['description']['metric_fixed_quarter'] == -1
+
+        url = base_url + "/1"
+        response = client.get(url, headers={"Authorization": "Bearer " + TestCompanyBusinessSegmentApi.system_access_token})             
+        assert response.status_code == 200
+        response = response.json()
+
+        bs = response
+        assert bs['id'] == 1
+        assert bs['code'] == "AMD.default"
+        assert bs['display_name'] == "AMD default business"
+        assert bs['company_id'] == 1
+        assert bs['company_name'] == "Advanced Micro Devices Inc."
+        assert bs['company_ticker'] == "AMD"
+        assert len(bs['metric_categories']) == 1
+        inc_stmt_category = bs['metric_categories'][0]
+        assert inc_stmt_category['id'] == 1
+        assert inc_stmt_category['category_name'] == "Income Statement"
+        assert len(inc_stmt_category['metrics']) == 0
+        assert len(inc_stmt_category['categories']) == 2
+        category = inc_stmt_category['categories'][0]
+        assert category['id'] == 3
+        assert category['category_name'] == "Revenue"
+        assert len(category['metrics']) == 2
+
+        category['metrics'].sort(key=lambda x: x['description']['id'], reverse=False)
+
+        assert len(category['categories']) == 0
+        category_metrics = category['metrics']
+        assert category_metrics[0]['data'] == 200000
+        assert category_metrics[0]['description']['id'] == 1
+        assert category_metrics[0]['description']['code'] == 'rev_2021'
+        assert category_metrics[0]['description']['display_name'] == '2021 Revenue'
+        assert category_metrics[0]['description']['metric_data_type'] == METRIC_TYPE_NUMBER
+        assert category_metrics[0]['description']['metric_duration_type'] == -1
+        assert category_metrics[0]['description']['year_recorded'] == -1
+        assert category_metrics[0]['description']['quarter_recorded'] == -1
+        assert category_metrics[0]['description']['metric_duration'] == -1
+        assert category_metrics[0]['description']['look_back'] == True
+        assert category_metrics[0]['description']['metric_fixed_year'] == 2021
+        assert category_metrics[0]['description']['metric_fixed_quarter'] == -1
+        assert category_metrics[1]['data'] == 220000
+        assert category_metrics[1]['description']['id'] == 2
+        assert category_metrics[1]['description']['code'] == 'rev_ttm'
+        assert category_metrics[1]['description']['display_name'] == 'Trailing 12 Months Revenue'
+        assert category_metrics[1]['description']['metric_data_type'] == METRIC_TYPE_NUMBER
+        assert category_metrics[1]['description']['metric_duration_type'] == METRIC_DURATION_QUARTER
+        assert category_metrics[1]['description']['year_recorded'] == 2022
+        assert category_metrics[1]['description']['quarter_recorded'] == 3
+        assert category_metrics[1]['description']['metric_duration'] == 4
+        assert category_metrics[1]['description']['look_back'] == True
+        assert category_metrics[1]['description']['metric_fixed_year'] == -1
+        assert category_metrics[1]['description']['metric_fixed_quarter'] == -1
+        category = inc_stmt_category['categories'][1]
+        assert category['id'] == 4
+        assert category['category_name'] == "EBITDA"
+        assert len(category['metrics']) == 2
+
+        category['metrics'].sort(key=lambda x: x['description']['id'], reverse=False)
+
+        assert len(category['categories']) == 0
+        category_metrics = category['metrics']
+        assert category_metrics[0]['data'] == 30000
+        assert category_metrics[0]['description']['id'] == 3
+        assert category_metrics[0]['description']['code'] == 'ebitda_2021'
+        assert category_metrics[0]['description']['display_name'] == '2021 EBITDA'
+        assert category_metrics[0]['description']['metric_data_type'] == METRIC_TYPE_NUMBER
+        assert category_metrics[0]['description']['metric_duration_type'] == -1
+        assert category_metrics[0]['description']['year_recorded'] == -1
+        assert category_metrics[0]['description']['quarter_recorded'] == -1
+        assert category_metrics[0]['description']['metric_duration'] == -1
+        assert category_metrics[0]['description']['look_back'] == True
+        assert category_metrics[0]['description']['metric_fixed_year'] == 2021
+        assert category_metrics[0]['description']['metric_fixed_quarter'] == -1
+        assert category_metrics[1]['data'] == 31000
+        assert category_metrics[1]['description']['id'] == 4
+        assert category_metrics[1]['description']['code'] == 'ebitda_ttm'
+        assert category_metrics[1]['description']['display_name'] == 'Trailing 12 Months EBITDA'
+        assert category_metrics[1]['description']['metric_data_type'] == METRIC_TYPE_NUMBER
+        assert category_metrics[1]['description']['metric_duration_type'] == METRIC_DURATION_QUARTER
+        assert category_metrics[1]['description']['year_recorded'] == 2022
+        assert category_metrics[1]['description']['quarter_recorded'] == 3
+        assert category_metrics[1]['description']['metric_duration'] == 4
+        assert category_metrics[1]['description']['look_back'] == True
+        assert category_metrics[1]['description']['metric_fixed_year'] == -1
+        assert category_metrics[1]['description']['metric_fixed_quarter'] == -1
+
     def test_delete_company_business_segment(self):
         manager = SqlAlchemySessionManager()
         with manager.session_scope(db_url=TestCompanyBusinessSegmentApi.db_conn_str, template_name='default_session') as session:

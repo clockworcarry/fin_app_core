@@ -9,7 +9,7 @@ from py_common_utils_gh.db_utils.db_utils import SqlAlchemySessionManager
 
 from db.models import *
 
-import api.routers.shared_models as shared_models
+import api.shared_models as shared_models
 import core.shared_models as shared_models_core
 import core.metrics_classifications as metrics_classifications_core
 

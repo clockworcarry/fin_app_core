@@ -48,6 +48,12 @@ class MetricDataModel(BaseModel):
         orm_mode = True
         underscore_attrs_are_private = True
 
+class MetricCategoryShortModel(BaseModel):
+    id: int
+    category_name: str
+    parent_id: int = None
+    categories: List['MetricCategoryModel'] = []
+
 class MetricCategoryModel(BaseModel):
     id: int
     category_name: str
@@ -55,6 +61,7 @@ class MetricCategoryModel(BaseModel):
     metrics: List[MetricDataModel] = []
     categories: List['MetricCategoryModel'] = []
 
+MetricCategoryShortModel.update_forward_refs()
 MetricCategoryModel.update_forward_refs()
 
 

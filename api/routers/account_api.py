@@ -16,6 +16,7 @@ from sqlalchemy import create_engine, select, insert, exists
 from sqlalchemy.orm import sessionmaker
 
 import api.constants as api_constants
+import core.security as core_security
 
 import simplejson as json
 
@@ -48,21 +49,6 @@ class CreateAccountModelIn(BaseModel):
 
 class CreateAccountModelOut(BaseModel):
     id: int
-
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-def validate_password(plain_pwd, hashed_pwd):
-    return pwd_context.verify(plain_pwd, hashed_pwd)
-
-def authenticate_user(userName, password, session):
-    db_acc = session.query(Account).filter(Account.userName == userName).first()
-    if db_acc is None:
-        return False
-    if not validate_password(password, db_acc.password):
-        return False
-    return db_acc
-    
     
 
 @router.post("/", status_code=status.HTTP_201_CREATED, response_model=CreateAccountModelOut)
@@ -70,7 +56,7 @@ def create_account(body: CreateAccountModelIn):
     try:
         manager = SqlAlchemySessionManager()
         with manager.session_scope(db_url=api_config.global_api_config.db_conn_str, template_name='default_session') as session:
-            hashed_pwd = pwd_context.hash(body.password)
+            hashed_pwd = core_security.pwd_context.hash(body.password)
             acc = Account(userName=body.userName, password=hashed_pwd, email=body.email, phone=body.phone)
             session.add(acc)
             session.flush()
@@ -92,7 +78,7 @@ def login(form_data: OAuth2PasswordRequestForm = Depends()):
     try:
         manager = SqlAlchemySessionManager()
         with manager.session_scope(db_url=api_config.global_api_config.db_conn_str, template_name='default_session') as session:
-            db_acc = authenticate_user(form_data.username, form_data.password, session)
+            db_acc = core_security.authenticate_user(form_data.username, form_data.password, session)
             if not db_acc:
                 raise Exception("Invalid credentials.")
         
