@@ -1,3 +1,4 @@
+from urllib import response
 from xmlrpc.client import boolean
 from fastapi import APIRouter, status, HTTPException, Request, Response, Depends
 from starlette.status import HTTP_204_NO_CONTENT, HTTP_201_CREATED
@@ -22,6 +23,7 @@ import simplejson as json
 import api.config as api_config
 import api.constants as api_constants
 import core.constants as core_global_constants
+import api.shared_models as api_shared_models
 
 import copy
 
@@ -32,7 +34,8 @@ router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
-@router.post("", status_code=status.HTTP_204_NO_CONTENT)
+@router.post("", status_code=status.HTTP_201_CREATED, response_model=api_shared_models.ResourceCreationBasicModel, summary="Create a new group of companies with basic info.", 
+             description="A new group is initially empty.", response_description="The id of the created group.")
 def create_company_group(request: Request, body: shared_models_core.CompanyGroupInfoShortModel):
     try:
         manager = SqlAlchemySessionManager()
@@ -46,14 +49,14 @@ def create_company_group(request: Request, body: shared_models_core.CompanyGroup
             session.flush()
             session.add(UserCompanyGroup(group_id=new_grp.id, account_id=request.state.rctx.user_id))
 
-            return Response(status_code=HTTP_201_CREATED)
+            return api_shared_models.ResourceCreationBasicModel(id=new_grp.id)
 
     except ValidationError as val_err:
         raise HTTPException(status_code=500, detail=str(val_err))
     except Exception as gen_ex:
         raise HTTPException(status_code=500, detail=str(gen_ex))
 
-@router.put("/{grp_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.put("/{grp_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Update a company's basic info.")
 def update_company_group(grp_id, request: Request, body: shared_models_core.CompanyGroupInfoShortModel):
     try:
         manager = SqlAlchemySessionManager()
@@ -73,7 +76,7 @@ def update_company_group(grp_id, request: Request, body: shared_models_core.Comp
     except Exception as gen_ex:
         raise HTTPException(status_code=500, detail=str(gen_ex))
 
-@router.delete("/{grp_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{grp_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Delete a company group.", description=" Every dependant entity will also be deleted. Refer to the erd.")
 def delete_company_group(grp_id, request: Request):
     try:
         manager = SqlAlchemySessionManager()
@@ -91,7 +94,8 @@ def delete_company_group(grp_id, request: Request):
     except Exception as gen_ex:
         raise HTTPException(status_code=500, detail=str(gen_ex))
 
-@router.put("/user/{grp_id}", status_code=HTTP_204_NO_CONTENT)
+@router.put("/user/{grp_id}", status_code=HTTP_204_NO_CONTENT, summary="Add a user to a group.",
+            description="The user will be able to see this group and use it if this operation is successful.")
 def add_group_to_user_groups(grp_id, request: Request):
     try:
         manager = SqlAlchemySessionManager()
@@ -111,7 +115,7 @@ def add_group_to_user_groups(grp_id, request: Request):
     except Exception as gen_ex:
         raise HTTPException(status_code=500, detail=str(gen_ex))
 
-@router.delete("/user/{grp_id}", status_code=HTTP_204_NO_CONTENT)
+@router.delete("/user/{grp_id}", status_code=HTTP_204_NO_CONTENT, summary="Remove a user from group.", description="The user will not see this group or be able to use it after this operation.")
 def remove_group_from_user_groups(grp_id, request: Request):
     try:
         manager = SqlAlchemySessionManager()
@@ -131,7 +135,8 @@ def remove_group_from_user_groups(grp_id, request: Request):
     except Exception as gen_ex:
         raise HTTPException(status_code=500, detail=str(gen_ex))
 
-@router.put("/metricDescription/{grp_id}/{desc_id}", status_code=HTTP_204_NO_CONTENT)
+@router.put("/metricDescription/{grp_id}/{desc_id}", status_code=HTTP_204_NO_CONTENT, summary="Add a new metric description to the group.",
+            description="This metric will be visibled and will have the proper data for each business segment in the group.")
 def add_metric_description_to_group(grp_id, desc_id, request: Request):
     try:
         manager = SqlAlchemySessionManager()
@@ -153,7 +158,7 @@ def add_metric_description_to_group(grp_id, desc_id, request: Request):
     except Exception as gen_ex:
         raise HTTPException(status_code=500, detail=str(gen_ex))
 
-@router.put("/businessSegment/{grp_id}/{bs_id}", status_code=HTTP_204_NO_CONTENT)
+@router.put("/businessSegment/{grp_id}/{bs_id}", status_code=HTTP_204_NO_CONTENT, summary="Add a new business segment to the group.")
 def add_business_segment_to_group(grp_id, bs_id, request: Request):
     try:
         manager = SqlAlchemySessionManager()
@@ -175,7 +180,7 @@ def add_business_segment_to_group(grp_id, bs_id, request: Request):
     except Exception as gen_ex:
         raise HTTPException(status_code=500, detail=str(gen_ex))
 
-@router.delete("/metricDescription/{grp_id}/{desc_id}", status_code=HTTP_204_NO_CONTENT)
+@router.delete("/metricDescription/{grp_id}/{desc_id}", status_code=HTTP_204_NO_CONTENT, summary="Remove metric from the group.")
 def remove_metric_description_from_group(grp_id, desc_id, request: Request):
     try:
         manager = SqlAlchemySessionManager()
@@ -200,7 +205,7 @@ def remove_metric_description_from_group(grp_id, desc_id, request: Request):
     except Exception as gen_ex:
         raise HTTPException(status_code=500, detail=str(gen_ex))
 
-@router.delete("/businessSegment/{grp_id}/{bs_id}", status_code=HTTP_204_NO_CONTENT)
+@router.delete("/businessSegment/{grp_id}/{bs_id}", status_code=HTTP_204_NO_CONTENT, summary="Remove business segment from the group.")
 def remove_business_segment_from_group(grp_id, bs_id, request: Request):
     try:
         manager = SqlAlchemySessionManager()
@@ -237,7 +242,9 @@ Raises:
 Returns:
     the metric data for the group
 """
-@router.get("/{grp_id}", response_model=shared_models_core.CompanyGroupMetricsModel)
+@router.get("/{grp_id}", response_model=shared_models_core.CompanyGroupMetricsModel, summary="Retrieve all the info for a group.", 
+            description="Will include the group's basic info, all its business segments and all the metrics for each business segment.",
+            response_description="Complete data breakdown for a group.")
 def get_group(grp_id, request: Request, force_system_data : bool = False):
     try:
         manager = SqlAlchemySessionManager()

@@ -67,13 +67,13 @@ class Subscription:
 '''
 
 
-class CountryInfo(Base):
+"""class CountryInfo(Base):
     __tablename__ = 'country_info'
 
     id = Column(SmallInteger, primary_key=True)
     name = Column(String(60), nullable=False, unique=True)
     name_code = Column(String(10), nullable=False, unique=True)
-    currency = Column(String(10), nullable=False)
+    currency = Column(String(10), nullable=False)"""
 
 
 class Sector(Base):
@@ -84,13 +84,13 @@ class Sector(Base):
     name = Column(String(60), nullable=False, unique=True)
 
 
-class Exchange(Base):
+"""class Exchange(Base):
     __tablename__ = 'exchange'
 
     id = Column(Integer, primary_key=True)
     country_info_id = Column(ForeignKey('country_info.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False, index=True)
     name_code = Column(String(10), nullable=False, unique=True)
-    name = Column(String(60), unique=True)
+    name = Column(String(60), unique=True)"""
 
 
 class Industry(Base):
@@ -118,12 +118,12 @@ class Company(Base):
     #cash_flow_statement_data = relationship('CashFlowStatementData')
 
 
-class CompanyExchangeRelation(Base):
+"""class CompanyExchangeRelation(Base):
     __tablename__ = 'company_exchange_relation'
 
     #id = Column(Integer, primary_key=True)
     company_id = Column(ForeignKey('company.id', ondelete='CASCADE', onupdate='CASCADE'), primary_key=True, nullable=False)
-    exchange_id = Column(ForeignKey('exchange.id', ondelete='CASCADE', onupdate='CASCADE'), primary_key=True, nullable=False)
+    exchange_id = Column(ForeignKey('exchange.id', ondelete='CASCADE', onupdate='CASCADE'), primary_key=True, nullable=False)"""
 
 
 #many to many relationship between sectors and business segments
@@ -314,7 +314,7 @@ class UserMetricClassification(Base):
 
     #__table_args__ = (UniqueConstraint('metric_classification_id', 'account_id'), )
 
-class CompanyDevelopment(Base):
+"""class CompanyDevelopment(Base):
     __tablename__ = 'company_development'
 
     id = Column(BigInteger, primary_key=True)
@@ -324,17 +324,17 @@ class CompanyDevelopment(Base):
     dev_type = Column(SmallInteger, nullable=False, index=True) #conference, devcon, news release, interview, etc.
     data_type = Column(SmallInteger, nullable=False, index=True) #png, link, text, etc.
     data = Column(LargeBinary)
-    date_recorded = Column(Date, nullable=False, index=True)
+    date_recorded = Column(Date, nullable=False, index=True)"""
 
-class CompanySummary(Base):
+"""class CompanySummary(Base):
     __tablename__ = 'company_summary'
 
     id = Column(Integer, primary_key=True)
     company_id = Column(ForeignKey('company.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False, index=True)
-    data = Column(LargeBinary)# rich text (google doc, word, etc.)
+    data = Column(LargeBinary)# rich text (google doc, word, etc.)"""
 
 
-class EquityBarData(Base):
+"""class EquityBarData(Base):
     __tablename__ = 'equity_bar_data'
 
     id = Column(BigInteger, primary_key=True)
@@ -347,10 +347,10 @@ class EquityBarData(Base):
     bar_close = Column(Numeric, nullable=False)
     bar_volume = Column(BigInteger)
     bar_date = Column(DateTime(timezone=True), nullable=False, index=True)
-    bar_size = Column(String(12), nullable=False)
+    bar_size = Column(String(12), nullable=False)"""
 
 
-class CurrencyBarData(Base):
+"""class CurrencyBarData(Base):
     __tablename__ = 'currency_bar_data'
 
     id = Column(BigInteger, primary_key=True)
@@ -364,7 +364,7 @@ class CurrencyBarData(Base):
     bar_date = Column(DateTime(timezone=True), nullable=False, index=True)
     bar_size = Column(String(12), nullable=False)
 
-    #__table_args__ = (UniqueConstraint('company_id', 'bar_type', 'bar_size', 'bar_date'), )
+    #__table_args__ = (UniqueConstraint('company_id', 'bar_type', 'bar_size', 'bar_date'), )"""
 
 class Log(Base):
     __tablename__ = 'log'
@@ -384,7 +384,7 @@ class CronJobRun(Base):
 
     log = relationship("Log", uselist=False, backref="cron_job_run")
 
-class AccountTrade(Base):
+"""class AccountTrade(Base):
     __tablename__ = 'account_trade'
 
     id = Column(Integer, primary_key=True)
@@ -407,33 +407,4 @@ class AccountTrade(Base):
     cost_basis = Column(Numeric, nullable=False, index=False)
     proceeds = Column(Numeric, nullable=False, index=False)
     update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue())
-    brokerage_id = Column(SmallInteger, nullable=False, index=True)
-
-
-
-class ImportCompaniesReport:
-    def __init__(self):
-        self.errors = []
-        self.warnings = []
-        self.info = []
-        self.tickers_with_name_changes = []
-        self.company_names_with_ticker_changes = []
-
-def create_database(args):
-    try:
-        parser = argparse.ArgumentParser()
-        parser.add_argument('--db_url', help="The database url the command targets.")
-        parser.add_argument('--log_file_path', help="Location of the info logs.")
-        args, unknown = parser.parse_known_args()
-
-        handler = logging.FileHandler(args.log_file_path)
-        handler.setLevel(logging.INFO)
-
-        logger = logging.getLogger('sqlalchemy')
-        logger.addHandler(handler)
-        logger.setLevel(logging.INFO)
-
-        engine = create_engine(args.db_url, echo=True)
-        Base.metadata.create_all(engine)
-    except Exception as gen_ex:
-        print(str(gen_ex))
+    brokerage_id = Column(SmallInteger, nullable=False, index=True)"""

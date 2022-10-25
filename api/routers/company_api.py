@@ -1,3 +1,4 @@
+from urllib import response
 from fastapi import APIRouter, status, HTTPException, File, UploadFile, Query, Response, Request
 from typing import Optional, List, Union
 from pydantic import BaseModel, ValidationError, validator
@@ -13,6 +14,7 @@ import core.shared_models as shared_models_core
 import api.config as api_config
 import api.constants as api_constants
 import core.constants as core_global_constants
+import api.shared_models as api_shared_models
 
 
 router = APIRouter(
@@ -22,7 +24,8 @@ router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
-@router.get("/{search_key}", status_code=status.HTTP_200_OK, response_model=shared_models_core.CompanyBusinessSegmentsShortModel)
+@router.get("/{search_key}", status_code=status.HTTP_200_OK, response_model=shared_models_core.CompanyBusinessSegmentsShortModel, summary="Get the basic info for a company.",
+            response_description="Basic info of the company.")
 def get_company(search_key, ticker: Union[bool, None]=False):
     try:
         manager = SqlAlchemySessionManager()
@@ -49,7 +52,9 @@ def get_company(search_key, ticker: Union[bool, None]=False):
         raise HTTPException(status_code=500, detail=str(gen_ex))
 
 
-@router.post("", status_code=status.HTTP_201_CREATED)
+@router.post("", status_code=status.HTTP_201_CREATED, tags=["company"], response_model=api_shared_models.ResourceCreationBasicModel, summary="Create a company with the basic info.", 
+             description="A company will be created, but it will only contain the basic info. No business segments will be associated to it yet.",
+             response_description="The id of the created company.")
 def create_company(request: Request, company_body: shared_models_core.CompanyModel):
     try:
         manager = SqlAlchemySessionManager()
@@ -60,7 +65,7 @@ def create_company(request: Request, company_body: shared_models_core.CompanyMod
             #todo: create default bus segment
             session.add(CompanyBusinessSegment(company_id=company.id, code=company.ticker + '.default', display_name=company.ticker + ' default business segment', creator_id=request.state.rctx.user_id))
         
-        return Response(status_code=HTTP_201_CREATED)
+        return api_shared_models.ResourceCreationBasicModel(id=company.id)
 
     except ValidationError as val_err:
         raise HTTPException(status_code=500, detail=str(val_err))
@@ -68,7 +73,8 @@ def create_company(request: Request, company_body: shared_models_core.CompanyMod
         raise HTTPException(status_code=500, detail=str(gen_ex))
 
 
-@router.put("/{company_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.put("/{company_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Update the company's basic info.",
+            description="Only updates the company's basic info. To update the underlying business segments or the metric related to the company, use the proper apis.")
 def update_company(company_id, company_body: shared_models_core.CompanyModel):
     try:
         manager = SqlAlchemySessionManager()
@@ -90,7 +96,8 @@ def update_company(company_id, company_body: shared_models_core.CompanyModel):
         raise HTTPException(status_code=500, detail=str(gen_ex))
 
 
-@router.delete("/{company_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{company_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Delete the company.", 
+                description="This will also delete all the entities that are dependent on this company. Refer to the erd.")
 def delete_company(company_id):
     try:
         manager = SqlAlchemySessionManager()

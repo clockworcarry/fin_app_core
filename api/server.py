@@ -36,7 +36,108 @@ from db.models import *
 import api.config as api_config
 import api.constants as api_constants
 
-app = FastAPI()
+tags_metadata = [
+    {
+        "name": "account",
+        "description": "Account operations. Create user, login, etc.",
+        "externalDocs": {
+            "description": "Account external docs.",
+            "url": "https://docs.google.com/document/d/1b1QLn1n_JFzC9NI1Gg1kyNeLUmsogZvIBfvn0ja2DaM/edit",
+        },
+    },
+    {
+        "name": "companies",
+        "description": "Retrieve data for multiple companies based on search parameters for the user.",
+    },
+    {
+        "name": "company",
+        "description": "Manage companies.",
+        "externalDocs": {
+            "description": "Company external docs.",
+            "url": "https://docs.google.com/document/d/1b1QLn1n_JFzC9NI1Gg1kyNeLUmsogZvIBfvn0ja2DaM/edit",
+        },
+    },
+    {
+        "name": "companyBusinessSegment",
+        "description": "Manage business segments and retrieve data for individual segments.",
+        "externalDocs": {
+            "description": "Business segment external docs.",
+            "url": "https://docs.google.com/document/d/1b1QLn1n_JFzC9NI1Gg1kyNeLUmsogZvIBfvn0ja2DaM/edit",
+        },
+    },
+    {
+        "name": "equitiesGroup",
+        "description": "Manage company groups and retrieve detailed data for individual groups (segments, metrics, etc.).",
+        "externalDocs": {
+            "description": "Company group external docs.",
+            "url": "https://docs.google.com/document/d/1b1QLn1n_JFzC9NI1Gg1kyNeLUmsogZvIBfvn0ja2DaM/edit",
+        },
+    },
+    {
+        "name": "equitiesGroups",
+        "description": "Retrieve basic info for multiple groups based on search parameters for the user.",
+    },
+    {
+        "name": "industries",
+        "description": "Retrieve data for multiple industries based on search parameters.",
+    },
+    {
+        "name": "industry",
+        "description": "Manage industries. Limited to system user.",
+        "externalDocs": {
+            "description": "Industry external docs.",
+            "url": "https://docs.google.com/document/d/1b1QLn1n_JFzC9NI1Gg1kyNeLUmsogZvIBfvn0ja2DaM/edit",
+        },
+    },
+    {
+        "name": "metricData",
+        "description": "Manage the actual data related to metrics.",
+        "externalDocs": {
+            "description": "Metric data external docs.",
+            "url": "https://docs.google.com/document/d/1b1QLn1n_JFzC9NI1Gg1kyNeLUmsogZvIBfvn0ja2DaM/edit",
+        },
+    },
+    {
+        "name": "metricDescription",
+        "description": "Manage metrics.",
+        "externalDocs": {
+            "description": "Metric description external docs.",
+            "url": "https://docs.google.com/document/d/1b1QLn1n_JFzC9NI1Gg1kyNeLUmsogZvIBfvn0ja2DaM/edit",
+        },
+    },
+    {
+        "name": "metricDescriptions",
+        "description": "Retrieve metric descriptions. These will be the actual metric descriptions with no data associated."
+    },
+    {
+        "name": "metricsCategory",
+        "description": "Manage metric categories.",
+        "externalDocs": {
+            "description": "Metrics category external docs.",
+            "url": "https://docs.google.com/document/d/1b1QLn1n_JFzC9NI1Gg1kyNeLUmsogZvIBfvn0ja2DaM/edit",
+        },
+    },
+    {
+        "name": "metricsCategories",
+        "description": "Retrieve metric categories for a user."
+    },
+    {
+        "name": "sector",
+        "description": "Manage sectors. Limited to system user."
+    },
+    {
+        "name": "sectors",
+        "description": "Retrieve sectors based on search parameters."
+    },
+]
+
+description = """
+Compare and value companies 🚀
+
+Latest release notes external docs: https://docs.google.com/document/d/1b1QLn1n_JFzC9NI1Gg1kyNeLUmsogZvIBfvn0ja2DaM/edit
+"""
+
+app = FastAPI(title='Financial App', version=api_constants.version, openapi_tags=tags_metadata, description=description, swagger_ui_parameters={"syntaxHighlight.theme": "das"})
 
 #app.include_router(company_financials_api.router)
 app.include_router(company_api.router)
@@ -57,7 +158,7 @@ app.include_router(metric_data_api.router)
 
 
 
-@app.get("/" + api_constants.app_name + "/version")
+@app.get("/" + api_constants.app_name + "/version", response_description="The current version of the running application.")
 def version():
     return {"version": api_constants.version}
 

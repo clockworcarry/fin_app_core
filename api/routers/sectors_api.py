@@ -22,7 +22,7 @@ class SectorModelOut(BaseModel):
     name: str
     name_code: str
 
-@router.get("/", response_model=List[SectorModelOut])
+@router.get("/", response_model=List[SectorModelOut], summary="Retrieve all sectors.", response_description="List of sectors.")
 def get_all_sectors():
     try:
         manager = SqlAlchemySessionManager()

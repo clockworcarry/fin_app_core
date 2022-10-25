@@ -1,5 +1,6 @@
 import datetime
 from unicodedata import category
+from urllib import response
 from xmlrpc.client import boolean
 from fastapi import APIRouter, status, HTTPException, Response, Depends
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
@@ -17,6 +18,7 @@ from sqlalchemy.orm import sessionmaker
 
 import api.constants as api_constants
 import core.security as core_security
+import api.shared_models as api_shared_models
 
 import simplejson as json
 
@@ -46,12 +48,9 @@ class CreateAccountModelIn(BaseModel):
     password: str
     email: str
     phone: str
-
-class CreateAccountModelOut(BaseModel):
-    id: int
     
 
-@router.post("/", status_code=status.HTTP_201_CREATED, response_model=CreateAccountModelOut)
+@router.post("/", status_code=status.HTTP_201_CREATED, response_model=api_shared_models.ResourceCreationBasicModel, summary="Create a new account.", response_description="Id of the created account.")
 def create_account(body: CreateAccountModelIn):
     try:
         manager = SqlAlchemySessionManager()
@@ -61,7 +60,7 @@ def create_account(body: CreateAccountModelIn):
             session.add(acc)
             session.flush()
         
-            return CreateAccountModelOut(id=acc.id)
+            return api_shared_models.ResourceCreationBasicModel(id=acc.id)
                    
 
     except ValidationError as val_err:
@@ -69,11 +68,13 @@ def create_account(body: CreateAccountModelIn):
     except Exception as gen_ex:
         raise HTTPException(status_code=500, detail=str(gen_ex))
 
-@router.put("/{account_id}", status_code=status.HTTP_204_NO_CONTENT)
+"""@router.put("/{account_id}", status_code=status.HTTP_204_NO_CONTENT)
 def update_account(body: CreateAccountModelIn):
-    return Response(content="Not implemented", status_code=HTTP_204_NO_CONTENT)
+    return Response(content="Not implemented", status_code=HTTP_204_NO_CONTENT)"""
 
-@router.post("/token", status_code=status.HTTP_200_OK, response_model=LoginModelOut)
+@router.post("/token", status_code=status.HTTP_200_OK, response_model=LoginModelOut, summary="Login the user.", 
+             description="Create a jwt token to be used for each subsequent requests.", \
+             response_description="Jwt token representing the user.")
 def login(form_data: OAuth2PasswordRequestForm = Depends()):
     try:
         manager = SqlAlchemySessionManager()
@@ -98,7 +99,7 @@ def login(form_data: OAuth2PasswordRequestForm = Depends()):
     except Exception as gen_ex:
         raise HTTPException(status_code=500, detail=str(gen_ex))
 
-@router.put("/{}", status_code=status.HTTP_200_OK, )
+"""@router.put("/{}", status_code=status.HTTP_200_OK, )
 def account_deletion_confirmation(body: CreateAccountModelIn):
     return Response(content="Not implemented", status_code=HTTP_501_NOT_IMPLEMENTED)
 
@@ -108,4 +109,4 @@ def delete_account():
 
 @router.delete("/", status_code=HTTP_204_NO_CONTENT)
 def delete_account():
-    return Response(content="Not implemented", status_code=HTTP_501_NOT_IMPLEMENTED)
+    return Response(content="Not implemented", status_code=HTTP_501_NOT_IMPLEMENTED)"""

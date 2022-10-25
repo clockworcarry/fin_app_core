@@ -16,6 +16,7 @@ import api.security.security as app_security
 import api.shared_models as shared_models
 import core.shared_models as shared_models_core
 import core.metrics_classifications as metrics_classifications_core
+import api.shared_models as api_shared_models
 
 
 from typing import Union
@@ -36,7 +37,8 @@ class MetricClassificationModelIn(BaseModel):
     category_name: str
     parent_id: Union[int, None]
 
-@router.post("", status_code=status.HTTP_201_CREATED)
+@router.post("", status_code=status.HTTP_201_CREATED, response_model=api_shared_models.ResourceCreationBasicModel, summary="Create a new metrics category",
+            description="Will create an empty category that the user can put metrics in. Only visible to user who created it unless it is a system user.")
 def create_metrics_classification(request: Request, body: MetricClassificationModelIn):
     try:
         manager = SqlAlchemySessionManager()
@@ -66,7 +68,7 @@ def create_metrics_classification(request: Request, body: MetricClassificationMo
     except Exception as gen_ex:
         raise HTTPException(status_code=500, detail=str(gen_ex))
 
-@router.put("/{classification_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.put("/{classification_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Update cateogyr basic info.")
 def update_metrics_classification(classification_id, request: Request, body: MetricClassificationModelIn):
     try:
         manager = SqlAlchemySessionManager()
@@ -104,7 +106,7 @@ def update_metrics_classification(classification_id, request: Request, body: Met
     except Exception as gen_ex:
         raise HTTPException(status_code=500, detail=str(gen_ex))
 
-@router.delete("/{classification_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{classification_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Deletes a metrics category.")
 def delete_metrics_classification(classification_id):
     try:
         manager = SqlAlchemySessionManager()

@@ -23,7 +23,7 @@ class IndustryModelOut(BaseModel):
     name: str
     name_code: str
 
-@router.get("/", response_model=List[IndustryModelOut])
+@router.get("/", response_model=List[IndustryModelOut], summary="Get all industries.", response_description="List of all industries.")
 def get_all_industries():
     try:
         manager = SqlAlchemySessionManager()
@@ -41,7 +41,7 @@ def get_all_industries():
     except Exception as gen_ex:
         raise HTTPException(status_code=500, detail=str(gen_ex))
 
-@router.get("/{sector_id}", response_model=List[IndustryModelOut])
+@router.get("/{sector_id}", response_model=List[IndustryModelOut], summary="Get all industries for a given sector.", response_description="List of all industries for a sector.")
 def get_all_sector_industries(sector_id):
     try:
         manager = SqlAlchemySessionManager()

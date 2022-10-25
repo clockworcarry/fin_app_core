@@ -9,7 +9,7 @@ from db.models import Company
 DATA_TYPE_QUARTERLY = 0
 DATA_TYPE_ANNUAL = 1
 
-class CompanyFinancialData(Base):
+"""class CompanyFinancialData(Base):
     __tablename__ = 'company_financial_data'
 
     id = Column(Integer, primary_key=True)
@@ -90,9 +90,9 @@ class CompanyFinancialData(Base):
     
     update_stamp = Column(DateTime(timezone=True), nullable=False, server_default=FetchedValue())
 
-    __table_args__ = (UniqueConstraint('company_id', 'data_type', 'calendar_date'), )
+    __table_args__ = (UniqueConstraint('company_id', 'data_type', 'calendar_date'), )"""
 
-class CompanyFundamentalRatios(Base):
+"""class CompanyFundamentalRatios(Base):
     __tablename__ = 'company_fundamental_ratios'
 
     id = Column(BigInteger, primary_key=True)
@@ -1203,4 +1203,4 @@ class CompanyFundamentalRatios(Base):
     peg_ratio_std_dev_ten_years = Column(Numeric, nullable=True)
     peg_ratio_std_dev_twenty_years = Column(Numeric, nullable=True)
 
-    update_stamp = Column(DateTime(timezone=True), nullable=True, server_default=FetchedValue())
+    update_stamp = Column(DateTime(timezone=True), nullable=True, server_default=FetchedValue())"""

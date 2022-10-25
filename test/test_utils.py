@@ -9,8 +9,8 @@ def cleanup_db_conn_from_conn_obj(conn):
             stmt = delete(Account.__table__)
             conn.execute(stmt)
 
-            stmt = delete(AccountTrade.__table__)
-            conn.execute(stmt)
+            """stmt = delete(AccountTrade.__table__)
+            conn.execute(stmt)"""
             
             stmt = delete(Company.__table__)
             conn.execute(stmt)
@@ -18,7 +18,7 @@ def cleanup_db_conn_from_conn_obj(conn):
             stmt = delete(CompanyBusinessSegment.__table__)
             conn.execute(stmt)
 
-            stmt = delete(CompanyDevelopment.__table__)
+            """stmt = delete(CompanyDevelopment.__table__)
             conn.execute(stmt)
 
             stmt = delete(CompanyExchangeRelation.__table__)
@@ -28,7 +28,7 @@ def cleanup_db_conn_from_conn_obj(conn):
             conn.execute(stmt)
 
             stmt = delete(CompanyFundamentalRatios.__table__)
-            conn.execute(stmt)
+            conn.execute(stmt)"""
 
             stmt = delete(CompanyGroup.__table__)
             conn.execute(stmt)
@@ -48,23 +48,23 @@ def cleanup_db_conn_from_conn_obj(conn):
             stmt = delete(CompanySectorRelation.__table__)
             conn.execute(stmt)
 
-            stmt = delete(CompanySummary.__table__)
+            """stmt = delete(CompanySummary.__table__)
             conn.execute(stmt)
 
             stmt = delete(CountryInfo.__table__)
-            conn.execute(stmt)
+            conn.execute(stmt)"""
 
             stmt = delete(CronJobRun.__table__)
             conn.execute(stmt)
 
-            stmt = delete(CurrencyBarData.__table__)
+            """stmt = delete(CurrencyBarData.__table__)
             conn.execute(stmt)
 
             stmt = delete(EquityBarData.__table__)
             conn.execute(stmt)
 
             stmt = delete(Exchange.__table__)
-            conn.execute(stmt)
+            conn.execute(stmt)"""
 
             stmt = delete(Industry.__table__)
             conn.execute(stmt)
@@ -111,24 +111,24 @@ def cleanup_db_from_db_str(db_conn_str, keep_users = False):
         with manager.session_scope(db_url=db_conn_str, template_name='default_session') as session:
             if not keep_users:
                 session.query(Account).delete()
-            session.query(AccountTrade).delete()
+            #session.query(AccountTrade).delete()
             session.query(Company).delete()
             session.query(CompanyBusinessSegment).delete()
-            session.query(CompanyDevelopment).delete()
-            session.query(CompanyExchangeRelation).delete()
-            session.query(CompanyFinancialData).delete()
-            session.query(CompanyFundamentalRatios).delete()
+            #session.query(CompanyDevelopment).delete()
+            #session.query(CompanyExchangeRelation).delete()
+            #session.query(CompanyFinancialData).delete()
+            #session.query(CompanyFundamentalRatios).delete()
             session.query(CompanyGroup).delete()
             session.query(CompanyGroupMetricDescription).delete()
             session.query(CompanyInGroup).delete()
             session.query(CompanyIndustryRelation).delete()
             session.query(CompanySectorRelation).delete()
-            session.query(CompanySummary).delete()
-            session.query(CountryInfo).delete()
+            #session.query(CompanySummary).delete()
+            #session.query(CountryInfo).delete()
             session.query(CronJobRun).delete()
-            session.query(CurrencyBarData).delete()
-            session.query(EquityBarData).delete()
-            session.query(Exchange).delete()
+            #session.query(CurrencyBarData).delete()
+            #session.query(EquityBarData).delete()
+            #session.query(Exchange).delete()
             session.query(Industry).delete()
             session.query(Log).delete()
             session.query(MetricClassification).delete()

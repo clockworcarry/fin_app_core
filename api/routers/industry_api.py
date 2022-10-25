@@ -20,6 +20,7 @@ import simplejson as json
 import api.config as api_config
 import api.constants as api_constants
 import core.constants as core_constants
+import api.shared_models as api_shared_models
 
 router = APIRouter(
     prefix="/" + api_constants.app_name + "/" + api_constants.version + "/industry",
@@ -33,7 +34,8 @@ class IndustrySaveModelIn(BaseModel):
     name: str
     name_code: str
 
-@router.post("", status_code=status.HTTP_201_CREATED)
+@router.post("", status_code=status.HTTP_201_CREATED, response_model=api_shared_models.ResourceCreationBasicModel, summary="Create an industry", 
+            description="Only the system user can perform this action. Regular users should create custom groups instead.", response_description="The id of the created industry.")
 def create_industry(body: IndustrySaveModelIn, request: Request):
     try:
         if request.state.rctx.user_id != core_constants.system_user_id:
@@ -43,15 +45,16 @@ def create_industry(body: IndustrySaveModelIn, request: Request):
         with manager.session_scope(db_url=api_config.global_api_config.db_conn_str, template_name='default_session') as session:
             new_industry = Industry(sector_id=body.sector_id, name=body.name, name_code=body.name_code)
             session.add(new_industry)
+            session.flush()
             
-        return Response(status_code=HTTP_201_CREATED)
+        return api_shared_models.ResourceCreationBasicModel(id=new_industry.id)
     
     except ValidationError as val_err:
         raise HTTPException(status_code=500, detail=str(val_err))
     except Exception as gen_ex:
         raise HTTPException(status_code=500, detail=str(gen_ex))
 
-@router.put("/{industry_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.put("/{industry_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Update an industry", description="Only system user can update an industry. Other users should create company groups.")
 def update_industry(industry_id, body: IndustrySaveModelIn, request: Request):
     try:
         if request.state.rctx.user_id != core_constants.system_user_id:
@@ -73,7 +76,7 @@ def update_industry(industry_id, body: IndustrySaveModelIn, request: Request):
     except Exception as gen_ex:
         raise HTTPException(status_code=500, detail=str(gen_ex))
 
-@router.delete("/{industry_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{industry_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Delete an industry.", description="Only system user can delete an industry. Other users should create company groups.")
 def delete_sector(industry_id, request: Request):
     try:
         if request.state.rctx.user_id != core_constants.system_user_id:

@@ -13,6 +13,7 @@ import core.shared_models as shared_models_core
 import api.config as api_config
 import api.constants as api_constants
 import core.constants as core_global_constants
+import api.shared_models as api_shared_models
 
 
 router = APIRouter(
@@ -23,7 +24,8 @@ router = APIRouter(
 )
 
 
-@router.post("", status_code=status.HTTP_201_CREATED)
+@router.post("", status_code=status.HTTP_201_CREATED, response_model=api_shared_models.ResourceCreationBasicModel, summary="Create a new metric description.", 
+            description="Metric \"template\" . No data is associated to it for any user yet.", response_description="The id of the created metric description.")
 def create_metric_description(request: Request, body: shared_models_core.MetricDescriptionModel):
     try:
         manager = SqlAlchemySessionManager()
@@ -37,7 +39,7 @@ def create_metric_description(request: Request, body: shared_models_core.MetricD
             session.flush()
             session.add(UserMetricDescription(metric_description_id=metric_desc.id, account_id=request.state.rctx.user_id))
         
-        return Response(status_code=HTTP_201_CREATED)
+        return api_shared_models.ResourceCreationBasicModel(id=metric_desc.id)
 
     except ValidationError as val_err:
         raise HTTPException(status_code=500, detail=str(val_err))
@@ -45,7 +47,7 @@ def create_metric_description(request: Request, body: shared_models_core.MetricD
         raise HTTPException(status_code=500, detail=str(gen_ex))
 
 
-@router.put("/{desc_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.put("/{desc_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Update a metric description.")
 def update_metric_description(desc_id, body: shared_models_core.MetricDescriptionModel):
     try:
         manager = SqlAlchemySessionManager()
@@ -73,12 +75,12 @@ def update_metric_description(desc_id, body: shared_models_core.MetricDescriptio
     except Exception as gen_ex:
         raise HTTPException(status_code=500, detail=str(gen_ex))
 
-@router.put("/{desc_id}/{toolbox_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.put("/{desc_id}/{toolbox_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Not implemented yet.")
 def add_metric_description_to_toolbox(desc_id, body: shared_models_core.MetricDescriptionModel):
     return Response(content="Not implemented", status_code=HTTP_501_NOT_IMPLEMENTED)
 
 
-@router.delete("/{desc_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{desc_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Delete a metric description.", description="Will also delete dependant entities. See erd for reference.")
 def delete_metric_description(desc_id):
     try:
         manager = SqlAlchemySessionManager()

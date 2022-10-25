@@ -11,12 +11,12 @@ from db.models import *
 from fastapi.responses import JSONResponse
 
 import core.shared_models as shared_models_core
-import api.shared_models as api_shared_models
 
 
 import api.config as api_config
 import api.constants as api_constants
 import core.constants as core_global_constants
+import api.shared_models as api_shared_models
 
 
 router = APIRouter(
@@ -35,7 +35,9 @@ class MetricDataUpdateModelIn(BaseModel):
     data: float
 
 
-@router.post("", status_code=status.HTTP_201_CREATED, response_model=api_shared_models.ResourceCreationBasicModel)
+@router.post("", status_code=status.HTTP_201_CREATED, response_model=api_shared_models.ResourceCreationBasicModel, summary="Associate actual metric data to a metric.",
+            description="The data for a metric is business AND user specific. A metric description only describes the metrics, but the data for the metric will differ by business. A user \
+                         can also override data for a metric for his own if he wants. Only he will see his version of the data.", response_description="The id of the created metric data entity.")
 def associate_data_to_metric_description(request: Request, body: MetricDataSaveModelIn):
     try:
         manager = SqlAlchemySessionManager()
@@ -52,7 +54,8 @@ def associate_data_to_metric_description(request: Request, body: MetricDataSaveM
         raise HTTPException(status_code=500, detail=str(gen_ex))
 
 
-@router.put("/{data_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.put("/{data_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Update the actual metric data for a metric.", 
+            description="Update data associated to a metric only for this user. If the user is system, will impact all users who use this data.")
 def update_metric_data(data_id, body: MetricDataSaveModelIn):
     try:
         manager = SqlAlchemySessionManager()
@@ -71,7 +74,8 @@ def update_metric_data(data_id, body: MetricDataSaveModelIn):
         raise HTTPException(status_code=500, detail=str(gen_ex))
 
 
-@router.delete("/{data_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{data_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Delete the actual metric data for a metric.", 
+                description="Delete the data associated to a metric only for this user. If the user is system, will impact all users who use this data.")
 def delete_metric_data(data_id):
     try:
         manager = SqlAlchemySessionManager()

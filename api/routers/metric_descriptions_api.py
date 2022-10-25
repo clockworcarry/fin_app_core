@@ -22,7 +22,8 @@ router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
-@router.get("", status_code=status.HTTP_200_OK, response_model=List[shared_models_core.MetricCategoryModel])
+@router.get("", status_code=status.HTTP_200_OK, response_model=List[shared_models_core.MetricCategoryModel], summary="Get the metric descriptions for a user.",
+            description="This will only retrieve the metrics that the dealer has access to. See erd for reference.", response_description="List of metric descriptions.")
 def get_metric_descriptions(request: Request):
     try:
         manager = SqlAlchemySessionManager()

@@ -32,7 +32,8 @@ router = APIRouter(
 )
 
 #session = Depends(api_utils.get_db_session), current_user: Account = Depends(app_security.get_current_user
-@router.get("", status_code=status.HTTP_200_OK, response_model=List[shared_models_core.MetricCategoryShortModel])
+@router.get("", status_code=status.HTTP_200_OK, response_model=List[shared_models_core.MetricCategoryShortModel], summary="Retrieve all metric categories user has access to.",
+            description="Only the basic info for the categories will be displayed in this view. To see metrics in the categories, other apis must be used.", response_description="List of metric categories.")
 def get_metrics_classifications(request: Request):
     try:
         manager = SqlAlchemySessionManager()

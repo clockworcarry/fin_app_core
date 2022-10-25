@@ -20,6 +20,7 @@ import simplejson as json
 import api.config as api_config
 import api.constants as api_constants
 import core.constants as core_constants
+import api.shared_models as api_shared_models
 
 router = APIRouter(
     prefix="/" + api_constants.app_name + "/" + api_constants.version + "/sector",
@@ -33,7 +34,8 @@ class SectorSaveModelIn(BaseModel):
     name_code: str
 
 
-@router.post("", status_code=status.HTTP_201_CREATED)
+@router.post("", status_code=status.HTTP_201_CREATED, response_model=api_shared_models.ResourceCreationBasicModel, summary="Create a new sector.",
+            description="This endpoint is only available to system user. Regular users should create groups instead.", response_description="The id of the created sector.")
 def create_sector(body: SectorSaveModelIn, request: Request):
     try:
         if request.state.rctx.user_id != core_constants.system_user_id:
@@ -51,7 +53,7 @@ def create_sector(body: SectorSaveModelIn, request: Request):
     except Exception as gen_ex:
         raise HTTPException(status_code=500, detail=str(gen_ex))
 
-@router.put("/{sector_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.put("/{sector_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Update a sector's info.")
 def update_sector(sector_id, body: SectorSaveModelIn, request: Request):
     try:
         if request.state.rctx.user_id != core_constants.system_user_id:
@@ -72,7 +74,7 @@ def update_sector(sector_id, body: SectorSaveModelIn, request: Request):
     except Exception as gen_ex:
         raise HTTPException(status_code=500, detail=str(gen_ex))
 
-@router.delete("/{sector_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{sector_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Delete a sector.", description="Will also delete dependant entities. See erd for reference.")
 def delete_sector(sector_id, request: Request):
     try:
         if request.state.rctx.user_id != core_constants.system_user_id:

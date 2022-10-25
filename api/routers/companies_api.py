@@ -31,7 +31,8 @@ Returns:
     will return all the companies that have >= 1 business segments associated to it that are part of this sector.
     Same for an industry id.
     """
-@router.get("/", status_code=status.HTTP_200_OK, response_model=List[shared_models_core.CompanyBusinessSegmentsShortModel])
+@router.get("/", status_code=status.HTTP_200_OK, response_model=List[shared_models_core.CompanyBusinessSegmentsShortModel], summary="Get companies for given parameters.", \
+            response_description="List of companies with their basic info.")
 def get_companies(request: Request, sector_id: Union[List[int], None]=FQuery(default=None), industry_id: Union[List[int], None]=FQuery(default=None)):
     try:
         manager = SqlAlchemySessionManager()
@@ -77,6 +78,6 @@ def get_companies(request: Request, sector_id: Union[List[int], None]=FQuery(def
     except Exception as gen_ex:
         raise HTTPException(status_code=500, detail=str(gen_ex))
 
-@router.get("/watchList/{watchlist_id}", status_code=status.HTTP_200_OK, response_model=List[shared_models_core.CompanyModel])
+@router.get("/watchList/{watchlist_id}", status_code=status.HTTP_200_OK, response_model=List[shared_models_core.CompanyModel], summary="Not implemented yet.")
 def get_companies(watchlist_id):
     return Response(content="Not implemented", status_code=HTTP_501_NOT_IMPLEMENTED)

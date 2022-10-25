@@ -24,7 +24,8 @@ router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
-@router.get("", status_code=HTTP_200_OK, response_model=List[shared_models_core.CompanyGroupInfoShortModel])
+@router.get("", status_code=HTTP_200_OK, response_model=List[shared_models_core.CompanyGroupInfoShortModel], summary="Get groups for a user.",
+            description="Will only return groups user has access to. Will only contain groups' basic info.", response_description="List of groups with their basic info.")
 def get_user_groups(request: Request):
     try:
         manager = SqlAlchemySessionManager()
