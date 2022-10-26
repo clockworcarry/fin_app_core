@@ -78,10 +78,11 @@ def create_company_business_segment(request: Request, body: shared_models_core.B
             if db_bs is not None:
                 raise Exception("A business segment with code: " + body.code + " already exists.")
             
-            session.add(CompanyBusinessSegment(company_id=body.company_id, code=body.code, display_name=body.display_name, creator_id=request.state.rctx.user_id))
+            new_bs = CompanyBusinessSegment(company_id=body.company_id, code=body.code, display_name=body.display_name, creator_id=request.state.rctx.user_id)
+            session.add(new_bs)
             session.flush()
 
-            return api_shared_models.ResourceCreationBasicModel(id=db_bs.id)
+            return api_shared_models.ResourceCreationBasicModel(id=new_bs.id)
 
     except ValidationError as val_err:
         raise HTTPException(status_code=500, detail=str(val_err))

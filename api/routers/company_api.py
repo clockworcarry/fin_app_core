@@ -65,7 +65,7 @@ def create_company(request: Request, company_body: shared_models_core.CompanyMod
             #todo: create default bus segment
             session.add(CompanyBusinessSegment(company_id=company.id, code=company.ticker + '.default', display_name=company.ticker + ' default business segment', creator_id=request.state.rctx.user_id))
         
-        return api_shared_models.ResourceCreationBasicModel(id=company.id)
+            return api_shared_models.ResourceCreationBasicModel(id=company.id)
 
     except ValidationError as val_err:
         raise HTTPException(status_code=500, detail=str(val_err))

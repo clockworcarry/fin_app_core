@@ -39,7 +39,7 @@ def create_metric_description(request: Request, body: shared_models_core.MetricD
             session.flush()
             session.add(UserMetricDescription(metric_description_id=metric_desc.id, account_id=request.state.rctx.user_id))
         
-        return api_shared_models.ResourceCreationBasicModel(id=metric_desc.id)
+            return api_shared_models.ResourceCreationBasicModel(id=metric_desc.id)
 
     except ValidationError as val_err:
         raise HTTPException(status_code=500, detail=str(val_err))

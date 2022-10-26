@@ -47,7 +47,7 @@ def create_industry(body: IndustrySaveModelIn, request: Request):
             session.add(new_industry)
             session.flush()
             
-        return api_shared_models.ResourceCreationBasicModel(id=new_industry.id)
+            return api_shared_models.ResourceCreationBasicModel(id=new_industry.id)
     
     except ValidationError as val_err:
         raise HTTPException(status_code=500, detail=str(val_err))
