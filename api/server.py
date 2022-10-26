@@ -42,7 +42,7 @@ tags_metadata = [
         "description": "Account operations. Create user, login, etc.",
         "externalDocs": {
             "description": "Account external docs.",
-            "url": "https://docs.google.com/document/d/1b1QLn1n_JFzC9NI1Gg1kyNeLUmsogZvIBfvn0ja2DaM/edit",
+            "url": "https://docs.google.com/document/d/1ea0NFrCMWB91tJq5kPePWPilN0sbtNZlE_DFto3vnDU/edit",
         },
     },
     {
@@ -54,7 +54,7 @@ tags_metadata = [
         "description": "Manage companies.",
         "externalDocs": {
             "description": "Company external docs.",
-            "url": "https://docs.google.com/document/d/1b1QLn1n_JFzC9NI1Gg1kyNeLUmsogZvIBfvn0ja2DaM/edit",
+            "url": "https://docs.google.com/document/d/1ea0NFrCMWB91tJq5kPePWPilN0sbtNZlE_DFto3vnDU/edit",
         },
     },
     {
@@ -62,7 +62,7 @@ tags_metadata = [
         "description": "Manage business segments and retrieve data for individual segments.",
         "externalDocs": {
             "description": "Business segment external docs.",
-            "url": "https://docs.google.com/document/d/1b1QLn1n_JFzC9NI1Gg1kyNeLUmsogZvIBfvn0ja2DaM/edit",
+            "url": "https://docs.google.com/document/d/1ea0NFrCMWB91tJq5kPePWPilN0sbtNZlE_DFto3vnDU/edit",
         },
     },
     {
@@ -70,7 +70,7 @@ tags_metadata = [
         "description": "Manage company groups and retrieve detailed data for individual groups (segments, metrics, etc.).",
         "externalDocs": {
             "description": "Company group external docs.",
-            "url": "https://docs.google.com/document/d/1b1QLn1n_JFzC9NI1Gg1kyNeLUmsogZvIBfvn0ja2DaM/edit",
+            "url": "https://docs.google.com/document/d/1ea0NFrCMWB91tJq5kPePWPilN0sbtNZlE_DFto3vnDU/edit",
         },
     },
     {
@@ -86,7 +86,7 @@ tags_metadata = [
         "description": "Manage industries. Limited to system user.",
         "externalDocs": {
             "description": "Industry external docs.",
-            "url": "https://docs.google.com/document/d/1b1QLn1n_JFzC9NI1Gg1kyNeLUmsogZvIBfvn0ja2DaM/edit",
+            "url": "https://docs.google.com/document/d/1ea0NFrCMWB91tJq5kPePWPilN0sbtNZlE_DFto3vnDU/edit",
         },
     },
     {
@@ -94,7 +94,7 @@ tags_metadata = [
         "description": "Manage the actual data related to metrics.",
         "externalDocs": {
             "description": "Metric data external docs.",
-            "url": "https://docs.google.com/document/d/1b1QLn1n_JFzC9NI1Gg1kyNeLUmsogZvIBfvn0ja2DaM/edit",
+            "url": "https://docs.google.com/document/d/1ea0NFrCMWB91tJq5kPePWPilN0sbtNZlE_DFto3vnDU/edit",
         },
     },
     {
@@ -102,7 +102,7 @@ tags_metadata = [
         "description": "Manage metrics.",
         "externalDocs": {
             "description": "Metric description external docs.",
-            "url": "https://docs.google.com/document/d/1b1QLn1n_JFzC9NI1Gg1kyNeLUmsogZvIBfvn0ja2DaM/edit",
+            "url": "https://docs.google.com/document/d/1ea0NFrCMWB91tJq5kPePWPilN0sbtNZlE_DFto3vnDU/edit",
         },
     },
     {
@@ -114,7 +114,7 @@ tags_metadata = [
         "description": "Manage metric categories.",
         "externalDocs": {
             "description": "Metrics category external docs.",
-            "url": "https://docs.google.com/document/d/1b1QLn1n_JFzC9NI1Gg1kyNeLUmsogZvIBfvn0ja2DaM/edit",
+            "url": "https://docs.google.com/document/d/1ea0NFrCMWB91tJq5kPePWPilN0sbtNZlE_DFto3vnDU/edit",
         },
     },
     {
@@ -134,10 +134,11 @@ tags_metadata = [
 description = """
 Compare and value companies 🚀
 
-Latest release notes external docs: https://docs.google.com/document/d/1b1QLn1n_JFzC9NI1Gg1kyNeLUmsogZvIBfvn0ja2DaM/edit
+Latest release notes external docs: https://docs.google.com/document/d/1XWxqScJy5BqzkqUcmQThAWnbZBFgyhl0BgawRUhIRC8/edit
+Latest entities document: https://docs.google.com/document/d/1ea0NFrCMWB91tJq5kPePWPilN0sbtNZlE_DFto3vnDU/edit
 """
 
-app = FastAPI(title='Financial App', version=api_constants.version, openapi_tags=tags_metadata, description=description, swagger_ui_parameters={"syntaxHighlight.theme": "das"})
+app = FastAPI(title='Financial App', version=api_constants.version, openapi_tags=tags_metadata, description=description)
 
 #app.include_router(company_financials_api.router)
 app.include_router(company_api.router)
