@@ -9,6 +9,7 @@ from pydantic import BaseModel, ValidationError, validator
 
 from api.config import init_config
 
+
 import api.routers.company_api as company_api
 import api.routers.company_financials_api as company_financials_api
 import api.routers.industry_api as industry_api
@@ -134,7 +135,7 @@ tags_metadata = [
 description = """
 Compare and value companies 🚀
 
-Latest release notes external docs: https://docs.google.com/document/d/1XWxqScJy5BqzkqUcmQThAWnbZBFgyhl0BgawRUhIRC8/edit
+Latest release notes external docs: https://docs.google.com/document/d/1XWxqScJy5BqzkqUcmQThAWnbZBFgyhl0BgawRUhIRC8/edit \n
 Latest entities document: https://docs.google.com/document/d/1ea0NFrCMWB91tJq5kPePWPilN0sbtNZlE_DFto3vnDU/edit
 """
 
@@ -165,11 +166,20 @@ def version():
 
 @app.middleware("http")
 async def request_handler_common(request: Request, call_next):
+    #response = await call_next(request)
+    #return response
     try:
         manager = SqlAlchemySessionManager()
-        
+
         no_validation = False
-        if (request.method == 'POST' and 'account' in request.url.path) or 'openapi.json' in request.url.path:
+        
+        start_idx = len(request.base_url._url)
+        url = request.url._url[start_idx:]
+        url_parts = url.split('/')
+
+        if len(url_parts) == 1 and (url_parts[0] == 'docs' or url_parts[0] == 'openapi.json'):
+            no_validation = True
+        elif len(url_parts) > 1 and ((request.method == 'POST' and url_parts[1] == 'account') or url_parts[1] == 'version'):
             no_validation = True
         
         if not no_validation:
@@ -202,7 +212,7 @@ def initialize():
     except Exception as gen_ex:
         print(str(gen_ex))
     
-    uvicorn.run("server:app", host="0.0.0.0", port=8000, workers=1)
+    uvicorn.run("server:app", host="0.0.0.0", port=8080, workers=1)
 
     print("Initialization done.")
 
