@@ -1,6 +1,1 @@
-Compare businesses, visualize metrics and value companies.
-
-Support features
-    - Metrics data entry
-    - Visualize metrics for individual business segments
-    - Compare metrics for related businesses.
+The initial version of the FinanceBazaar app was authored in Python. This code laid the foundation for the app's development. Upon request, interested viewers can be provided access to the app's code
