@@ -27,16 +27,6 @@ def mark_wash_sales():
 
     wash_sale_period_end = datetime.datetime.strptime('2021-1-31', '%Y-%m-%d').date()
     
-    '''manager = SqlAlchemySessionManager()
-    with manager.session_scope(db_url='postgresql://postgres:navo1234@localhost:5432/fin_app_core_db', template_name='default_session') as session:
-        df = pd.read_sql(session.query(AccountTrade).filter(AccountTrade.trade_date <= wash_sale_period_end).statement, session.bind)
-        #df = pd.read_sql(session.query(AccountTrade).statement, session.bind)
-        #df = df[((df['trade_type'] == trade_type_sell_to_open) | (df['trade_type'] == trade_type_buy_to_open)) & (df['trade_date'] >= datetime.date(2020, 11, 30))]
-        df = df[((df['trade_type'] == trade_type_sell_to_open) | (df['trade_type'] == trade_type_buy_to_open)) & (df['trade_date'] >= datetime.date(2020, 11, 30))]
-        #df = df.sort_values(['trade_date'])
-        #df.to_csv("/home/ghelie/taxes/2020/wash.csv")
-        #df = df.replace({np.nan: None})
-        #df = df.sort_values(['trade_date']).groupby('symbol')'''
 
 
 def save_account_trades_questrade():
@@ -53,7 +43,7 @@ def save_account_trades_questrade():
         end_date_str = end_date.strftime('%Y-%m-%dT%H:%M:%S-00:00')
 
         manager = SqlAlchemySessionManager()
-        with manager.session_scope(db_url='postgresql://postgres:navo1234@localhost:5432/fin_app_core_db', template_name='default_session') as session:
+        with manager.session_scope(db_url='postgresql://postgres:pwd@localhost:5432/fin_app_core_db', template_name='default_session') as session:
             url = 'https://api05.iq.questrade.com/v1/accounts/27261142/activities'
             url += '?' + 'startTime=' + start_date_str + '&' + 'endTime=' + end_date_str
             headers = {"Authorization": "Bearer ddOtrG5eAc_pYzT9Lq_3yIzM-HX5AuAl0"}
@@ -110,7 +100,7 @@ def save_account_trades_ibkr():
     #assumes that there were no transactions made prior to this
 
     manager = SqlAlchemySessionManager()
-    with manager.session_scope(db_url='postgresql://postgres:navo1234@localhost:5432/fin_app_core_db', template_name='default_session') as session:
+    with manager.session_scope(db_url='postgresql://postgres:pwd@localhost:5432/fin_app_core_db', template_name='default_session') as session:
         for idx, row in ibkr_trade_logs_df.iterrows():
             symbol = row['Symbol']
             if row['AssetClass'] == 'OPT':
@@ -351,7 +341,7 @@ def generate_tax_report():
                                    'brokerage_reported_capital_gain', 'trade_logs_reported_capital_gain', 'brokerage_reported_capital_gain_base_currency', 'trade_logs_reported_capital_gain_base_currency_avg_fx_rate'])
 
     manager = SqlAlchemySessionManager()
-    with manager.session_scope(db_url='postgresql://postgres:navo1234@localhost:5432/fin_app_core_db', template_name='default_session') as session:
+    with manager.session_scope(db_url='postgresql://postgres:pwd@localhost:5432/fin_app_core_db', template_name='default_session') as session:
         df = pd.read_sql(session.query(AccountTrade).filter(AccountTrade.trade_date <= tax_year_end).statement, session.bind)
         df = df.replace({np.nan: None})
         df = df.sort_values(['trade_date']).groupby('symbol')
@@ -763,55 +753,7 @@ def calculate_taxes_due_file():
 
 
 if __name__ == "__main__":
-    #save_account_trades_ibkr()
-    #generate_tax_report()
-    #match_t5008_with_trade_logs()
-    #mark_wash_sales()
-    #save_account_trades_questrade()
+
 
     calculate_taxes_due_file()
 
-    #save_account_trades_questrade()
-    #save_account_trades_ibkr()
-    
-    '''test()
-
-    tax_ctx_yr_2020 = TaxContextYear()
-    tax_ctx_yr_2020.year = 2020
-    usd_currency_2020 = TaxCurrency()
-    usd_currency_2020.currency = 'USD'
-    usd_currency_2020.fx_rate_to_base = 1.3415
-    cad_currency_2020 = TaxCurrency()
-    cad_currency_2020.currency = 'CAD'
-    cad_currency_2020.fx_rate_to_base = 1
-    pln_currency_2020 = TaxCurrency()
-    pln_currency_2020.currency = 'PLN'
-    pln_currency_2020.fx_rate_to_base = 3444
-
-    tax_ctx_yr_2020.currencies.append(usd_currency_2020)
-    tax_ctx_yr_2020.currencies.append(cad_currency_2020)
-    tax_ctx_yr_2020.currencies.append(pln_currency_2020)
-
-    tax_ctx_yr_2021 = TaxContextYear()
-    tax_ctx_yr_2021.year = 2021
-    usd_currency_2021 = TaxCurrency()
-    usd_currency_2021.currency = 'USD'
-    usd_currency_2021.fx_rate_to_base = 1.2535
-    cad_currency_2021 = TaxCurrency()
-    cad_currency_2021.currency = 'CAD'
-    cad_currency_2021.fx_rate_to_base = 1
-    tax_ctx_yr_2021.currencies.append(usd_currency_2021)
-    tax_ctx_yr_2021.currencies.append(cad_currency_2021)
-
-    tax_ctx = TaxContext()
-    tax_ctx.years.append(tax_ctx_yr_2020)
-    tax_ctx.years.append(tax_ctx_yr_2021)
-
-    manager = SqlAlchemySessionManager()
-    with manager.session_scope(db_url='postgresql://postgres:navo1234@localhost:5432/fin_app_core_db', template_name='default_session') as session:
-        #trades = session.query(AccountTrade).order_by(AccountTrade.trade_date.asc()).all()
-        trades = session.query(AccountTrade).filter(AccountTrade.underlying_symbol == 'ZM').order_by(AccountTrade.trade_date.asc()).all()
-        trade_groups = group_trades(trades)
-
-        taxes = calculate_taxes(tax_ctx, trade_groups, 2020, 2021)
-        i = 2'''

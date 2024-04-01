@@ -95,7 +95,7 @@ def calculate_eps():
 
 if __name__ == "__main__":
     manager = SqlAlchemySessionManager()
-    with manager.session_scope(db_url="postgresql://postgres:navo1234@localhost:5432/fin_app_core_db", template_name='default_session') as session:
+    with manager.session_scope(db_url="postgresql://postgres:pwd@localhost:5432/fin_app_core_db", template_name='default_session') as session:
         aapl_financials = session.query(CompanyQuarterlyFinancialData).filter(CompanyQuarterlyFinancialData.company_id == 13940).order_by(CompanyQuarterlyFinancialData.calendar_date.desc()).all()
         aapl_financials = aapl_financials[:4]
         debt_current = 0
